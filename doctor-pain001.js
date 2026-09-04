@@ -1,9 +1,9 @@
-// doctor-pain001.js — SEPA pain.001 Doctor (slovenské banky) core logic.
+// doctor-pain001.js: SEPA pain.001 Doctor (slovenské banky) core logic.
 //
 // Pure, deterministic, 100% client-side: given the text of a SEPA
 // pain.001.001.03 XML batch payment file (hromadný príkaz na úhradu) and the
 // target Slovak bank, parses the XML with a small dependency-free tolerant
-// parser (works identically in the browser and in Node — no DOMParser, no
+// parser (works identically in the browser and in Node: no DOMParser, no
 // npm dependency) and cross-checks it against that bank's own published
 // import requirements, returning concrete problems + copy-paste fixes.
 //
@@ -13,7 +13,7 @@
 // Sources (fetched directly, quoted/paraphrased inline near each check):
 //  - Tatra banka: "Prenosový formát pain.001.001.03 v štruktúre XML"
 //      C:\Users\User\Downloads\prenosovy_formatpain001.pdf (read in full,
-//      pages 1-8) — GrpHdr/PmtInf field tables, "Max. 500 transakcií v
+//      pages 1-8): GrpHdr/PmtInf field tables, "Max. 500 transakcií v
 //      súbore", ReqdExctnDt "Nesmie byť spätný dátum a dopredný dátum viac
 //      ako 31 dní", DbtrAgt/BIC "Musí byť iba TATRSKBX", CdtrAgt/BIC
 //      derivation-from-IBAN rule, Slovak BBAN modulo-11 check on the last 10
@@ -21,21 +21,21 @@
 //      Ustrd."
 //  - VÚB, a.s.: "Popis formátu pre SEPA úhrady - SCT"
 //      https://app.vub.sk/source/files/vubweb/sekundarna-navigacia/informacny-servis/sepa-aplikacie/sct_klient_f.pdf
-//      (fetched directly) — "VÚB akceptuje platby s požadovaným dátumom
+//      (fetched directly): "VÚB akceptuje platby s požadovaným dátumom
 //      zaúčtovania platby max +30 dní vopred", DbtrAgt BIC "SUBASKBX",
 //      Creditor Agent BIC AT23 marked Mandatory ("M"), PmtMtd "TRF", SvcLvl
 //      Cd "SEPA", ChrgBr "SLEV", InstrPrty NORM/HIGH with HIGH processed as
 //      a priority/fee-bearing payment instead of standard SEPA.
 //  - ČSOB: "BusinessBanking Lite a SEPA" (20.08.2015)
 //      https://www.csob.sk/documents/11005/123723/BB_SEPA_01022016.pdf
-//      (fetched directly) — "SEPA XML s diakritikou nie je možné do
+//      (fetched directly): "SEPA XML s diakritikou nie je možné do
 //      BusinessBanking Lite importovať", exact allowed character set
 //      (a-z, A-Z, 0-9, / – ? : ( ) . , ' +), BIC banky príjemcu "od 1.2.2016
 //      bude BIC nepovinný", VS/ŠS/KS convention "/VS.../SS.../KS..." in
 //      that exact order with worked wrong-order examples.
 //  - ISO 20022 pain.001.001.03 (base schema referenced by all of the above;
 //      https://www.iso20022.org/) and the EPC SEPA Credit Transfer scheme
-//      rulebook (https://www.europeanpaymentscouncil.eu/) — general
+//      rulebook (https://www.europeanpaymentscouncil.eu/): general
 //      Max35Text/Max70Text/Max140Text field-length conventions, EUR-only
 //      InstdAmt, PmtMtd=TRF / ChrgBr=SLEV as scheme-level fixed values.
 //  - Slovenská sporiteľňa (SLSP): no field-level pain.001 spec is published
@@ -64,7 +64,7 @@ function isNum(v) {
 // identical behaviour in the browser and in tests.mjs). Handles elements,
 // attributes, text, CDATA, comments, and the XML declaration / DOCTYPE
 // (skipped). Tracks well-formedness (unclosed / mismatched tags) without
-// giving up on the rest of the document — a bank's own import will refuse a
+// giving up on the rest of the document: a bank's own import will refuse a
 // malformed file outright, but we still want to report every other problem
 // we can find in what we did manage to parse.
 
@@ -140,7 +140,7 @@ function parseXml(text) {
       continue;
     }
     if (src.startsWith('<!', lt)) {
-      // DOCTYPE or similar — skip to next '>' (no nested-bracket support, fine for pain.001 files)
+      // DOCTYPE or similar: skip to next '>' (no nested-bracket support, fine for pain.001 files)
       const end = src.indexOf('>', lt + 2);
       i = end === -1 ? len : end + 1;
       continue;
@@ -315,7 +315,7 @@ function checkIban(rawIban) {
 }
 
 // Slovak domestic BBAN check ("posledných 10 miest čísla IBAN musí
-// vyhovovať algoritmu modulo11" — Tatra banka spec, section 2.80): the last
+// vyhovovať algoritmu modulo11": Tatra banka spec, section 2.80): the last
 // 10 digits of the IBAN (the "základné číslo účtu") weighted from the left
 // by [6,3,7,9,10,5,8,4,2,1] must sum to a multiple of 11.
 const SK_MOD11_WEIGHTS = [6, 3, 7, 9, 10, 5, 8, 4, 2, 1];
@@ -514,7 +514,7 @@ export function diagnose(input) {
     addProblem({
       code: 'xml_not_well_formed',
       severity: 'high',
-      message: 'XML nie je správne formované (well-formed) — ' + parsed.errors[0] + (parsed.errors.length > 1 ? ` (a ${parsed.errors.length - 1} ďalších problémov so štruktúrou.)` : '') + ' Banka takýto súbor odmietne skôr, než sa dostane k obsahu platieb.',
+      message: 'XML nie je správne formované (well-formed): ' + parsed.errors[0] + (parsed.errors.length > 1 ? ` (a ${parsed.errors.length - 1} ďalších problémov so štruktúrou.)` : '') + ' Banka takýto súbor odmietne skôr, než sa dostane k obsahu platieb.',
       path: '',
     });
   }
@@ -535,7 +535,7 @@ export function diagnose(input) {
     addProblem({
       code: 'schema_namespace_missing',
       severity: 'medium',
-      message: 'Element <Document> nemá nastavený menný priestor (xmlns). Všetky štyri banky spracúvajú pain.001.001.03 s menným priestorom "' + PAIN_NAMESPACE + '" — bez neho môže import zlyhať alebo byť interpretovaný nesprávne.',
+      message: 'Element <Document> nemá nastavený menný priestor (xmlns). Všetky štyri banky spracúvajú pain.001.001.03 s menným priestorom "' + PAIN_NAMESPACE + '": bez neho môže import zlyhať alebo byť interpretovaný nesprávne.',
       path: 'Document',
       fix: `xmlns="${PAIN_NAMESPACE}"`,
     });
@@ -544,7 +544,7 @@ export function diagnose(input) {
     addProblem({
       code: 'schema_namespace_unexpected',
       severity: 'medium',
-      message: `Menný priestor "${ns}" nie je pain.001.001.03. ${looksNewer ? 'Vyzerá to na novšiu verziu pain.001, ktorú tieto banky pri importe hromadného príkazu nepodporujú' : 'Tatra banka, SLSP, VÚB aj ČSOB pri importe hromadného príkazu spracúvajú pain.001.001.03'} — súbor s iným menným priestorom banka odmietne alebo import zlyhá bez jasnej príčiny.`,
+      message: `Menný priestor "${ns}" nie je pain.001.001.03. ${looksNewer ? 'Vyzerá to na novšiu verziu pain.001, ktorú tieto banky pri importe hromadného príkazu nepodporujú' : 'Tatra banka, SLSP, VÚB aj ČSOB pri importe hromadného príkazu spracúvajú pain.001.001.03'}: súbor s iným menným priestorom banka odmietne alebo import zlyhá bez jasnej príčiny.`,
       path: 'Document',
       value: ns,
       fix: `xmlns="${PAIN_NAMESPACE}"`,
@@ -597,7 +597,7 @@ export function diagnose(input) {
         addProblem({ code: 'invalid_sepa_character', severity: 'low', message: 'GrpHdr/MsgId obsahuje znaky mimo bežnej SEPA znakovej sady (a-z A-Z 0-9 / - ? : ( ) . , \' + medzera). Odporúčame používať len tieto znaky pre istotu naprieč bankami.', path: 'CstmrCdtTrfInitn/GrpHdr/MsgId', value: msgId, fix: transliterate(msgId) });
       }
     } else {
-      checklist.push('GrpHdr/MsgId nie je vyplnené — nepovinné pre Tatra banku, no odporúčame vlastný jedinečný identifikátor súboru pre spätné dohľadanie.');
+      checklist.push('GrpHdr/MsgId nie je vyplnené: nepovinné pre Tatra banku, no odporúčame vlastný jedinečný identifikátor súboru pre spätné dohľadanie.');
     }
 
     const creDtTmEl = firstChild(grpHdr, 'CreDtTm');
@@ -622,7 +622,7 @@ export function diagnose(input) {
         });
       }
     } else {
-      checklist.push(`GrpHdr/NbOfTxs nie je vyplnené — odporúčame doplniť presnú hodnotu ${actualTxCount}, aj keď Tatra banka toto pole nevyžaduje, iné importy naň spoliehajú.`);
+      checklist.push(`GrpHdr/NbOfTxs nie je vyplnené: odporúčame doplniť presnú hodnotu ${actualTxCount}, aj keď Tatra banka toto pole nevyžaduje, iné importy naň spoliehajú.`);
     }
 
     const ctrlSumEl = firstChild(grpHdr, 'CtrlSum');
@@ -639,7 +639,7 @@ export function diagnose(input) {
         });
       }
     } else {
-      checklist.push(`GrpHdr/CtrlSum nie je vyplnené — odporúčame doplniť presnú hodnotu ${fmtAmount(actualSum)}.`);
+      checklist.push(`GrpHdr/CtrlSum nie je vyplnené: odporúčame doplniť presnú hodnotu ${fmtAmount(actualSum)}.`);
     }
 
     const initgPty = firstChild(grpHdr, 'InitgPty');
@@ -651,7 +651,7 @@ export function diagnose(input) {
           addProblem({
             code: 'initg_pty_name_pattern',
             severity: 'low',
-            message: `Tatra banka očakáva GrpHdr/InitgPty/Nm vo formáte [A-Za-z0-9]{1,10}/[A-Z]{2} (napr. "ABC1234567/SK"), ak je toto pole vyplnené. Hodnota "${nm}" tomuto vzoru nezodpovedá — pole je však celkovo nepovinné, takže ho pokojne aj úplne vynechajte.`,
+            message: `Tatra banka očakáva GrpHdr/InitgPty/Nm vo formáte [A-Za-z0-9]{1,10}/[A-Z]{2} (napr. "ABC1234567/SK"), ak je toto pole vyplnené. Hodnota "${nm}" tomuto vzoru nezodpovedá: pole je však celkovo nepovinné, takže ho pokojne aj úplne vynechajte.`,
             path: 'CstmrCdtTrfInitn/GrpHdr/InitgPty/Nm',
             value: nm,
           });
@@ -672,7 +672,7 @@ export function diagnose(input) {
         severity: bankKey === 'csob' ? 'high' : 'medium',
         message: bankKey === 'csob'
           ? `"${value}" obsahuje diakritiku. ČSOB výslovne uvádza, že SEPA XML súbor s diakritikou sa do BusinessBanking Lite nedá importovať vôbec.`
-          : `"${value}" obsahuje diakritiku. SEPA XML znaková sada (podľa dokumentácie ČSOB, platí všeobecne) povoľuje len a-z A-Z 0-9 / - ? : ( ) . , ' + a medzeru — diakritika môže spôsobiť odmietnutie importu.`,
+          : `"${value}" obsahuje diakritiku. SEPA XML znaková sada (podľa dokumentácie ČSOB, platí všeobecne) povoľuje len a-z A-Z 0-9 / - ? : ( ) . , ' + a medzeru: diakritika môže spôsobiť odmietnutie importu.`,
         path: elPath,
         value,
         fix: transliterate(value),
@@ -698,9 +698,9 @@ export function diagnose(input) {
     const txList = allChildren(pmtInf, 'CdtTrfTxInf');
 
     if (bankKey === 'tatrabanka' && txList.length > 500) {
-      addProblem({ code: 'pmt_inf_tx_count_exceeded', severity: 'high', message: `PmtInf[${pmtIdx + 1}] obsahuje ${txList.length} transakcií. Tatra banka povoľuje maximálne 500 transakcií v jednom bloku PmtInf ("Max. 500 transakcií v súbore") — súbor rozdeľte na viac blokov/súborov.`, path: pmtPath, value: String(txList.length) });
+      addProblem({ code: 'pmt_inf_tx_count_exceeded', severity: 'high', message: `PmtInf[${pmtIdx + 1}] obsahuje ${txList.length} transakcií. Tatra banka povoľuje maximálne 500 transakcií v jednom bloku PmtInf ("Max. 500 transakcií v súbore"): súbor rozdeľte na viac blokov/súborov.`, path: pmtPath, value: String(txList.length) });
     } else if (bankKey !== 'tatrabanka' && txList.length > 500) {
-      addProblem({ code: 'pmt_inf_tx_count_exceeded_generic', severity: 'low', message: `PmtInf[${pmtIdx + 1}] obsahuje ${txList.length} transakcií. Tatra banka má zdokumentovaný limit 500 transakcií na blok — aj iné banky bežne obmedzujú veľkosť dávky, overte limit vašej banky.`, path: pmtPath, value: String(txList.length) });
+      addProblem({ code: 'pmt_inf_tx_count_exceeded_generic', severity: 'low', message: `PmtInf[${pmtIdx + 1}] obsahuje ${txList.length} transakcií. Tatra banka má zdokumentovaný limit 500 transakcií na blok: aj iné banky bežne obmedzujú veľkosť dávky, overte limit vašej banky.`, path: pmtPath, value: String(txList.length) });
     }
 
     const pmtMtdEl = firstChild(pmtInf, 'PmtMtd');
@@ -734,7 +734,7 @@ export function diagnose(input) {
         } else if (bank.execWindowDays != null && diffDays > bank.execWindowDays) {
           addProblem({ code: 'exec_date_too_far_future', severity: 'high', message: `PmtInf[${pmtIdx + 1}]/ReqdExctnDt (${reqdExctnDtRaw}) je ${diffDays} dní dopredu. ${bank.label} akceptuje maximálne ${bank.execWindowDays} dní vopred.`, path: `${pmtPath}/ReqdExctnDt`, value: reqdExctnDtRaw });
         } else if (bank.execWindowDays == null && diffDays > 31) {
-          addProblem({ code: 'exec_date_too_far_future', severity: 'low', message: `PmtInf[${pmtIdx + 1}]/ReqdExctnDt (${reqdExctnDtRaw}) je ${diffDays} dní dopredu. Tatra banka aj VÚB majú zdokumentovaný limit 31, resp. 30 dní — overte limit vašej banky, ak nie je vybraná vyššie.`, path: `${pmtPath}/ReqdExctnDt`, value: reqdExctnDtRaw });
+          addProblem({ code: 'exec_date_too_far_future', severity: 'low', message: `PmtInf[${pmtIdx + 1}]/ReqdExctnDt (${reqdExctnDtRaw}) je ${diffDays} dní dopredu. Tatra banka aj VÚB majú zdokumentovaný limit 31, resp. 30 dní: overte limit vašej banky, ak nie je vybraná vyššie.`, path: `${pmtPath}/ReqdExctnDt`, value: reqdExctnDtRaw });
         }
         if (bankKey === 'tatrabanka') {
           if (prevExecDate && prevExecDate !== reqdExctnDtRaw) {
@@ -795,7 +795,7 @@ export function diagnose(input) {
       const effChrgBr = pmtInfChrgBr || txChrgBr;
 
       if (effInstrPrty && effInstrPrty !== 'NORM') {
-        addProblem({ code: 'instr_prty_not_norm', severity: 'medium', message: `${txPath}: InstrPrty je "${effInstrPrty}". Pre SEPA úhradu musí byť "NORM" — hodnota "HIGH" spôsobí, že banka platbu spracuje ako prioritnú/spoplatnenú, nie ako štandardnú SEPA úhradu.`, path: `${txPath}/PmtTpInf/InstrPrty`, value: effInstrPrty, fix: 'NORM' });
+        addProblem({ code: 'instr_prty_not_norm', severity: 'medium', message: `${txPath}: InstrPrty je "${effInstrPrty}". Pre SEPA úhradu musí byť "NORM": hodnota "HIGH" spôsobí, že banka platbu spracuje ako prioritnú/spoplatnenú, nie ako štandardnú SEPA úhradu.`, path: `${txPath}/PmtTpInf/InstrPrty`, value: effInstrPrty, fix: 'NORM' });
       }
       if (!effSvcLvl) {
         addProblem({ code: 'svc_lvl_missing_or_invalid', severity: 'high', message: `${txPath}: PmtTpInf/SvcLvl/Cd chýba (na úrovni PmtInf aj transakcie). Musí byť "SEPA".`, path: `${txPath}/PmtTpInf/SvcLvl/Cd`, fix: 'SEPA' });
@@ -803,7 +803,7 @@ export function diagnose(input) {
         addProblem({ code: 'svc_lvl_missing_or_invalid', severity: 'high', message: `${txPath}: PmtTpInf/SvcLvl/Cd je "${effSvcLvl}", musí byť "SEPA".`, path: `${txPath}/PmtTpInf/SvcLvl/Cd`, value: effSvcLvl, fix: 'SEPA' });
       }
       if (!effChrgBr) {
-        addProblem({ code: 'chrg_br_missing', severity: 'medium', message: `${txPath}: ChrgBr chýba (na úrovni PmtInf aj transakcie). Pre SEPA úhradu musí byť "SLEV" — bez neho ho banka síce zvyčajne doplní sama (VÚB), ale spoliehať sa na to nie je bezpečné naprieč bankami.`, path: `${txPath}/ChrgBr`, fix: 'SLEV' });
+        addProblem({ code: 'chrg_br_missing', severity: 'medium', message: `${txPath}: ChrgBr chýba (na úrovni PmtInf aj transakcie). Pre SEPA úhradu musí byť "SLEV": bez neho ho banka síce zvyčajne doplní sama (VÚB), ale spoliehať sa na to nie je bezpečné naprieč bankami.`, path: `${txPath}/ChrgBr`, fix: 'SLEV' });
       } else if (effChrgBr !== 'SLEV') {
         addProblem({ code: 'chrg_br_invalid', severity: 'high', message: `${txPath}: ChrgBr je "${effChrgBr}", musí byť "SLEV" pre SEPA úhradu.`, path: `${txPath}/ChrgBr`, value: effChrgBr, fix: 'SLEV' });
       }
@@ -820,17 +820,17 @@ export function diagnose(input) {
         const refs = analyzeReferenceSymbols(endToEndId);
         if (refs) {
           if (!refs.orderOk) {
-            addProblem({ code: 'reference_symbol_order', severity: 'medium', message: `${txPath}: EndToEndId "${endToEndId}" má VS/ŠS/KS v nesprávnom poradí. Konvencia NBS vyžaduje presne /VS/SS/KS — inak si protistrana platbu nevie automaticky spárovať s faktúrou (samotný prevod prejde v poriadku).`, path: `${txPath}/PmtId/EndToEndId`, value: endToEndId, fix: refs.canonical });
+            addProblem({ code: 'reference_symbol_order', severity: 'medium', message: `${txPath}: EndToEndId "${endToEndId}" má VS/ŠS/KS v nesprávnom poradí. Konvencia NBS vyžaduje presne /VS/SS/KS: inak si protistrana platbu nevie automaticky spárovať s faktúrou (samotný prevod prejde v poriadku).`, path: `${txPath}/PmtId/EndToEndId`, value: endToEndId, fix: refs.canonical });
           }
           if (refs.lengthIssues.length) {
             const limits = { VS: 10, SS: 10, KS: 4 };
             for (const li of refs.lengthIssues) {
-              addProblem({ code: 'reference_symbol_too_long', severity: 'medium', message: `${txPath}: EndToEndId — ${li.kind}="${li.value}" má ${li.value.length} číslic, maximum je ${limits[li.kind]}.`, path: `${txPath}/PmtId/EndToEndId`, value: endToEndId });
+              addProblem({ code: 'reference_symbol_too_long', severity: 'medium', message: `${txPath}: EndToEndId: ${li.kind}="${li.value}" má ${li.value.length} číslic, maximum je ${limits[li.kind]}.`, path: `${txPath}/PmtId/EndToEndId`, value: endToEndId });
             }
           }
           if (refs.nonNumericIssues.length) {
             for (const ni of refs.nonNumericIssues) {
-              addProblem({ code: 'reference_symbol_non_numeric', severity: 'medium', message: `${txPath}: EndToEndId — ${ni.kind}="${ni.value}" obsahuje nečíselné znaky. VS/ŠS/KS sú vždy len číslice.`, path: `${txPath}/PmtId/EndToEndId`, value: endToEndId });
+              addProblem({ code: 'reference_symbol_non_numeric', severity: 'medium', message: `${txPath}: EndToEndId: ${ni.kind}="${ni.value}" obsahuje nečíselné znaky. VS/ŠS/KS sú vždy len číslice.`, path: `${txPath}/PmtId/EndToEndId`, value: endToEndId });
             }
           }
         }
@@ -871,7 +871,7 @@ export function diagnose(input) {
       if (!cdtrNm) {
         const severity = bankKey === 'tatrabanka' ? 'medium' : 'high';
         const msg = bankKey === 'tatrabanka'
-          ? `${txPath}: Cdtr/Nm chýba. Tatra banka ho pri spracovaní doplní z účtu príjemcu, ak je vedený v Tatra banke — ak nie, doplní hodnotu "NOTPROVIDED", čo protistrana uvidí namiesto skutočného mena.`
+          ? `${txPath}: Cdtr/Nm chýba. Tatra banka ho pri spracovaní doplní z účtu príjemcu, ak je vedený v Tatra banke: ak nie, doplní hodnotu "NOTPROVIDED", čo protistrana uvidí namiesto skutočného mena.`
           : `${txPath}: Cdtr/Nm chýba. Meno príjemcu je povinné.`;
         addProblem({ code: 'cdtr_name_missing', severity, message: msg, path: `${txPath}/Cdtr/Nm` });
       } else {
@@ -910,15 +910,15 @@ export function diagnose(input) {
       const cdtrAgtBic = textOf(path(cdtrAgt, 'FinInstnId') && firstChild(path(cdtrAgt, 'FinInstnId'), 'BIC'));
       if (!cdtrAgtBic) {
         if (bank.cdtrBicPolicy === 'mandatory') {
-          addProblem({ code: 'cdtr_bic_missing_required', severity: 'high', message: `${txPath}: CdtrAgt/FinInstnId/BIC chýba. VÚB vo vlastnej špecifikácii (Creditor Agent BIC, AT23) označuje toto pole ako povinné (Mandatory) — na rozdiel od Tatra banky, ktorá ho vie odvodiť z IBAN.`, path: `${txPath}/CdtrAgt/FinInstnId/BIC` });
+          addProblem({ code: 'cdtr_bic_missing_required', severity: 'high', message: `${txPath}: CdtrAgt/FinInstnId/BIC chýba. VÚB vo vlastnej špecifikácii (Creditor Agent BIC, AT23) označuje toto pole ako povinné (Mandatory): na rozdiel od Tatra banky, ktorá ho vie odvodiť z IBAN.`, path: `${txPath}/CdtrAgt/FinInstnId/BIC` });
         } else if (bank.cdtrBicPolicy === 'derivable') {
           if (cdtrIbanCheck && cdtrIbanCheck.formatOk && !cdtrIbanCheck.isSepaCountry) {
-            addProblem({ code: 'cdtr_bic_missing_required', severity: 'high', message: `${txPath}: CdtrAgt/FinInstnId/BIC chýba a IBAN príjemcu nepatrí do SEPA priestoru. Tatra banka BIC odvodí z IBAN len ak IBAN patrí banke zo SEPA priestoru — inak platbu zamietne.`, path: `${txPath}/CdtrAgt/FinInstnId/BIC` });
+            addProblem({ code: 'cdtr_bic_missing_required', severity: 'high', message: `${txPath}: CdtrAgt/FinInstnId/BIC chýba a IBAN príjemcu nepatrí do SEPA priestoru. Tatra banka BIC odvodí z IBAN len ak IBAN patrí banke zo SEPA priestoru: inak platbu zamietne.`, path: `${txPath}/CdtrAgt/FinInstnId/BIC` });
           } else {
-            checklist.push(`${bank.label} vie CdtrAgt/BIC odvodiť z platného SEPA IBAN príjemcu (${txPath}) — chýbajúci BIC tu nie je chyba, len uistite sa, že IBAN je správny.`);
+            checklist.push(`${bank.label} vie CdtrAgt/BIC odvodiť z platného SEPA IBAN príjemcu (${txPath}): chýbajúci BIC tu nie je chyba, len uistite sa, že IBAN je správny.`);
           }
         } else if (bank.cdtrBicPolicy === 'optional') {
-          checklist.push(`ČSOB robí CdtrAgt/BIC od 1.2.2016 nepovinným pre SEPA platby (${txPath}) — chýbajúci BIC tu nie je chyba.`);
+          checklist.push(`ČSOB robí CdtrAgt/BIC od 1.2.2016 nepovinným pre SEPA platby (${txPath}): chýbajúci BIC tu nie je chyba.`);
         }
       } else {
         if (!bicFormatOk(cdtrAgtBic)) {
@@ -928,7 +928,7 @@ export function diagnose(input) {
           const bankCode = bban.slice(0, 4);
           const derivedBic = SK_BANK_CODE_TO_BIC[bankCode];
           if (derivedBic && derivedBic.slice(0, 6) !== cdtrAgtBic.toUpperCase().slice(0, 6)) {
-            addProblem({ code: 'cdtr_bic_mismatch_iban', severity: 'medium', message: `${txPath}: CdtrAgt/FinInstnId/BIC "${cdtrAgtBic}" sa nezhoduje s bankou odvodenou z IBAN (kód banky ${bankCode} → ${derivedBic}). Tatra banka porovnáva prvých 6 znakov zadaného a vypočítaného BIC — pri nezhode platbu zamietne.`, path: `${txPath}/CdtrAgt/FinInstnId/BIC`, value: cdtrAgtBic, fix: derivedBic });
+            addProblem({ code: 'cdtr_bic_mismatch_iban', severity: 'medium', message: `${txPath}: CdtrAgt/FinInstnId/BIC "${cdtrAgtBic}" sa nezhoduje s bankou odvodenou z IBAN (kód banky ${bankCode} → ${derivedBic}). Tatra banka porovnáva prvých 6 znakov zadaného a vypočítaného BIC: pri nezhode platbu zamietne.`, path: `${txPath}/CdtrAgt/FinInstnId/BIC`, value: cdtrAgtBic, fix: derivedBic });
           }
         }
       }
@@ -937,7 +937,7 @@ export function diagnose(input) {
       if (rmtInf) {
         const ustrdList = allChildren(rmtInf, 'Ustrd');
         if (ustrdList.length > 1) {
-          addProblem({ code: 'rmt_inf_multiple_ustrd', severity: 'low', message: `${txPath}: RmtInf obsahuje ${ustrdList.length} elementov Ustrd. Povolená je iba jedna inštancia — nadbytočné banka pri spracovaní odstráni.`, path: `${txPath}/RmtInf/Ustrd` });
+          addProblem({ code: 'rmt_inf_multiple_ustrd', severity: 'low', message: `${txPath}: RmtInf obsahuje ${ustrdList.length} elementov Ustrd. Povolená je iba jedna inštancia: nadbytočné banka pri spracovaní odstráni.`, path: `${txPath}/RmtInf/Ustrd` });
         }
         if (ustrdList[0]) {
           const ustrd = textOf(ustrdList[0]);
@@ -951,7 +951,7 @@ export function diagnose(input) {
       if (bankKey === 'slsp') {
         const lclInstrmCd = textOf(path(txPmtTpInf, 'LclInstrm') && firstChild(path(txPmtTpInf, 'LclInstrm'), 'Cd')) || textOf(path(pmtTpInf, 'LclInstrm') && firstChild(path(pmtTpInf, 'LclInstrm'), 'Cd'));
         if (!lclInstrmCd) {
-          addProblem({ code: 'slsp_instant_flag_absent', severity: 'low', message: `${txPath}: PmtTpInf/LclInstrm/Cd nie je nastavené. Ak má byť táto platba spracovaná ako okamžitá (instant), Business24 vyžaduje hodnotu "INST" — bez nej sa platba spracuje ako bežná SEPA úhrada, bez chybového hlásenia.`, path: `${txPath}/PmtTpInf/LclInstrm/Cd` });
+          addProblem({ code: 'slsp_instant_flag_absent', severity: 'low', message: `${txPath}: PmtTpInf/LclInstrm/Cd nie je nastavené. Ak má byť táto platba spracovaná ako okamžitá (instant), Business24 vyžaduje hodnotu "INST": bez nej sa platba spracuje ako bežná SEPA úhrada, bez chybového hlásenia.`, path: `${txPath}/PmtTpInf/LclInstrm/Cd` });
         }
       }
     });
@@ -986,16 +986,16 @@ export function diagnose(input) {
   }
 
   if (xmlText.length > 1_000_000) {
-    addProblem({ code: 'file_too_large', severity: 'low', message: `Súbor má približne ${(xmlText.length / 1024 / 1024).toFixed(2)} MB. Veľmi veľké súbory môžu importný formulár banky spomaliť alebo prekročiť jeho limit — zvážte rozdelenie do viacerých súborov.`, path: '' });
+    addProblem({ code: 'file_too_large', severity: 'low', message: `Súbor má približne ${(xmlText.length / 1024 / 1024).toFixed(2)} MB. Veľmi veľké súbory môžu importný formulár banky spomaliť alebo prekročiť jeho limit: zvážte rozdelenie do viacerých súborov.`, path: '' });
   }
   if (actualTxCount > 5000) {
-    addProblem({ code: 'too_many_transactions_generic', severity: 'low', message: `Súbor obsahuje ${actualTxCount} transakcií. Aj mimo Tatra banky (limit 500/PmtInf) je bežné, že banky obmedzujú veľkosť jednej dávky — pri veľkých súboroch overte limit vopred.`, path: '' });
+    addProblem({ code: 'too_many_transactions_generic', severity: 'low', message: `Súbor obsahuje ${actualTxCount} transakcií. Aj mimo Tatra banky (limit 500/PmtInf) je bežné, že banky obmedzujú veľkosť jednej dávky: pri veľkých súboroch overte limit vopred.`, path: '' });
   }
 
-  checklist.push('Po každej úprave XML spustite kontrolu znova — banka validuje súbor nanovo pri každom importe.');
+  checklist.push('Po každej úprave XML spustite kontrolu znova: banka validuje súbor nanovo pri každom importe.');
   checklist.push('Skontrolujte, že účtovný softvér (Pohoda, Money S3, KROS Omega, vlastný export...) generuje presne pain.001.001.03, nie novšiu verziu.');
   if (bankKey === 'generic') {
-    checklist.push('Bez vybranej konkrétnej banky sa neoverujú BIC banky, limit počtu transakcií ani okno dátumu splatnosti — vyberte banku pre presnejšiu diagnózu.');
+    checklist.push('Bez vybranej konkrétnej banky sa neoverujú BIC banky, limit počtu transakcií ani okno dátumu splatnosti: vyberte banku pre presnejšiu diagnózu.');
   }
 
   return finish();
@@ -1035,7 +1035,7 @@ export function diagnose(input) {
       fixes,
       checklist: Array.from(new Set(checklist)),
       disclaimer:
-        'Tento nástroj nie je banka a nič neoveruje voči vášmu skutočnému bankovému účtu ani voči systémom Tatra banky, SLSP, VÚB či ČSOB. Ide o čisto formátovú, klientskú kontrolu XML podľa verejne publikovaných špecifikácií týchto bánk a normy ISO 20022 / EPC SEPA Credit Transfer — nič z obsahu súboru sa nikam neodosiela. Čistý výsledok nie je zárukou, že banka platbu prijme; banky môžu svoje požiadavky kedykoľvek zmeniť.',
+        'Tento nástroj nie je banka a nič neoveruje voči vášmu skutočnému bankovému účtu ani voči systémom Tatra banky, SLSP, VÚB či ČSOB. Ide o čisto formátovú, klientskú kontrolu XML podľa verejne publikovaných špecifikácií týchto bánk a normy ISO 20022 / EPC SEPA Credit Transfer: nič z obsahu súboru sa nikam neodosiela. Čistý výsledok nie je zárukou, že banka platbu prijme; banky môžu svoje požiadavky kedykoľvek zmeniť.',
     };
   }
 }
