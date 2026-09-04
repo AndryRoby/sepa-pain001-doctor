@@ -1,0 +1,153 @@
+# SEPA pain.001 Doctor — hromadné príkazy pre slovenské banky
+
+> Free, client-side checker that finds why a SEPA pain.001 XML batch payment file (hromadný príkaz na úhradu) gets rejected by Tatra banka, Slovenská sporiteľňa (SLSP), VÚB, or ČSOB internet banking, and gives the exact bank rule it violates — instead of a bare "chyba" with no detail.
+
+Paste your `pain.001.001.03` XML, pick the target bank, and it parses the file and cross-checks it against that specific bank's own published import requirements — every rule below is sourced from the bank's own technical documentation, not a generic ISO 20022 reading. No account, no backend, nothing you paste leaves your browser.
+
+## Why one "pain.001" isn't enough
+
+Tatra banka, SLSP, VÚB, and ČSOB all say they accept "SEPA pain.001" batch imports. In practice each bank enforces a different subset of the ISO 20022 standard, with different fixed values, different limits, and different fallback behavior on the same nominal file format. A file built and tested against one bank routinely fails silently or with an unhelpful error at another — which is exactly the situation this tool targets: not "is this valid XML", but "is this valid **for this specific bank**".
+
+## What it checks
+
+- **Schema/namespace** — `pain.001.001.03`, i.e. root namespace `urn:iso:std:iso:20022:tech:xsd:pain.001.001.03`. This is the version all four banks' documented import formats target; a file exported by newer accounting software as `pain.001.001.09` (or another version) is a common source of an immediate, opaque rejection.
+- **Fixed field values** — `PmtMtd` must be `TRF`; `InstrPrty` must be `NORM` (VÚB explicitly allows `HIGH` too, but then processes the payment as an urgent, fee-bearing transfer instead of standard SEPA); `PmtTpInf/SvcLvl/Cd` must be `SEPA`; `ChrgBr` must be `SLEV`. VÚB's spec adds that asserting `SvcLvl/Cd = SEPA` on a payment that doesn't actually meet SEPA's conditions gets it rejected and excluded from processing rather than silently downgraded to a cross-border transfer.
+- **`ReqdExctnDt` window, bank-specific** — must not be in the past, and:
+  - Tatra banka: rejects a date more than **31 days** ahead ([*Prenosový formát pain.001.001.03 v štruktúre XML*](https://www.tatrabanka.sk/files/sk/personal/ucet-platby/elektronicke-bankovnictvo/internet-banking/davkove-platby/prenosovy_formatpain001.pdf), section 1.2, element `ReqdExctnDt`: "Nesmie byť spätný dátum a dopredný dátum viac ako 31 dní").
+  - VÚB: accepts a requested execution/booking date of **max +30 days** ahead ([*Popis formátu pre SEPA úhrady – SCT*](https://app.vub.sk/source/files/vubweb/sekundarna-navigacia/informacny-servis/sepa-aplikacie/sct_klient_f.pdf): "VÚB akceptuje platby s požadovaným dátumom zaúčtovania platby max +30 dní vopred").
+  - The date also must be identical for every payment inside one `PmtInf` block (Tatra banka's spec).
+- **Transaction count** — Tatra banka's spec caps `PmtInf` at **[1..500]**: "Max. 500 transakcií v súbore". A file with more transactions isn't truncated — it's rejected.
+- **Debtor bank identity** — the file's `DbtrAgt/FinInstnId/BIC` has to be the selected bank's own BIC: Tatra banka only accepts `TATRSKBX` there ("Musí byť iba 'TATRSKBX'"), VÚB's is `SUBASKBX`. A file whose debtor account is actually held at a different bank, imported into the wrong bank's internet banking, is a common copy-paste mistake when a company holds accounts at more than one bank.
+- **Creditor BIC handling — genuinely different per bank:**
+  - Tatra banka: `CdtrAgt/BIC` can be omitted if the creditor IBAN is valid and belongs to a SEPA-space bank (the BIC is derived from the IBAN); if a BIC is supplied anyway, its first 6 characters must match the derived one, and if the derived BIC isn't in SEPA space at all, the payment is rejected outright.
+  - VÚB: `Creditor Agent BIC (AT23)` is listed as **Mandatory** in VÚB's own field table — omitting it is not tolerated the way Tatra banka tolerates it.
+  - ČSOB: BIC of the creditor's bank became **optional** for SEPA payments from **1 February 2016** ([*BusinessBanking Lite a SEPA*](https://www.csob.sk/documents/11005/123723/BB_SEPA_01022016.pdf)).
+  A file that omits creditor BIC because it worked fine at Tatra banka or ČSOB will get rejected at VÚB for that reason alone.
+- **Character set / diacritics** — ČSOB documents, in plain terms, that a SEPA XML file containing diacritics **cannot be imported** into BusinessBanking Lite, and publishes the allowed set explicitly: `a-z A-Z 0-9 / – ? : ( ) . , ' +`. Any "š", "č", "ž", "ä", "ô", "ľ" etc. in a debtor/creditor name, address line, or remittance text — trivial to leave in when the value comes straight out of an accounting system's customer database — breaks the import. This is stricter than the base ISO 20022 SEPA character set most other documents only describe informally.
+- **Field length limits** — Debtor/creditor `Nm` capped at **70 characters** (Tatra banka, VÚB); unstructured remittance info `RmtInf/Ustrd` capped at **140 characters**, and **only one `Ustrd` instance** is allowed per transaction — a second one is silently dropped by Tatra banka ("Povolená je iba jedna inštancia Ustrd. Nadbytočné elementy budú odstránené.").
+- **VS/špecifický symbol/KS (Slovak payment reference symbols)** — `pain.001.001.03` has no dedicated fields for these. They must be packed into the end-to-end reference following the National Bank of Slovakia convention, in exact order: `/VS.../SS.../KS...`. ČSOB's own guide gives worked examples of the wrong order (`/VS123/KS0308/SS14` instead of `/VS123/SS14/KS0308`) breaking automatic reconciliation on the counterparty's side even though the transfer itself succeeds — the payment goes through, but nobody can match it to an invoice.
+- **Slovak creditor IBAN — a second, domestic checksum on top of MOD-97** — for a creditor IBAN issued by a Slovak bank, Tatra banka's spec additionally validates the last 10 digits of the BBAN against Slovakia's **modulo-11** algorithm. A structurally valid IBAN (correct international MOD-97 check digits) can still fail this bank-specific second check.
+- **Instant-payment flag at SLSP** — Slovenská sporiteľňa's Business24 only treats a payment as instant when `PmtTpInf/LclInstrm/Cd` is set to `INST`, either at the file/group header level or per individual payment. An export that doesn't set it is processed as a normal (non-instant) SEPA transfer with no error — the file "succeeds" but not the way the payroll run intended.
+
+## Who it's for
+
+Slovak and Czech accountants, ERP/e-shop developers, and business owners whose accounting software (Pohoda, Money S3, KROS Omega, or a custom in-house export) produces a `pain.001` batch payment file that Tatra banka, SLSP, VÚB, or ČSOB internet banking rejects — with an error message that names an error code but not which element or value caused it.
+
+## How it works
+
+Static HTML plus one dependency-free JavaScript file, `doctor-pain001.js`. The page parses the XML you paste and runs the checks above entirely client-side. There is no backend, no upload, and no request that carries your payment data anywhere — read `index.html` and `doctor-pain001.js` directly to verify.
+
+## Worked example
+
+Input — a batch file exported by an accounting package for import into **ČSOB**, targeting a Tatra banka business account, where the creditor name still has its original diacritics and the VS/KS order is swapped in the reference:
+
+```xml
+<Document xmlns="urn:iso:std:iso:20022:tech:xsd:pain.001.001.03">
+  <CstmrCdtTrfInitn>
+    <GrpHdr>
+      <MsgId>FA2026-0912</MsgId>
+      <CreDtTm>2026-09-04T09:00:00</CreDtTm>
+      <NbOfTxs>1</NbOfTxs>
+    </GrpHdr>
+    <PmtInf>
+      <PmtInfId>FA2026-0912-1</PmtInfId>
+      <PmtMtd>TRF</PmtMtd>
+      <PmtTpInf><SvcLvl><Cd>SEPA</Cd></SvcLvl></PmtTpInf>
+      <ReqdExctnDt>2026-09-04</ReqdExctnDt>
+      <Dbtr><Nm>Firma s.r.o.</Nm></Dbtr>
+      <DbtrAcct><Id><IBAN>SK8911000000002619174231</IBAN></Id></DbtrAcct>
+      <DbtrAgt><FinInstnId><BIC>TATRSKBX</BIC></FinInstnId></DbtrAgt>
+      <ChrgBr>SLEV</ChrgBr>
+      <CdtTrfTxInf>
+        <PmtId><EndToEndId>/VS123/KS0308/SS14</EndToEndId></PmtId>
+        <Amt><InstdAmt Ccy="EUR">450.00</InstdAmt></Amt>
+        <Cdtr><Nm>Jozef Šťastný</Nm></Cdtr>
+        <CdtrAcct><Id><IBAN>SK6807200002891987426353</IBAN></Id></CdtrAcct>
+        <RmtInf><Ustrd>Faktúra č. 2026-0912</Ustrd></RmtInf>
+      </CdtTrfTxInf>
+    </PmtInf>
+  </CstmrCdtTrfInitn>
+</Document>
+```
+
+Output:
+
+```json
+{
+  "status": "fail",
+  "bank": "csob",
+  "summary": "3 issues found. Most urgent: the creditor name \"Jozef Šťastný\" and the remittance text both contain diacritics — ČSOB documents that a SEPA XML file with diacritics cannot be imported into BusinessBanking Lite at all.",
+  "problems": [
+    {
+      "severity": "high",
+      "code": "diacritics_in_field",
+      "message": "\"Jozef Šťastný\" (Cdtr/Nm) contains characters outside ČSOB's documented SEPA XML character set (a-z A-Z 0-9 / – ? : ( ) . , ' +). ČSOB states this file type cannot be imported with diacritics present.",
+      "where": "CdtTrfTxInf/Cdtr/Nm"
+    },
+    {
+      "severity": "high",
+      "code": "diacritics_in_field",
+      "message": "\"Faktúra č. 2026-0912\" (RmtInf/Ustrd) contains diacritics — same restriction as above.",
+      "where": "CdtTrfTxInf/RmtInf/Ustrd"
+    },
+    {
+      "severity": "medium",
+      "code": "reference_symbol_order",
+      "message": "EndToEndId \"/VS123/KS0308/SS14\" packs the Slovak payment symbols out of order. The NBS convention is /VS/SS/KS — this should read \"/VS123/SS14/KS0308\". The transfer will still go through, but the counterparty's accounting software likely won't auto-match it to an invoice.",
+      "where": "CdtTrfTxInf/PmtId/EndToEndId"
+    }
+  ],
+  "fixes": [
+    { "title": "Replace diacritics with plain Latin equivalents", "value": "Jozef Stastny", "where": "CdtTrfTxInf/Cdtr/Nm" },
+    { "title": "Replace diacritics with plain Latin equivalents", "value": "Faktura c. 2026-0912", "where": "CdtTrfTxInf/RmtInf/Ustrd" },
+    { "title": "Reorder to /VS/SS/KS", "value": "/VS123/SS14/KS0308", "where": "CdtTrfTxInf/PmtId/EndToEndId" }
+  ],
+  "checklist": [
+    "Fix your accounting software's export step (or add a transliteration pass) so it never emits diacritics into a SEPA XML file for ČSOB.",
+    "Standardize VS/SS/KS packing in one place in your export pipeline so the order never has to be fixed by hand again.",
+    "Re-run this check after every accounting-software update — export templates for hromadné príkazy change without much notice."
+  ]
+}
+```
+
+Everything else in this file is fine for ČSOB specifically: `PmtMtd`, `SvcLvl/Cd`, `ChrgBr`, the IBANs, and the execution date are all valid. Note that the debtor's own bank BIC here is `TATRSKBX` (Tatra banka) — that's fine as far as pain.001 structure goes (it's just naming which bank holds the debit account), but if this file were instead being imported into Tatra banka's own internet banking rather than ČSOB's, the tool's "reference symbols" and diacritics checks are ČSOB-specific advisories in this example and wouldn't change; what would change is that Tatra banka additionally caps the file at 500 transactions and its own ±31-day execution-date window, and ChrgBr/PmtMtd/SvcLvl requirements it shares with the other banks would apply identically.
+
+## FAQ
+
+**Why does my accounting software's SEPA export get rejected by one bank but not another, even though both say they accept "pain.001"?**
+Because "pain.001" names the XML schema, not the bank's full acceptance rules. Tatra banka, SLSP, VÚB, and ČSOB each layer their own fixed-value requirements, length limits, and execution-date windows on top of the same schema, and none of it is visible from the file being schema-valid — a file can validate against the pain.001.001.03 XSD and still get bounced by a specific bank's business rules.
+
+**My bank's import screen just says "chyba" / gives an error code with no explanation. Where do I even start?**
+Start with the checks that fail silently rather than loudly: diacritics anywhere in the XML (ČSOB), a missing or mismatched creditor BIC (VÚB requires it, Tatra banka often doesn't), and the execution-date window (31 days at Tatra banka, 30 at VÚB). These four cover most "the XML looks fine to me" rejections reported by Slovak accounting-software users.
+
+**Do I need to include the creditor's BIC code?**
+Depends which bank. VÚB's own spec marks it mandatory. Tatra banka accepts a valid SEPA creditor IBAN without one (it derives the BIC itself, and only rejects if the derived BIC isn't in SEPA space or doesn't match one you did supply). ČSOB made it optional for all SEPA payments from 1 February 2016. If you generate one file for import at multiple banks, include it — it's accepted everywhere it isn't required.
+
+**Why did my payment go through but the counterparty can't match it to an invoice?**
+Almost always the VS/špecifický symbol/KS packing in the end-to-end reference. `pain.001.001.03` has no dedicated fields for these Slovak payment symbols — they have to be encoded as `/VS.../SS.../KS...`, in exactly that order. Get the order wrong (or omit a symbol without leaving its slot empty, e.g. `/VS123` instead of `/VS123/SS/KS`) and the transfer completes normally while automatic reconciliation on the other end silently fails.
+
+**Why does my file work one week and get rejected the next with the same content?**
+Check the requested execution date against today's date, not the date you actually generate the file. Both Tatra banka (31 days) and VÚB (30 days) enforce a rolling window from the day the bank processes the file, not from when your accounting software built it — a file that sat in an approval queue for a few days can drift past the limit.
+
+**Does this tool submit or verify anything against my actual bank account?**
+No. It's a read-only, client-side structural check against each bank's published rules — it has no connection to any bank, doesn't call any API, and can't tell you whether your account has sufficient funds, whether the creditor account actually exists, or anything else that depends on live banking infrastructure.
+
+**What about Slovenská sporiteľňa (SLSP) — the checks look thinner than for the other three banks.**
+SLSP's own detailed pain.001 field-level specification isn't published the way Tatra banka's, VÚB's, and ČSOB's are (SLSP's public documentation covers its proprietary Databanking/Internet Banking XML interface in more detail than its pain.001 import). The checks this tool applies for SLSP are the ones confirmed from SLSP's own public statements: Business24 accepts `pain.001.001.003` and `pain.001.001.004`, validates against an XSD, and requires `PmtTpInf/LclInstrm/Cd = INST` for a batch to be routed as an instant payment. If you hit an SLSP-specific rejection this tool doesn't explain, please open an issue — see the README.
+
+## Privacy
+
+No account, no login, no cookies for the tool itself, no server-side processing of your payment file. The only analytics are anonymous usage counts (event name + count, never IBANs, names, or amounts) sent to a self-hosted Umami instance.
+
+## Links
+
+- Tool: https://arling.sk/sepa-pain001-doctor/
+- Short reference: https://arling.sk/sepa-pain001-doctor/llms.txt
+- Source code: https://github.com/AndryRoby/sepa-pain001-doctor
+- Sibling tool (Supabase Auth redirects, web): https://arling.sk/supabase-redirect-doctor/
+- Sibling tool (Supabase Auth redirects, Flutter): https://arling.sk/flutter-supabase-doctor/
+- Hub (more ARLing tools): https://arling.sk/
+
+## Contact
+
+Built by ARLing s. r. o. (Bratislava, Slovakia). andrej@arling.sk
