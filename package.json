@@ -1,0 +1,12 @@
+{
+  "name": "sepa-pain001-doctor",
+  "version": "1.0.0",
+  "description": "SEPA pain.001 Doctor (slovenské banky) — free, client-side checker for SEPA pain.001.001.03 batch payment files against Tatra banka, SLSP, VÚB and ČSOB import requirements.",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "test": "node tests.mjs"
+  },
+  "license": "MIT",
+  "author": "ARLing s. r. o. <andrej@arling.sk>"
+}

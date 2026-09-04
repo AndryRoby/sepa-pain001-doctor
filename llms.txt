@@ -1,0 +1,44 @@
+# SEPA pain.001 Doctor — hromadné príkazy pre slovenské banky
+
+> Free, client-side checker that finds why a SEPA pain.001 XML batch payment file (hromadný príkaz na úhradu) gets rejected by Tatra banka, Slovenská sporiteľňa (SLSP), VÚB, or ČSOB internet banking, and gives the exact bank rule it violates.
+
+Paste your `pain.001.001.03` XML and pick the target bank, and it cross-checks the file against that bank's own published import requirements — no account, no backend, nothing you paste leaves your browser.
+
+## What it checks
+
+- Schema/namespace: `pain.001.001.03` (`urn:iso:std:iso:20022:tech:xsd:pain.001.001.03`) — the version all four Slovak banks process.
+- Fixed values: `PmtMtd = TRF`, `InstrPrty = NORM`, `SvcLvl/Cd = SEPA`, `ChrgBr = SLEV`.
+- `ReqdExctnDt` window — not in the past, and within each bank's own limit: Tatra banka max +31 days, VÚB max +30 days.
+- Transaction count — Tatra banka caps a file at 500 transactions.
+- Debtor bank BIC matching the selected bank (Tatra banka `TATRSKBX`, VÚB `SUBASKBX`).
+- Creditor BIC rules, which differ by bank: optional-if-derivable-from-IBAN (Tatra banka), mandatory (VÚB), optional since 1 Feb 2016 (ČSOB).
+- Diacritics anywhere in the XML — ČSOB documents this as an outright import blocker, with its allowed character set.
+- `Nm` (name) fields over 70 characters; `RmtInf/Ustrd` over 140 characters or more than one instance.
+- VS/špecifický symbol/KS packed into the end-to-end reference as `/VS.../SS.../KS...` in the wrong order or format.
+- Slovak creditor IBAN failing the domestic modulo-11 BBAN check on top of the standard MOD-97 IBAN checksum.
+- Missing `<LclInstrm><Cd>INST</Cd>` for a batch meant to run as an instant payment at SLSP.
+
+## Who it's for
+
+Slovak/Czech accountants, ERP and e-shop developers, and business owners whose accounting software (Pohoda, Money S3, KROS Omega, or a custom export) produces a `pain.001` file that a Slovak bank's internet banking rejects with a vague or missing error.
+
+## How it works
+
+Static HTML plus one dependency-free JavaScript file, `doctor-pain001.js`. All checks run in your browser against the XML you paste; the tool has no backend and makes no request that carries your payment data anywhere.
+
+## Privacy
+
+No account, no login, no cookies for the tool itself, no server-side processing of your file. The only analytics are anonymous usage counts (event name + count, never IBANs/names/amounts) sent to a self-hosted Umami instance.
+
+## Links
+
+- Tool: https://arling.sk/sepa-pain001-doctor/
+- Full reference (worked example + FAQ): https://arling.sk/sepa-pain001-doctor/llms-full.txt
+- Source code: https://github.com/AndryRoby/sepa-pain001-doctor
+- Sibling tool (Supabase Auth redirects, web): https://arling.sk/supabase-redirect-doctor/
+- Sibling tool (Supabase Auth redirects, Flutter): https://arling.sk/flutter-supabase-doctor/
+- Hub (more ARLing tools): https://arling.sk/
+
+## Contact
+
+Built by ARLing s. r. o. (Bratislava, Slovakia). andrej@arling.sk
