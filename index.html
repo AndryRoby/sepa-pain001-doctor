@@ -299,6 +299,16 @@
   /* Free / ask */
   .ask { display:flex; flex-wrap:wrap; align-items:center; gap:14px 24px; margin-top:6px; }
   .ask p { margin:0; color:var(--ink-2); max-width:56ch; }
+  .hp { position:absolute; width:1px; height:1px; margin:-1px; padding:0; overflow:hidden; clip:rect(0,0,0,0); white-space:nowrap; border:0; }
+  .subscribe-ask, .business-ask { border-top:1px solid var(--line); margin-top:20px; padding-top:20px; }
+  .subscribe-form { display:flex; flex-wrap:wrap; gap:10px; align-items:center; }
+  .subscribe-form input[type="email"] { height:44px; min-width:0; flex:1 1 240px; padding:0 14px; border:1px solid var(--line); border-radius:4px; background:var(--paper-2); color:var(--ink); font:15px/1 var(--sans); }
+  .subscribe-form input[type="email"]::placeholder { color:var(--muted); }
+  .subscribe-form .btn { flex:none; }
+  #subscribe-thanks { color:var(--ok); font-weight:600; }
+  #subscribe-error { color:var(--accent); font-weight:600; }
+  .subscribe-privacy { flex-basis:100%; margin:0; }
+  @media (max-width:480px) { .subscribe-form input[type="email"], .subscribe-form button { width:100%; } }
 
   /* FAQ */
   details { border-top:1px solid var(--line); padding:14px 0; }
@@ -515,7 +525,21 @@
       <p class="sub">Vznikol z vlastnej potreby: overiť SEPA XML pred nahratím do internetbankingu. Bez účtu, bez platby, bez limitu na počet kontrol.</p>
       <div class="ask">
         <p>Ak vám ušetrí popoludnie, napíšte, čo nástroj neodhalil. <a href="https://github.com/AndryRoby/sepa-pain001-doctor/issues" target="_blank" rel="noopener">Otvorte issue na GitHube</a>.</p>
-        <button class="btn btn-line" id="pro-interest-btn" type="button">Mám záujem o Pro verziu</button>
+      </div>
+      <div class="ask subscribe-ask" id="subscribe">
+        <p><b>Dajte mi vedieť o novom nástroji.</b> Len nové nástroje. Žiadny newsletter, žiadne zdieľanie. Odhlásenie odpoveďou na mail.</p>
+        <form id="subscribe-form" class="subscribe-form" data-subscribe data-source="sepa" data-lang="sk" data-thanks="subscribe-thanks" data-error="subscribe-error" novalidate>
+          <div class="hp" aria-hidden="true"><input type="text" name="website" id="subscribe-website" tabindex="-1" autocomplete="off"></div>
+          <input type="email" id="subscribe-email" name="email" required autocomplete="email" inputmode="email" placeholder="vas@email.sk" aria-label="E-mailová adresa">
+          <button class="btn btn-solid" type="submit">Dať vedieť</button>
+        </form>
+        <p id="subscribe-thanks" hidden>Ďakujeme. Ozveme sa len vtedy, keď bude niečo nové.</p>
+        <p id="subscribe-error" hidden>Nepodarilo sa uložiť. Napíšte na <a href="mailto:andrej@arling.sk">andrej@arling.sk</a>.</p>
+        <p class="fineprint subscribe-privacy"><a href="https://arling.sk/privacy/">Súkromie</a></p>
+      </div>
+      <div class="ask business-ask" id="business">
+        <p><b>Potrebujete kontrolu pre firmu?</b> Hromadná kontrola stoviek súborov, automatická oprava a napojenie na účtovný systém. Napíšte, čo potrebujete, a odpovieme do 24 hodín.</p>
+        <a class="btn btn-line" href="mailto:andrej@arling.sk?subject=SEPA%20pain.001%20pre%20firmu" data-umami-event="business_interest">Napísať, čo potrebujem</a>
       </div>
     </div>
   </section>
@@ -558,7 +582,7 @@
   <div class="wrap cols">
     <div><b>ARLing s. r. o.</b><br>Ivanská cesta 32E<br>821 04 Bratislava, Slovensko</div>
     <div>IČO 56583486<br>IČ DPH SK2122352100<br><a href="mailto:andrej@arling.sk">andrej@arling.sk</a></div>
-    <div>Ďalšie nástroje: <a href="https://arling.sk/expo-supabase-auth-doctor/" target="_blank" rel="noopener">Expo Supabase Auth Doctor</a> · <a href="https://arling.sk/supabase-redirect-doctor/" target="_blank" rel="noopener">Supabase Redirect Doctor</a> · <a href="https://arling.sk/flutter-supabase-doctor/" target="_blank" rel="noopener">Flutter Supabase Doctor</a><br><a href="https://arling.sk/">Všetky nástroje ARLing</a> · <a href="llms.txt">llms.txt</a> · <a href="https://github.com/AndryRoby/sepa-pain001-doctor" target="_blank" rel="noopener">GitHub</a></div>
+    <div>Ďalšie nástroje: <a href="https://arling.sk/expo-supabase-auth-doctor/" target="_blank" rel="noopener">Expo Supabase Auth Doctor</a> · <a href="https://arling.sk/supabase-redirect-doctor/" target="_blank" rel="noopener">Supabase Redirect Doctor</a> · <a href="https://arling.sk/flutter-supabase-doctor/" target="_blank" rel="noopener">Flutter Supabase Doctor</a><br><a href="https://arling.sk/">Všetky nástroje ARLing</a> · <a href="llms.txt">llms.txt</a> · <a href="https://github.com/AndryRoby/sepa-pain001-doctor" target="_blank" rel="noopener">GitHub</a> · <a href="https://arling.sk/privacy/">Súkromie</a></div>
   </div>
   <p class="wrap footer-note">Nič neopúšťa váš prehliadač okrem anonymných počtov použitia cez self-hosted Umami.</p>
   <div class="wrap">
@@ -612,7 +636,6 @@
   const resetBtn = $('reset-btn');
   const copyReportBtn = $('copy-report-btn');
   const rawToggleBtn = $('raw-toggle-btn');
-  const proBtn = $('pro-interest-btn');
   const meta = $('response-meta');
   const statusPill = $('status-pill');
   const timing = $('timing');
@@ -934,13 +957,6 @@
     }
   }
 
-  // ── Pro interest ─────────────────────────────────────────────────────
-  proBtn.addEventListener('click', () => {
-    track('pro_interest');
-    proBtn.textContent = 'Zaznamenané, ďakujem';
-    proBtn.disabled = true;
-  });
-
   // ── init ─────────────────────────────────────────────────────────────
   configToForm(SAMPLE_CONFIG);
   input.value = JSON.stringify(SAMPLE_CONFIG, null, 2);
@@ -958,5 +974,6 @@
     });
   });
 </script>
+<script src="subscribe.js" defer></script>
 </body>
 </html>
