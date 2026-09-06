@@ -465,6 +465,12 @@ function parseAmountText(str) {
 // odmietne. Zároveň prestáva stačiť pain.001.001.03: tá verzia štruktúrované
 // adresné polia neunesie, nasledovník je pain.001.001.09.
 //
+// Pozor na dátum. Verzia 1.0 pravidiel SEPA úhrady z roku 2025 uvádzala ako
+// koniec neštruktúrovanej adresy 22. november 2026; verzia 1.1 to opravila na
+// 15. november 2026, a to je platný dátum. Časť bankových stránok stále cituje
+// staršiu verziu, preto sa tie dva dátumy na internete miešajú. Samé pravidlá
+// z roku 2025 (a s nimi hybridná adresa) platia od 5. októbra 2025.
+//
 // Zdroje overené 6. 9. 2026:
 //  - European Payments Council, zosúladenie schém SCT/SCT Inst/SDD na 15. 11. 2026
 //    https://www.europeanpaymentscouncil.eu/
