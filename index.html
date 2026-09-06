@@ -4,7 +4,7 @@
 <script src="/style/vzhlad.js?v=93c2659f"></script>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
-<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' https://homelab.tailbf8f27.ts.net 'sha256-P22VSqiEMB6TIcK3RCgCD0WWmESWUbteMsVC7DrL3Oc=' 'sha256-dFxbLOizyPbfm7UUWlNpGNPJAF5gwqWjhBJhyIDBDH0=' 'sha256-3AZxRpEc16rkB/IjbuT7+QO3zxR1YDsy79hPfr8xfQA=' 'sha256-e/fIDlrPDq37+zeT58xFltRMoEhveZvQRnfcD10UZRw='; connect-src 'self' https://homelab.tailbf8f27.ts.net; style-src 'self' 'unsafe-inline'; img-src 'self' data:; font-src 'self'; object-src 'none'; base-uri 'self'; form-action 'none'">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' https://homelab.tailbf8f27.ts.net 'sha256-oNADkJL9kQJUBKpT9LWqGoV7nchu+7VWX/XGhfvVCEw=' 'sha256-dFxbLOizyPbfm7UUWlNpGNPJAF5gwqWjhBJhyIDBDH0=' 'sha256-3AZxRpEc16rkB/IjbuT7+QO3zxR1YDsy79hPfr8xfQA=' 'sha256-e/fIDlrPDq37+zeT58xFltRMoEhveZvQRnfcD10UZRw='; connect-src 'self' https://homelab.tailbf8f27.ts.net; style-src 'self' 'unsafe-inline'; img-src 'self' data:; font-src 'self'; object-src 'none'; base-uri 'self'; form-action 'none'">
 <meta name="color-scheme" content="dark">
 <meta name="theme-color" content="#0a0908">
 <link rel="icon" href="favicon.svg" type="image/svg+xml">
@@ -29,7 +29,7 @@
 <link rel="manifest" href="manifest.json" />
 <link rel="preload" href="/fonts/arling-sans.woff2" as="font" type="font/woff2" crossorigin>
 <link rel="preload" href="/fonts/arling-serif.woff2" as="font" type="font/woff2" crossorigin>
-<link rel="stylesheet" href="/style/paper.css?v=d1ba2c04">
+<link rel="stylesheet" href="/style/paper.css?v=e68fba59">
 <script src="/style/prepinac.js?v=2988c181" defer></script>
 <script defer src="https://homelab.tailbf8f27.ts.net/script.js" data-website-id="338f035d-41c5-411e-8391-9a41db6accfd"></script>
 
@@ -39,7 +39,7 @@
   "@type": "SoftwareApplication",
   "name": "SEPA pain.001 Doctor (slovenské banky)",
   "url": "https://arling.sk/sepa-pain001-doctor/",
-  "description": "Free, client-side checker that finds why a SEPA pain.001 XML batch payment file gets rejected by Tatra banka, Slovenská sporiteľňa (SLSP), VÚB or ČSOB internet banking, and gives the exact bank rule it violates.",
+  "description": "Od 15. novembra 2026 banka odmietne SEPA platbu s neštruktúrovanou adresou. Vložte pain.001 súbor a zistite, ktoré platby prejdú a ktoré nie, aj s presnou opravou. Kontroluje aj požiadavky Tatra banky, SLSP, VÚB a ČSOB. Zadarmo, v prehliadači, nič sa neodosiela.",
   "applicationCategory": "FinanceApplication",
   "operatingSystem": "Any (web browser)",
   "offers": {
@@ -417,7 +417,7 @@
       </div>
       <ul class="facts proof r d5">
         <li><b>4</b> banky: Tatra banka, SLSP, VÚB, ČSOB</li>
-        <li class="lineend"><b>150</b> automatizovaných testov</li>
+        <li class="lineend"><b>160+</b> automatizovaných testov</li>
         <li class="brk" aria-hidden="true"></li>
         <li><b>0 €</b>, bez účtu</li>
         <li>beží vo vašom prehliadači</li>
@@ -562,9 +562,9 @@
       </div>
       <div class="ask subscribe-ask r d3" id="subscribe">
         <p><b>Dajte mi vedieť o novom nástroji.</b> Len nové nástroje. Žiadny newsletter, žiadne zdieľanie. Odhlásenie odpoveďou na mail.</p>
-        <form id="subscribe-form" class="subscribe-form" data-subscribe data-source="sepa" data-lang="sk" data-thanks="subscribe-thanks" data-error="subscribe-error" novalidate>
+        <form id="subscribe-form" class="subscribe-form" data-subscribe data-source="sepa" data-thanks="subscribe-thanks" data-error="subscribe-error" novalidate>
           <div class="hp" aria-hidden="true"><input type="text" name="website" id="subscribe-website" tabindex="-1" autocomplete="off"></div>
-          <input type="email" id="subscribe-email" name="email" required autocomplete="email" inputmode="email" placeholder="vas@email.sk" aria-label="E-mailová adresa">
+          <input type="email" id="subscribe-email" name="email" required autocomplete="email" inputmode="email" placeholder="you@example.com" aria-label="E-mailová adresa">
           <button class="btn btn-solid" type="submit" data-umami-event="subscribe_submit">Dať vedieť</button>
         </form>
         <p id="subscribe-thanks" hidden>Ďakujeme. Ozveme sa len vtedy, keď bude niečo nové.</p>
@@ -573,7 +573,7 @@
       </div>
       <div class="ask business-ask r d4" id="business">
         <p><b>Potrebujete kontrolu pre firmu?</b> Hromadná kontrola stoviek súborov, automatická oprava a napojenie na účtovný systém. Napíšte, čo potrebujete, a odpovieme do 24 hodín.</p>
-        <a class="btn btn-line" href="mailto:andrej@arling.sk?subject=SEPA%20pain.001%20pre%20firmu" data-umami-event="business_interest">Napísať, čo potrebujem</a>
+        <a class="btn btn-line" href="mailto:andrej@arling.sk?subject=SEPA%20pain.001" data-umami-event="business_interest">Napísať, čo potrebujem</a>
       </div>
     </div>
   </section>
