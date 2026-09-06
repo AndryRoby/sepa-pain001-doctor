@@ -5,8 +5,8 @@
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' https://homelab.tailbf8f27.ts.net 'sha256-P22VSqiEMB6TIcK3RCgCD0WWmESWUbteMsVC7DrL3Oc=' 'sha256-dFxbLOizyPbfm7UUWlNpGNPJAF5gwqWjhBJhyIDBDH0=' 'sha256-zDaXeRSFlzJ8pKCyPRjI796AoUGHPhAlLbkxofWr9Zo=' 'sha256-fo2+qHfT1vjTX+wGnFDYyCbWCIRKQ1j76QYbOky4QgY='; connect-src 'self' https://homelab.tailbf8f27.ts.net; style-src 'self' 'unsafe-inline'; img-src 'self' data:; font-src 'self'; object-src 'none'; base-uri 'self'; form-action 'none'">
-<title>SEPA pain.001 Doctor (slovenské banky)</title>
-<meta name="description" content="Prečo Tatra banka, SLSP, VÚB alebo ČSOB odmietli váš SEPA pain.001 XML hromadný príkaz? Vložte súbor, vyberte banku a zistite presne, ktorý element a hodnota je problém. Zadarmo, priamo v prehliadači, nič sa neodosiela." />
+<title>SEPA pain.001 Doctor: štruktúrovaná adresa a termín 15. 11. 2026</title>
+<meta name="description" content="Od 15. novembra 2026 banka odmietne SEPA platbu s neštruktúrovanou adresou. Vložte pain.001 súbor a zistite, ktoré platby prejdú a ktoré nie, aj s presnou opravou. Kontroluje aj požiadavky Tatra banky, SLSP, VÚB a ČSOB. Zadarmo, v prehliadači, nič sa neodosiela." />
 <meta property="og:type" content="website" />
 <meta property="og:title" content="SEPA pain.001 Doctor (slovenské banky)" />
 <meta property="og:description" content="Prečo Tatra banka, SLSP, VÚB alebo ČSOB odmietli váš SEPA pain.001 XML hromadný príkaz? Vložte súbor, vyberte banku a zistite presne, ktorý element a hodnota je problém. Zadarmo, priamo v prehliadači, nič sa neodosiela." />
@@ -387,13 +387,14 @@
     <div>
       <h1 id="h1"><span class="l">Banka odmietla</span><span class="l">váš SEPA XML.</span><span class="l">Zistite presne</span><span class="l">prečo.</span></h1>
       <p class="lead r d3">Vložte pain.001 hromadný príkaz, vyberte banku. Dostanete presný element, hodnotu a opravu namiesto všeobecnej chybovej hlášky.</p>
+      <p class="termin r d4"><b>Nové: termín 15. novembra 2026.</b> Od toho dňa nesmie byť adresa v SEPA platbe voľný text. Ak je adresa v súbore uvedená, musí mať aspoň mesto a kód krajiny vo vlastných poliach, inak ju banka odmietne. Kontrola je súčasťou tohto nástroja a je zadarmo. <a href="#termin-2026">Čo presne sa mení</a></p>
       <div class="cta r d4">
         <a class="btn btn-solid" href="#playground" data-umami-event="hero_skontrolovat">Skontrolovať môj súbor</a>
         <a class="btn btn-line" href="https://github.com/AndryRoby/sepa-pain001-doctor" target="_blank" rel="noopener" data-umami-event="github_source">Zdrojový kód na GitHube</a>
       </div>
       <ul class="facts proof r d5">
         <li><b>4</b> banky: Tatra banka, SLSP, VÚB, ČSOB</li>
-        <li class="lineend"><b>125</b> automatizovaných testov</li>
+        <li class="lineend"><b>150</b> automatizovaných testov</li>
         <li class="brk" aria-hidden="true"></li>
         <li><b>0 €</b>, bez účtu</li>
         <li>beží vo vašom prehliadači</li>
@@ -549,7 +550,38 @@
     </div>
   </section>
 
-  <section id="pricing" class="band">
+    <section id="termin-2026" class="deep">
+    <div class="wrap">
+      <p class="kicker">Termín</p>
+      <h2 class="r">15. november 2026: adresa už nesmie byť voľný text.</h2>
+      <div class="rule"></div>
+      <div class="two r d1">
+        <div>
+          <p>Došlo k zmene v pravidlách SEPA schém. Ak je v platbe uvedená poštová adresa, od 15. novembra 2026 musí byť <b>štruktúrovaná alebo hybridná</b>. Plne neštruktúrovaná adresa, teda jeden alebo viac riadkov voľného textu v <code>&lt;AdrLine&gt;</code>, už neprejde a banka súbor odmietne.</p>
+          <p>Povinné minimum je <b>mesto</b> (<code>&lt;TwnNm&gt;</code>) a <b>dvojpísmenový kód krajiny</b> (<code>&lt;Ctry&gt;</code>). Hybridná adresa smie mať najviac dva riadky voľného textu popri týchto dvoch poliach.</p>
+          <p>Týka sa to SEPA úhrad, okamžitých úhrad aj inkas, teda aj súborov <code>pain.001</code>, ktoré exportíruje váš účtovný softvér. Adresa je naďalej nepovinná: súbor bez adries prejde aj po termíne.</p>
+        </div>
+        <div>
+          <p class="mini">Stará adresa, po 15. 11. 2026 odmietnutá:</p>
+          <pre><code>&lt;PstlAdr&gt;
+  &lt;AdrLine&gt;Ivanská cesta 32E&lt;/AdrLine&gt;
+  &lt;AdrLine&gt;821 04 Bratislava&lt;/AdrLine&gt;
+&lt;/PstlAdr&gt;</code></pre>
+          <p class="mini">Štruktúrovaná adresa, prejde:</p>
+          <pre><code>&lt;PstlAdr&gt;
+  &lt;StrtNm&gt;Ivanská cesta&lt;/StrtNm&gt;
+  &lt;BldgNb&gt;32E&lt;/BldgNb&gt;
+  &lt;PstCd&gt;82104&lt;/PstCd&gt;
+  &lt;TwnNm&gt;Bratislava&lt;/TwnNm&gt;
+  &lt;Ctry&gt;SK&lt;/Ctry&gt;
+&lt;/PstlAdr&gt;</code></pre>
+        </div>
+      </div>
+      <p class="r d2 zdroje">Zdroje overené 6. septembra 2026: <a href="https://www.europeanpaymentscouncil.eu/" rel="noopener" target="_blank">European Payments Council</a> (zosúladenie schém SCT, SCT Inst a SDD na 15. 11. 2026), <a href="https://www.ecb.europa.eu/paym/groups/shared/docs/daba2-industry-template-hybrid-address-communication-to-corporates-pmpg-2025-10-22-.pdf" rel="noopener" target="_blank">ECB a Payments Market Practice Group</a> (vzorový list korporátnym klientom, 22. 10. 2025), <a href="https://www.kb.cz/cs/podpora/ucty-a-platby/nova-pravidla-pro-vyplnovani-strukturovane-adresy-u-sepa-a-zahranicnich-plateb-multicash" rel="noopener" target="_blank">Komerční banka</a> (formát pain.001.001.03 sa od 15. 11. 2026 prestane používať). Ak niektorý zdroj medzitým zmenil znenie, napíšte nám a pravidlo opravíme.</p>
+    </div>
+  </section>
+
+<section id="pricing" class="band">
     <div class="wrap">
       <p class="kicker">04</p>
       <h2 class="r">Zadarmo.</h2>

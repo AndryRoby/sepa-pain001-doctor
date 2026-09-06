@@ -147,7 +147,7 @@ python -m http.server 8000
 node tests.mjs
 ```
 
-125 assertions, run against `doctor-pain001.js` directly (no browser, no DOM): as of this writing: **125 passed, 0 failed.**
+150 assertions, run against `doctor-pain001.js` directly (no browser, no DOM): as of this writing: **150 passed, 0 failed.**
 
 ## Privacy
 
