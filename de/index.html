@@ -4,7 +4,7 @@
 <script src="/style/vzhlad.js?v=93c2659f"></script>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
-<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' https://homelab.tailbf8f27.ts.net 'sha256-i1+7T8XHD008mEl8iUZmvOIQ00Qiplwrg2pJRxad13Y=' 'sha256-dMAGeCSkzLomjkmPvsoU7l3xUtntVCVpp/vvKc6HSFw=' 'sha256-kFk3fFl5p1JospvPXrxCVKbaSYwNToQQHe3TWyoJgAE=' 'sha256-e/fIDlrPDq37+zeT58xFltRMoEhveZvQRnfcD10UZRw='; connect-src 'self' https://homelab.tailbf8f27.ts.net; style-src 'self' 'unsafe-inline'; img-src 'self' data:; font-src 'self'; object-src 'none'; base-uri 'self'; form-action 'none'">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' https://homelab.tailbf8f27.ts.net 'sha256-i1+7T8XHD008mEl8iUZmvOIQ00Qiplwrg2pJRxad13Y=' 'sha256-yJPYWqyENJ7ZW1WSo+qy4SKTEJSJh+6+mbADXIPxopg=' 'sha256-xwSIPYTLrPSAQsbWKSlQcgJRzKVdqnOFOqiEDm3FpEA=' 'sha256-e/fIDlrPDq37+zeT58xFltRMoEhveZvQRnfcD10UZRw='; connect-src 'self' https://homelab.tailbf8f27.ts.net; style-src 'self' 'unsafe-inline'; img-src 'self' data:; font-src 'self'; object-src 'none'; base-uri 'self'; form-action 'none'">
 <meta name="color-scheme" content="dark">
 <meta name="theme-color" content="#0a0908">
 <link rel="icon" href="../favicon.svg" type="image/svg+xml">
@@ -35,7 +35,7 @@
 
 <script type="application/ld+json">{"@context":"https://schema.org","@type":"SoftwareApplication","name":"SEPA pain.001 Doctor (slovenské banky)","url":"https://arling.sk/sepa-pain001-doctor/","description":"Ab dem 15. November 2026 weisen Banken SEPA-Zahlungen mit unstrukturierter Adresse zurück. Fügen Sie Ihre pain.001-Datei ein und sehen Sie, welche Zahlungen durchgehen und welche nicht, samt genauer Korrektur. Prüft auch die Anforderungen von Tatra banka, SLSP, VÚB und ČSOB. Kostenlos, im Browser, nichts wird hochgeladen.","applicationCategory":"FinanceApplication","operatingSystem":"Any (web browser)","offers":{"@type":"Offer","price":"0","priceCurrency":"EUR"},"author":{"@type":"Organization","name":"ARLing s. r. o.","url":"https://arling.sk/","email":"andrej@arling.sk","address":{"@type":"PostalAddress","addressLocality":"Bratislava","addressCountry":"SK"}},"sameAs":["https://github.com/AndryRoby/sepa-pain001-doctor"]}</script>
 
-<script type="application/ld+json">{"@context":"https://schema.org","@type":"FAQPage","mainEntity":[{"@type":"Question","name":"Warum hat Tatra banka meine pain.001-Datei abgelehnt?","acceptedAnswer":{"@type":"Answer","text":"Beim Import prüft die Tatra banka mehr als nur, ob das XML gültiges pain.001 ist. Geprüft werden der exakte Namensraum pain.001.001.03, PmtMtd=TRF, SvcLvl/Cd=SEPA, ChrgBr=SLEV, die Auftraggeber-BIC exakt TATRSKBX, das Datum ReqdExctnDt (nicht in der Vergangenheit und nicht mehr als 31 Tage im Voraus), höchstens 500 Transaktionen je PmtInf-Block, Längenbegrenzungen für Namen und Verwendungszweck sowie bei slowakischen Empfänger-IBANs die Modulo-11-Prüfung. Ein einziger Regelverstoß genügt, damit der Import scheitert."}},{"@type":"Question","name":"Wie trage ich das slowakische Zahlungssymbol (variabilný symbol) in SEPA-XML ein?","acceptedAnswer":{"@type":"Answer","text":"pain.001.001.03 hat keine eigenen Felder für die slowakischen Zahlungssymbole VS, ŠS und KS. Nach der NBS-Konvention werden sie in PmtId/EndToEndId in der Reihenfolge /VS.../SS.../KS... geschrieben, zum Beispiel /VS123/SS456/KS0308. VS und ŠS haben höchstens 10 Ziffern, KS höchstens 4. Die falsche Reihenfolge stoppt die Überweisung nicht, aber die Gegenseite kann die Zahlung keiner Rechnung zuordnen."}},{"@type":"Question","name":"Welche Zeichen sind in einer SEPA-Zahlung erlaubt (Umlaute, Diakritika)?","acceptedAnswer":{"@type":"Answer","text":"ČSOB nennt in ihrer Dokumentation die genaue Zeichenmenge: Buchstaben a-z, A-Z, Ziffern 0-9, Leerzeichen und die Zeichen / - ? : ( ) . , ' +. Diakritische Zeichen (č, š, ž, ä, ô, ľ) importiert ČSOB gar nicht in BusinessBanking Lite. Bei anderen Banken blockieren sie die Datei nicht unbedingt sofort, sicherer ist der Export ohne sie in jedem Fall."}},{"@type":"Question","name":"Was bedeutet ein Fehler bei NbOfTxs oder CtrlSum?","acceptedAnswer":{"@type":"Answer","text":"GrpHdr/NbOfTxs muss exakt der Anzahl der CdtTrfTxInf-Transaktionen in der Datei entsprechen. GrpHdr/CtrlSum muss die exakte Summe der InstdAmt-Beträge auf 2 Nachkommastellen sein. Eine Abweichung, typischerweise nach manueller Bearbeitung der Datei ohne Neuberechnung der Summen, gehört zu den häufigsten und am wenigsten verständlichen Ablehnungsgründen."}},{"@type":"Question","name":"Ist die Empfänger-BIC in pain.001 Pflicht?","acceptedAnswer":{"@type":"Answer","text":"Das hängt von der Bank ab. VÚB führt CdtrAgt/BIC in der eigenen Spezifikation als Pflichtfeld. Tatra banka kann ihn aus einer korrekten SEPA-IBAN ableiten und toleriert das Fehlen. ČSOB hat ihn zum 1. Februar 2016 optional gemacht. Wenn Sie eine Datei für mehrere Banken erzeugen, geben Sie die BIC immer an."}},{"@type":"Question","name":"Werden meine Daten irgendwohin gesendet?","acceptedAnswer":{"@type":"Answer","text":"Nein. Die gesamte Prüfung läuft in Ihrem Browser. XML, IBANs, Beträge und Namen werden nirgendwohin gesendet, das Tool hat kein Backend. Die einzige Netzwerkaktivität ist das Laden der statischen Dateien der Seite und ein anonymer Nutzungszähler (Umami), der nur das Ergebnis festhält (pass, warn, fail), nie den Inhalt der Datei."}}]}</script>
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"FAQPage","mainEntity":[{"@type":"Question","name":"Warum hat Tatra banka meine pain.001-Datei abgelehnt?","acceptedAnswer":{"@type":"Answer","text":"Tatra banka pri importe kontroluje viac než to, či je XML validné pain.001. Kontroluje presný menný priestor pain.001.001.03, PmtMtd=TRF, SvcLvl/Cd=SEPA, ChrgBr=SLEV, BIC platiteľa presne TATRSKBX, dátum ReqdExctnDt (nie v minulosti, ani viac než 31 dní dopredu), maximálne 500 transakcií na blok PmtInf, dĺžkové limity mien a poznámky, a pri slovenskom IBAN príjemcu aj kontrolu modulo-11. Stačí porušiť jedno pravidlo a import zlyhá."}},{"@type":"Question","name":"Wie trage ich das slowakische Zahlungssymbol (variabilný symbol) in SEPA-XML ein?","acceptedAnswer":{"@type":"Answer","text":"pain.001.001.03 nemá samostatné polia pre VS, ŠS a KS. Podľa konvencie NBS sa zapisujú do PmtId/EndToEndId v poradí /VS.../SS.../KS..., napríklad /VS123/SS456/KS0308. VS aj ŠS majú maximálne 10 číslic, KS maximálne 4. Zlé poradie prevod nezastaví, ale protistrana si platbu nevie spárovať s faktúrou."}},{"@type":"Question","name":"Welche Zeichen sind in einer SEPA-Zahlung erlaubt (Umlaute, Diakritika)?","acceptedAnswer":{"@type":"Answer","text":"ČSOB vo svojej dokumentácii uvádza presný zoznam: písmená a-z, A-Z, číslice 0-9, medzera a znaky / - ? : ( ) . , ' +. Diakritiku (č, š, ž, ä, ô, ľ) ČSOB do BusinessBanking Lite neimportuje vôbec. Pri iných bankách diakritika súbor nemusí zablokovať hneď, bezpečnejšie je exportovať bez nej vždy."}},{"@type":"Question","name":"Was bedeutet ein Fehler bei NbOfTxs oder CtrlSum?","acceptedAnswer":{"@type":"Answer","text":"GrpHdr/NbOfTxs musí presne zodpovedať počtu transakcií CdtTrfTxInf v súbore. GrpHdr/CtrlSum musí byť presný súčet súm InstdAmt na 2 desatinné miesta. Nezhoda (typicky po ručnej úprave súboru bez prepočtu súhrnov) patrí medzi najčastejšie a najmenej zrozumiteľné dôvody zamietnutia dávky."}},{"@type":"Question","name":"Ist die Empfänger-BIC in pain.001 Pflicht?","acceptedAnswer":{"@type":"Answer","text":"Závisí od banky. VÚB má CdtrAgt/BIC vo vlastnej špecifikácii označený ako povinný. Tatra banka ho vie odvodiť zo správneho SEPA IBAN a chýbajúci toleruje. ČSOB ho urobila nepovinným od 1. februára 2016. Ak generujete jeden súbor pre viac bánk, BIC radšej vždy uveďte."}},{"@type":"Question","name":"Werden meine Daten irgendwohin gesendet?","acceptedAnswer":{"@type":"Answer","text":"Nein. Die gesamte Prüfung läuft in Ihrem Browser. XML, IBANs, Beträge und Namen werden nirgendwohin gesendet, das Tool hat kein Backend. Die einzige Netzwerkaktivität ist das Laden der statischen Dateien der Seite und ein anonymer Nutzungszähler (Umami), der nur das Ergebnis festhält (pass, warn, fail), nie den Inhalt der Datei."}}]}</script>
 
 <style>
   /* Iba to, co je vlastne tomuto nastroju. Farby, pisma, nadpisy, tlacidla,
@@ -102,6 +102,18 @@
   .toolfoot p { margin:0; font-family:var(--ui); font-size:13px; line-height:1.65; color:var(--muted); }
 
   .sub { color:var(--body); max-width:64ch; margin:0 0 24px; }
+
+  /* Pripomienka na termín. Ukazuje sa len po náleze adresnej chyby, preto
+     smie byť výraznejšia než zvyšok: nie je to reklama, je to pokračovanie
+     tej istej práce, ktorú človek práve spustil. */
+  .pripomienka { margin-top:18px; border:1px solid var(--line); border-left:3px solid var(--accent);
+    border-radius:var(--radius); background:var(--card); padding:clamp(16px,1.6vw,24px); }
+  .prip-nadpis { font:600 clamp(16px,1.3vw,19px)/1.35 var(--display); color:var(--ink); margin:0 0 8px; }
+  .prip-text { font-family:var(--ui); font-size:14.5px; line-height:1.65; color:var(--body);
+    margin:0 0 14px; max-width:70ch; }
+  .pripomienka .fineprint { margin-top:10px; }
+  #prip-vdaka { color:var(--ok); font-weight:600; margin:10px 0 0; }
+  #prip-chyba { color:var(--accent); font-weight:600; margin:10px 0 0; }
 
   /* Nastroj */
   .play { border:1px solid var(--line); background:var(--card); border-radius:var(--radius); overflow:hidden;
@@ -318,7 +330,7 @@
       <svg viewBox="0 0 488 215" width="38" height="15" aria-hidden="true" focusable="false"><path fill="#f4f4f7" fill-rule="evenodd" d="M0.00,213.00L74.00,214.00L181.00,85.00L285.00,214.00L360.00,214.00L206.00,21.00L185.00,4.00L164.00,10.00Z M221.00,0.00L263.00,50.00L395.00,50.00L409.00,55.00L419.00,76.00L401.00,96.00L313.00,98.00L411.00,214.00L487.00,214.00L422.00,139.00L457.00,123.00L482.00,88.00L482.00,48.00L463.00,19.00L417.00,0.00Z"/><path fill="#f2643c" d="M269.00,66.00L269.00,67.00L268.00,68.00L268.00,70.00L267.00,71.00L267.00,76.00L268.00,77.00L268.00,79.00L270.00,81.00L270.00,82.00L271.00,82.00L273.00,84.00L274.00,84.00L277.00,86.00L279.00,86.00L280.00,87.00L287.00,87.00L288.00,86.00L290.00,86.00L291.00,85.00L294.00,84.00L298.00,80.00L298.00,79.00L299.00,78.00L299.00,75.00L300.00,74.00L300.00,72.00L299.00,71.00L299.00,69.00L298.00,68.00L297.00,65.00L295.00,63.00L294.00,63.00L289.00,60.00L278.00,60.00L277.00,61.00L276.00,61.00L275.00,62.00L272.00,63.00Z"/></svg>
       <b>ARLing</b><span>SEPA pain.001 Doctor</span>
     </a>
-    <nav aria-label="Site"><a href="#playground">Prüfen</a><a href="#termin-2026">Stichtag 15. 11.</a><a href="#faq">Fragen</a><a href="https://arling.sk/de/#tools">Werkzeuge</a><a href="https://arling.sk/notes/">Notes</a><a href="https://arling.sk/how-we-work/">Wie wir arbeiten</a><a href="mailto:andrej@arling.sk">Kontakt</a></nav>
+    <nav aria-label="Site"><a href="#playground">Prüfen</a><a href="#termin-2026">Stichtag 15. 11.</a><a href="#faq">Fragen</a><a href="https://arling.sk/#tools">Tools</a><a href="https://arling.sk/notes/">Notes</a><a href="https://arling.sk/how-we-work/">Wie wir arbeiten</a><a href="mailto:andrej@arling.sk">Kontakt</a></nav>
   </div>
 </header>
 
@@ -427,6 +439,18 @@
           <p class="fineprint">Die Einstellungen (Bank, erwartete Anzahl der Transaktionen) werden nach der Prüfung in der Seitenadresse gespeichert. Die XML selbst nicht, das Ergebnis lässt sich also nicht über die URL teilen. Nutzen Sie dafür die Schaltfläche „Bericht kopieren“.</p>
         </div>
       </div>
+      <div class="pripomienka" id="pripomienka" hidden>
+        <p class="prip-nadpis" id="prip-nadpis"></p>
+        <p class="prip-text" id="prip-text"></p>
+        <form data-subscribe data-source="doctor-termin-adresa" data-thanks="prip-vdaka" data-error="prip-chyba" class="subscribe-form" novalidate>
+          <div class="hp" aria-hidden="true"><input type="text" name="website" tabindex="-1" autocomplete="off"></div>
+          <input type="email" id="prip-email" name="email" required autocomplete="email" inputmode="email">
+          <button class="btn btn-solid" type="submit" data-umami-event="pripomienka_adresa">…</button>
+        </form>
+        <p id="prip-vdaka" hidden></p>
+        <p id="prip-chyba" hidden></p>
+        <p class="fineprint" id="prip-drobne"></p>
+      </div>
       <p class="toolnote">Nichts von dem, was Sie einfügen, wird irgendwohin gesendet. Die Prüfung läuft in Ihrem Browser, nach den veröffentlichten Regeln der Banken.</p>
       <div class="toolfoot r d2">
         <p>Die Regeln stammen aus der technischen Dokumentation von Tatra banka, VÚB und ČSOB, aus öffentlichen Angaben der SLSP und aus dem Standard ISO 20022. Findet das Werkzeug einen Fall nicht, melden Sie ihn als <a href="https://github.com/AndryRoby/sepa-pain001-doctor/issues" target="_blank" rel="noopener">Issue auf GitHub</a>.</p>
@@ -532,8 +556,8 @@
 <footer>
   <div class="wrap foot">
     <div><b>ARLing s. r. o.</b><br>Ivanská cesta 32E<br>821 04 Bratislava, Slowakei</div>
-    <div>Handelsregister-Nr. 56583486<br>USt-IdNr. SK2122352100<br><a href="mailto:andrej@arling.sk">andrej@arling.sk</a></div>
-    <div><a href="https://arling.sk/privacy/">Datenschutz</a> · <a href="https://arling.sk/podmienky/">AGB</a> · <a href="https://arling.sk/gdpr/">DSGVO</a> · <a href="https://arling.sk/impressum/">Impressum</a> · <a href="https://arling.sk/llms.txt">llms.txt</a> · <a href="https://arling.sk/sitemap-index.xml">Sitemap</a><br>Die Werkzeuge werden ohne Gewähr bereitgestellt. Anonyme Besuchszählung über eigenes Umami.</div>
+    <div>Firmenbuchnummer 56583486<br>USt-IdNr. SK2122352100<br><a href="mailto:andrej@arling.sk">andrej@arling.sk</a></div>
+    <div><a href="https://arling.sk/privacy/">Datenschutz</a> · <a href="https://arling.sk/podmienky/">AGB</a> · <a href="https://arling.sk/gdpr/">DSGVO</a> · <a href="https://arling.sk/impressum/">Impressum</a> · <a href="https://arling.sk/llms.txt">llms.txt</a> · <a href="https://arling.sk/sitemap-index.xml">Sitemap</a><br>Die Tools werden bereitgestellt, wie sie sind, ohne Gewähr. Anonyme Besuchszahlen über unser eigenes Umami.</div>
   </div>
 </footer>
 
@@ -563,7 +587,13 @@
       <CdtTrfTxInf>
         <PmtId><EndToEndId>/VS123/KS0308/SS14</EndToEndId></PmtId>
         <Amt><InstdAmt Ccy="EUR">450.00</InstdAmt></Amt>
-        <Cdtr><Nm>Jozef Šťastný</Nm></Cdtr>
+        <Cdtr>
+          <Nm>Jozef Šťastný</Nm>
+          <PstlAdr>
+            <AdrLine>Ivanská cesta 32E</AdrLine>
+            <AdrLine>821 04 Bratislava</AdrLine>
+          </PstlAdr>
+        </Cdtr>
         <CdtrAcct><Id><IBAN>SK0502000000272000000018</IBAN></Id></CdtrAcct>
         <RmtInf><Ustrd>Faktúra č. 2026-0912</Ustrd></RmtInf>
       </CdtTrfTxInf>
@@ -651,6 +681,14 @@
       jednoMiesto: 'jedno miesto',
       viacMiest: (n) => n + ' miest',
       vychodVseobecny: 'Nájsť chybu je jedna vec, opraviť ju v XML druhá. Náš generátor skladá pain.001 priamo z Excelu, takže tieto chyby nevzniknú.',
+      vychodCisty: 'Súbor je v poriadku. Ak ho skladáte ručne alebo vzorcami v Exceli, náš generátor to spraví za pár sekúnd a rovno skontroluje.',
+      pripNadpis: (n) => n === 1 ? 'Našli sme jednu adresu, ktorá po 15. novembri neprejde.' : 'Našli sme ' + n + ' adries, ktoré po 15. novembri neprejdú.',
+      pripText: 'Do termínu zostáva čas, ale na opravu treba váš účtovný program, nie tento nástroj. Napíšeme vám dva týždne pred termínom jednu pripomienku, aby vám to nevypadlo. Nič iné vám neposielame.',
+      pripPlaceholder: 'vas@email.sk',
+      pripTlacidlo: 'Poslať pripomienku',
+      pripVdaka: 'Hotovo. Ozveme sa 1. novembra, raz, a potom už nie.',
+      pripChyba: 'Nepodarilo sa uložiť. Napíšte na andrej@arling.sk.',
+      pripDrobne: 'E-mail použijeme len na túto jednu pripomienku. Odhlásenie odpoveďou na správu.',
       otvoritGenerator: 'Otvoriť SEPA generátor',
     },
     en: {
@@ -685,6 +723,14 @@
       jednoMiesto: 'one spot',
       viacMiest: (n) => n + ' spots',
       vychodVseobecny: 'Finding the error is one thing, fixing it in the XML is another. Our generator builds pain.001 straight from Excel, so these errors do not arise.',
+      vychodCisty: 'The file is fine. If you build it by hand or with Excel formulas, our generator does it in seconds and checks it straight away.',
+      pripNadpis: (n) => n === 1 ? 'We found one address that will not pass after 15 November.' : 'We found ' + n + ' addresses that will not pass after 15 November.',
+      pripText: 'There is still time, but the fix belongs in your accounting software, not in this tool. We will send you one reminder two weeks before the deadline so it does not slip. Nothing else.',
+      pripPlaceholder: 'you@example.com',
+      pripTlacidlo: 'Send me the reminder',
+      pripVdaka: 'Done. We will write once, on 1 November, and never again.',
+      pripChyba: 'Could not save that. Write to andrej@arling.sk.',
+      pripDrobne: 'We use the address for this one reminder only. Unsubscribe by replying.',
       otvoritGenerator: 'Open the SEPA generator',
     },
     de: {
@@ -719,6 +765,14 @@
       jednoMiesto: 'eine Stelle',
       viacMiest: (n) => n + ' Stellen',
       vychodVseobecny: 'Den Fehler zu finden ist eine Sache, ihn im XML zu beheben eine andere. Unser Generator baut pain.001 direkt aus Excel, so entstehen diese Fehler gar nicht.',
+      vychodCisty: 'Die Datei ist in Ordnung. Wenn Sie sie von Hand oder mit Excel-Formeln bauen, erledigt das unser Generator in Sekunden und prüft sie gleich mit.',
+      pripNadpis: (n) => n === 1 ? 'Wir haben eine Adresse gefunden, die nach dem 15. November nicht mehr durchgeht.' : 'Wir haben ' + n + ' Adressen gefunden, die nach dem 15. November nicht mehr durchgehen.',
+      pripText: 'Zeit ist noch, aber die Korrektur gehört in Ihre Buchhaltungssoftware, nicht in dieses Werkzeug. Wir schicken Ihnen zwei Wochen vor dem Stichtag eine einzige Erinnerung, damit es nicht untergeht. Sonst nichts.',
+      pripPlaceholder: 'sie@beispiel.de',
+      pripTlacidlo: 'Erinnerung schicken',
+      pripVdaka: 'Erledigt. Wir schreiben einmal, am 1. November, und danach nie wieder.',
+      pripChyba: 'Konnte nicht gespeichert werden. Schreiben Sie an andrej@arling.sk.',
+      pripDrobne: 'Die Adresse nutzen wir nur für diese eine Erinnerung. Abmeldung per Antwort.',
       otvoritGenerator: 'SEPA-Generator öffnen',
     },
   };
@@ -822,6 +876,21 @@
     );
   }
 
+
+  // Texty pripomienky sa dosádzajú zo slovníka, nie z HTML: placeholder ani
+  // aria-label prekladač nezachytí, a na /de/ by ostali po slovensky.
+  (function pripravPripomienku() {
+    const e = $('prip-email');
+    if (!e) return;
+    e.placeholder = UI.pripPlaceholder;
+    e.setAttribute('aria-label', UI.pripPlaceholder);
+    e.form.querySelector('button').textContent = UI.pripTlacidlo;
+    $('prip-text').textContent = UI.pripText;
+    $('prip-vdaka').textContent = UI.pripVdaka;
+    $('prip-chyba').textContent = UI.pripChyba;
+    $('prip-drobne').textContent = UI.pripDrobne;
+  }());
+
   function expectedRow(label, value) {
     if (value === null || value === undefined || value === '') return '';
     const multiline = String(value).includes('\n');
@@ -881,9 +950,21 @@
       vychodText = UI.vychodVseobecny;
       vychodUdalost = 'exit_generator_chyby';
     } else {
-      vychodText = 'Súbor je v poriadku. Ak ho skladáte ručne alebo vzorcami v Exceli, náš generátor to spraví za pár sekúnd a rovno skontroluje.';
+      vychodText = UI.vychodCisty;
       vychodUdalost = 'exit_generator_cisty';
     }
+    // Pripomienka na termín má zmysel len vtedy, keď sa adresná chyba naozaj
+    // našla. Inak ostáva skrytá, aby to nebola reklama za každým výsledkom.
+    const prip = $('pripomienka');
+    if (prip) {
+      if (adresneChyby) {
+        $('prip-nadpis').textContent = UI.pripNadpis(adresneChyby);
+        prip.hidden = false;
+      } else {
+        prip.hidden = true;
+      }
+    }
+
     const vychodHtml = `<div class="vychod">
       <p>${esc(vychodText)}</p>
       <a class="btn btn-line" href="https://arling.sk/sepa-pain001-generator/" data-umami-event="${esc(vychodUdalost)}">${esc(UI.otvoritGenerator)}</a>
