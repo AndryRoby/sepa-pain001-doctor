@@ -53,8 +53,13 @@ function clone(x) {
   return JSON.parse(JSON.stringify(x));
 }
 
-function daysFromNowIso(n) {
-  const d = new Date();
+// Dni sa počítajú od DNES_PRED, nie od skutočných hodín: diagnose() dostáva
+// ten istý dátum v cfg.dnes, takže test dopadne rovnako dnes aj o rok.
+const DNES_PRED = '2026-10-01';
+const DNES_PO = '2026-11-20';
+
+function daysFromNowIso(n, zaklad) {
+  const d = new Date((zaklad || DNES_PRED) + 'T00:00:00Z');
   d.setUTCDate(d.getUTCDate() + n);
   return d.toISOString().slice(0, 10);
 }
@@ -187,8 +192,20 @@ const PASS_SPEC = {
   ],
 };
 
-function run(spec, bank, expectedTxCount) {
-  return diagnose({ xml: buildPain001(spec), bank, expectedTxCount: expectedTxCount === undefined ? null : expectedTxCount });
+// The structured-address deadline (TERMIN_ADRESY, 15. 11. 2026) changes both
+// the expected message version and the severity of address findings, so every
+// test pins the date instead of reading the clock. Without this the suite
+// would silently change behaviour overnight on 15. 11. 2026 — the baseline
+// .03 file would start reporting schema_namespace_03_po_termine and the
+// "zero problems" assertion would fail for a reason that has nothing to do
+// with the code under test.
+function run(spec, bank, expectedTxCount, dnes) {
+  return diagnose({
+    xml: buildPain001(spec),
+    bank,
+    expectedTxCount: expectedTxCount === undefined ? null : expectedTxCount,
+    dnes: dnes || DNES_PRED,
+  });
 }
 
 // ─────────────────────────────────────────────────────────────────────────
@@ -233,9 +250,33 @@ function run(spec, bank, expectedTxCount) {
 {
   const spec = clone(PASS_SPEC);
   spec.namespace = 'urn:iso:std:iso:20022:tech:xsd:pain.001.001.09';
+  // .09 is a valid message version, not an error. Before the deadline it only
+  // gets a "your bank may still want .03" note; after it, nothing at all.
   const r = run(spec, 'tatrabanka');
-  has('pain.001.001.09 namespace: reports schema_namespace_unexpected', r.problems, 'schema_namespace_unexpected');
-  eq('pain.001.001.09 namespace: severity medium', severityOf(r.problems, 'schema_namespace_unexpected'), 'medium');
+  lacks('pain.001.001.09 pred termínom: nie je to chyba', r.problems, 'schema_namespace_unexpected');
+  has('pain.001.001.09 pred termínom: len poznámka', r.problems, 'schema_namespace_09_skoro');
+  eq('pain.001.001.09 pred termínom: nízka závažnosť', severityOf(r.problems, 'schema_namespace_09_skoro'), 'low');
+
+  const rPo = run(spec, 'tatrabanka', null, DNES_PO);
+  lacks('pain.001.001.09 po termíne: bez poznámky', rPo.problems, 'schema_namespace_09_skoro');
+  lacks('pain.001.001.09 po termíne: bez chyby', rPo.problems, 'schema_namespace_unexpected');
+  eq('pain.001.001.09 po termíne: očakávaný menný priestor je .09',
+    rPo.expected.schemaNamespace, 'urn:iso:std:iso:20022:tech:xsd:pain.001.001.09');
+}
+{
+  // .03 is fine today and questionable after the deadline — but only
+  // "questionable": the SEPA date is about the address, each bank decides
+  // its own accepted message version, so this must not be a hard error.
+  const spec = clone(PASS_SPEC);
+  const r = run(spec, 'tatrabanka');
+  lacks('pain.001.001.03 pred termínom: bez výhrady', r.problems, 'schema_namespace_03_po_termine');
+
+  const rPo = run(spec, 'tatrabanka', null, DNES_PO);
+  has('pain.001.001.03 po termíne: upozorní na verziu', rPo.problems, 'schema_namespace_03_po_termine');
+  eq('pain.001.001.03 po termíne: stredná, nie vysoká závažnosť',
+    severityOf(rPo.problems, 'schema_namespace_03_po_termine'), 'medium');
+  ok('pain.001.001.03 po termíne: pošle overiť si to v banke',
+    JSON.stringify(rPo.problems).indexOf('Overte si') !== -1);
 }
 
 // ─────────────────────────────────────────────────────────────────────────
@@ -839,6 +880,34 @@ eq('TERMIN_ADRESY je 15. novembra 2026', TERMIN_ADRESY, '2026-11-15');
   eq('dvadsať rovnakých adries: štatistika pozná počet zlých', r.stats.adriesZlych, 20);
 }
 
+
+// ───────────── pain.001.001.09: iné názvy tých istých údajov ─────────────
+//
+// Vo verzii .09 je dátum splatnosti zabalený v <Dt> a kód banky sa volá
+// <BICFI>. Keby ich Doctor nevedel prečítať, hlásil by pri každom súbore vo
+// verzii .09 nečitateľný dátum a chýbajúci BIC, teda dve chyby, ktoré tam
+// nie sú. Test to stráži na súbore, ktorý je inak zhodný s baseline.
+{
+  const x03 = buildPain001(PASS_SPEC);
+  const x09 = x03
+    .replace('pain.001.001.03', 'pain.001.001.09')
+    .replace(/<ReqdExctnDt>([^<]+)<\/ReqdExctnDt>/g, '<ReqdExctnDt><Dt>$1</Dt></ReqdExctnDt>')
+    .replace(/<BIC>/g, '<BICFI>').replace(/<\/BIC>/g, '</BICFI>');
+
+  const r = diagnose({ xml: x09, bank: 'tatrabanka', dnes: DNES_PRED });
+  lacks('.09: dátum v <Dt> sa prečíta', r.problems, 'exec_date_invalid_format');
+  lacks('.09: BICFI sa berie ako BIC platiteľa', r.problems, 'dbtr_bic_missing');
+  lacks('.09: BICFI sa berie ako BIC príjemcu', r.problems, 'cdtr_bic_missing_required');
+  eq('.09: rovnako čistý ako ten istý súbor v .03',
+    r.problems.filter((p) => p.severity !== 'low').length, 0);
+
+  // Keď BICFI nesedí, hlásenie musí menovať prvok, ktorý v súbore naozaj je.
+  const zly = x09.replace('<BICFI>TATRSKBX</BICFI>', '<BICFI>GIBASKBX</BICFI>');
+  const rz = diagnose({ xml: zly, bank: 'tatrabanka', dnes: DNES_PRED });
+  has('.09: nezhoda BICFI sa nájde', rz.problems, 'dbtr_bic_mismatch');
+  ok('.09: hlásenie menuje BICFI, nie BIC',
+    JSON.stringify(rz.problems).indexOf('FinInstnId/BICFI') !== -1);
+}
 
 console.log(`\n${pass} passed, ${fail} failed`);
 if (fail > 0) {
