@@ -4,7 +4,7 @@
 <script src="/style/vzhlad.js?v=93c2659f"></script>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
-<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' https://homelab.tailbf8f27.ts.net 'sha256-P22VSqiEMB6TIcK3RCgCD0WWmESWUbteMsVC7DrL3Oc=' 'sha256-dFxbLOizyPbfm7UUWlNpGNPJAF5gwqWjhBJhyIDBDH0=' 'sha256-pseqWczA92NdCjj5PrUnCkReRuUay9ym4nopHvYIomA=' 'sha256-fo2+qHfT1vjTX+wGnFDYyCbWCIRKQ1j76QYbOky4QgY='; connect-src 'self' https://homelab.tailbf8f27.ts.net; style-src 'self' 'unsafe-inline'; img-src 'self' data:; font-src 'self'; object-src 'none'; base-uri 'self'; form-action 'none'">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' https://homelab.tailbf8f27.ts.net 'sha256-P22VSqiEMB6TIcK3RCgCD0WWmESWUbteMsVC7DrL3Oc=' 'sha256-dFxbLOizyPbfm7UUWlNpGNPJAF5gwqWjhBJhyIDBDH0=' 'sha256-pseqWczA92NdCjj5PrUnCkReRuUay9ym4nopHvYIomA=' 'sha256-e/fIDlrPDq37+zeT58xFltRMoEhveZvQRnfcD10UZRw='; connect-src 'self' https://homelab.tailbf8f27.ts.net; style-src 'self' 'unsafe-inline'; img-src 'self' data:; font-src 'self'; object-src 'none'; base-uri 'self'; form-action 'none'">
 <meta name="color-scheme" content="dark">
 <meta name="theme-color" content="#0a0908">
 <link rel="icon" href="favicon.svg" type="image/svg+xml">
@@ -134,12 +134,31 @@
   /* Hlavicka: nazov nastroja vedla wordmarku */
   .brand span { white-space:nowrap; }
   @media (max-width:400px) { .brand span { display:none; } }
-  /* bocny register az na sirokych obrazovkach, aby nesiahal do textu */
-  @media (max-width:1560px) { .rail { display:none; } }
 
-  /* Uvod: vlavo text, vpravo samotny nastroj ako artefakt */
-  .hero { grid-template-columns:7fr 6fr; align-items:center; }
-  @media (max-width:1080px) { .hero { grid-template-columns:1fr; } }
+  /* Uvod: vlavo veta a tlacidla, vpravo upozornenie na termin.
+     Nastroj tu uz nie je. V pravom stlpci mal 46 % sirky a v poli na XML boli
+     vidiet styri riadky, co je pri platobnom subore na nic. Ma vlastnu sekciu
+     nizsie, na celu sirku stranky. */
+  .hero { grid-template-columns:minmax(0,7fr) minmax(0,5fr); align-items:center;
+    padding-block:clamp(30px,5vh,64px); }
+  @media (max-width:960px) { .hero { grid-template-columns:minmax(0,1fr); } }
+  /* Sirku nadpisu urcuje stlpec mriezky. Pevnych 16ch ho lamalo na styri
+     riadky obrovskeho pisma, co zabralo cely uvod. */
+  .hero h1 { max-width:none; margin-bottom:clamp(16px,1.6vw,24px); }
+  .hero .lead { max-width:52ch; margin-bottom:clamp(22px,2vw,30px); }
+
+  /* Upozornenie na termin ako karta, nie ako dalsi odstavec v texte */
+  .upoz { border:1px solid var(--line); border-left:3px solid var(--accent);
+    border-radius:var(--radius); background:var(--card);
+    padding:clamp(18px,1.7vw,26px); min-width:0; }
+  .upoz p { margin:0 0 12px; font-size:15px; line-height:1.65; color:var(--body); }
+  .upoz p:last-child { margin-bottom:0; }
+  .upoz b { color:var(--ink); font-weight:600; }
+  .upoz-stitok { font:600 12px/1 var(--ui) !important; letter-spacing:.1em;
+    text-transform:uppercase; color:var(--accent) !important; margin-bottom:14px !important; }
+  .upoz-odkaz a { color:var(--ink); font-weight:600; text-decoration:none;
+    border-bottom:1px solid var(--accent); padding-bottom:2px; }
+  .upoz-odkaz a:hover { color:var(--accent); }
   .facts { list-style:none; margin:22px 0 0; padding:0; display:flex; flex-wrap:wrap; gap:6px 0;
     color:var(--muted); font-family:var(--ui); font-size:14px; }
   /* Oddelovac patri na koniec predchadzajucej polozky, nie na zaciatok dalsej:
@@ -155,21 +174,18 @@
     .facts li.brk ~ li { margin-top:-6px; }
     .facts li.lineend::after { content:none; }
   }
-  .toolcol { min-width:0; }
-  .toolh { font:600 clamp(19px,1.6vw,23px)/1.25 var(--display); color:var(--ink);
-    letter-spacing:-.01em; margin:0 0 14px; max-width:28ch; }
-  .toolnote { font-family:var(--ui); font-size:13px; color:var(--muted); margin:11px 2px 0; max-width:70ch; }
+  /* Sekcia nastroja */
+  .toolsec { padding-block:clamp(34px,5vh,58px); border-top:1px solid var(--line); }
+  .toolh { font:600 clamp(23px,2.4vw,34px)/1.2 var(--display); color:var(--ink);
+    letter-spacing:-.015em; margin:0 0 12px; max-width:26ch; }
+  .toollead { color:var(--body); max-width:68ch; margin:0 0 26px; font-size:16px; }
+  .toolnote { font-family:var(--ui); font-size:13px; color:var(--muted); margin:14px 2px 0; max-width:80ch; }
+  .toolfoot { margin-top:26px; padding-top:20px; border-top:1px solid var(--line);
+    display:grid; grid-template-columns:repeat(auto-fit,minmax(min(320px,100%),1fr));
+    gap:16px var(--gap); }
+  .toolfoot p { margin:0; font-family:var(--ui); font-size:13px; line-height:1.65; color:var(--muted); }
 
   .sub { color:var(--body); max-width:64ch; margin:0 0 24px; }
-
-  /* 01 Tri dovody */
-  .rules { display:grid; grid-template-columns:repeat(auto-fit,minmax(min(260px,100%),1fr)); gap:26px var(--gap);
-    margin:0; padding:0; list-style:none; counter-reset:r; }
-  .rules li { padding-top:14px; border-top:1px solid var(--line); min-width:0; }
-  .rules li::before { counter-increment:r; content:counter(r,decimal-leading-zero);
-    font:500 12px/1 var(--ui); letter-spacing:.12em; color:var(--accent); display:block; margin-bottom:10px; }
-  .rules b { display:block; font:600 clamp(17px,1.3vw,19px)/1.3 var(--display); color:var(--ink); margin-bottom:6px; }
-  .rules p { margin:0; font-size:15.5px; overflow-wrap:anywhere; }
 
   /* Nastroj */
   .play { border:1px solid var(--line); background:var(--card); border-radius:var(--radius); overflow:hidden;
@@ -232,14 +248,23 @@
   .kbd { font:11px/1 var(--mono); padding:2px 6px; border-radius:3px; border:1px solid var(--line);
     background:var(--paper-deep); color:var(--body); }
 
-  /* Na desktope musi byt vstup aj vysledok vidiet bez scrollovania stranky */
-  @media (min-width:1081px) {
-    /* Vstupne pole XML dostane vacsi podiel: pri pomere 1.35:1 sa z vlozeneho XML ukazovali
-     iba poldruha riadka a spodny riadok bol prerezany v polovici pismen. */
-    .play-body { height:540px; grid-template-rows:minmax(0,1.9fr) minmax(0,1fr); }
+  /* Od 1000 px su vstup a vysledok vedla seba. Pole na XML tak dostane polovicu
+     sirky stranky a celu vysku panela, teda pri --wrap 1432 px asi 690 x 470 px.
+     To je zhruba dvadsatpat viditelnych riadkov XML; ked boli panely pod sebou
+     v pravom stlpci hero, boli styri. */
+  @media (min-width:1000px) {
+    .play-body { grid-template-columns:minmax(0,1.05fr) minmax(0,1fr);
+      height:clamp(520px,64vh,680px); }
+    .pane + .pane { border-top:none; border-left:1px solid var(--line); }
     .pane { min-height:0; overflow:hidden; }
     #form-pane, .json-in, .output { min-height:0; }
     .form-section.grow, #f-xml { min-height:0; }
+  }
+  /* Pod tou hranicou su panely pod sebou, ale citatelne musia zostat oba:
+     pevna vyska namiesto troch riadkov. */
+  @media (max-width:999px) {
+    #f-xml { min-height:280px; }
+    .output { min-height:260px; }
   }
 
   .out-line { white-space:pre-wrap; word-break:break-word; }
@@ -321,18 +346,6 @@
   .permalink-row { padding:12px 16px 14px; border-top:1px solid var(--line); background:var(--paper-deep); }
   .fineprint { font-family:var(--ui); font-size:12px; color:var(--muted); line-height:1.6; margin:0; }
 
-  /* 03 Ako to funguje */
-  .endpoint { display:grid; grid-template-columns:minmax(0,1fr) minmax(0,1fr); gap:var(--gap); align-items:start; }
-  @media (max-width:900px) { .endpoint { grid-template-columns:minmax(0,1fr); } }
-  .codeblock { border:1px solid var(--line); background:var(--card); border-radius:var(--radius);
-    overflow:hidden; min-width:0; }
-  .codeblock-head { padding:9px 14px; border-bottom:1px solid var(--line); background:var(--paper-deep);
-    font:11px/1 var(--mono); letter-spacing:.04em; text-transform:uppercase; color:var(--muted);
-    display:flex; justify-content:space-between; align-items:center; }
-  .codeblock pre { margin:0; padding:16px 18px; font-size:12.5px; line-height:1.7; overflow-x:auto;
-    color:var(--body); font-family:var(--mono); background:var(--card); border:none; border-radius:0; }
-  .endpoint-copy p { margin:0 0 14px; font-size:16px; }
-
   /* 04 Zadarmo: tmavy pas */
   .ask { display:flex; flex-wrap:wrap; align-items:center; gap:14px 24px; margin-top:6px; }
   .ask p { margin:0; max-width:56ch; }
@@ -389,16 +402,15 @@
       <svg viewBox="0 0 488 215" width="38" height="15" aria-hidden="true" focusable="false"><path fill="#f4f4f7" fill-rule="evenodd" d="M0.00,213.00L74.00,214.00L181.00,85.00L285.00,214.00L360.00,214.00L206.00,21.00L185.00,4.00L164.00,10.00Z M221.00,0.00L263.00,50.00L395.00,50.00L409.00,55.00L419.00,76.00L401.00,96.00L313.00,98.00L411.00,214.00L487.00,214.00L422.00,139.00L457.00,123.00L482.00,88.00L482.00,48.00L463.00,19.00L417.00,0.00Z"/><path fill="#f2643c" d="M269.00,66.00L269.00,67.00L268.00,68.00L268.00,70.00L267.00,71.00L267.00,76.00L268.00,77.00L268.00,79.00L270.00,81.00L270.00,82.00L271.00,82.00L273.00,84.00L274.00,84.00L277.00,86.00L279.00,86.00L280.00,87.00L287.00,87.00L288.00,86.00L290.00,86.00L291.00,85.00L294.00,84.00L298.00,80.00L298.00,79.00L299.00,78.00L299.00,75.00L300.00,74.00L300.00,72.00L299.00,71.00L299.00,69.00L298.00,68.00L297.00,65.00L295.00,63.00L294.00,63.00L289.00,60.00L278.00,60.00L277.00,61.00L276.00,61.00L275.00,62.00L272.00,63.00Z"/></svg>
       <b>ARLing</b><span>SEPA pain.001 Doctor</span>
     </a>
-    <nav aria-label="Site"><a href="#problem">Problém</a><a href="#playground">Diagnostika</a><a href="#endpoint">Ako to funguje</a><a href="#faq">Otázky</a><a href="https://arling.sk/#tools">Nástroje</a><a href="https://arling.sk/notes/">Notes</a><a href="https://arling.sk/how-we-work/">Ako pracujeme</a><a href="mailto:andrej@arling.sk">Kontakt</a></nav>
+    <nav aria-label="Site"><a href="#playground">Kontrola</a><a href="#termin-2026">Termín 15. 11.</a><a href="#faq">Otázky</a><a href="https://arling.sk/#tools">Nástroje</a><a href="https://arling.sk/notes/">Notes</a><a href="https://arling.sk/how-we-work/">Ako pracujeme</a><a href="mailto:andrej@arling.sk">Kontakt</a></nav>
   </div>
 </header>
 
 <main>
   <div class="wrap hero" id="hero">
     <div>
-      <h1 id="h1"><span class="l">Banka odmietla</span><span class="l">váš SEPA XML.</span><span class="l">Zistite presne</span><span class="l">prečo.</span></h1>
-      <p class="lead r d3">Vložte pain.001 hromadný príkaz, vyberte banku. Dostanete presný element, hodnotu a opravu namiesto všeobecnej chybovej hlášky.</p>
-      <p class="termin r d4"><b>Nové: termín 15. novembra 2026.</b> Od toho dňa nesmie byť adresa v SEPA platbe voľný text. Ak je adresa v súbore uvedená, musí mať aspoň mesto a kód krajiny vo vlastných poliach, inak ju banka odmietne. Kontrola je súčasťou tohto nástroja a je zadarmo. <a href="#termin-2026">Čo presne sa mení</a></p>
+      <h1 id="h1"><span class="l">Banka odmietla váš SEPA XML.</span><span class="l">Zistite presne prečo.</span></h1>
+      <p class="lead r d3">Vložíte súbor pain.001 z účtovného programu, vyberiete banku a hneď viete, ktorý riadok je zlý a čo tam má byť namiesto neho. Nie „chyba pri importe“, ale konkrétny element, jeho hodnota a oprava.</p>
       <div class="cta r d4">
         <a class="btn btn-solid" href="#playground" data-umami-event="hero_skontrolovat">Skontrolovať môj súbor</a>
         <a class="btn btn-line" href="https://github.com/AndryRoby/sepa-pain001-doctor" target="_blank" rel="noopener" data-umami-event="github_source">Zdrojový kód na GitHube</a>
@@ -412,9 +424,19 @@
       </ul>
     </div>
 
-    <div class="toolcol r d2" id="playground">
-      <p class="kicker">02</p>
-      <h2 class="toolh">Vložte XML, vyberte banku. Dostanete presné chyby.</h2>
+    <aside class="upoz r d4">
+      <p class="upoz-stitok">Termín 15. novembra 2026</p>
+      <p>Od toho dňa nesmie byť adresa v SEPA platbe napísaná ako jeden riadok voľného textu. Ak je adresa v súbore uvedená, musí mať aspoň <b>mesto a kód krajiny</b> vo vlastných poliach, inak banka odmietne celý súbor.</p>
+      <p>Adresa je naďalej nepovinná. Súbor bez adries prejde aj po termíne presne ako dnes.</p>
+      <p class="upoz-odkaz"><a href="#termin-2026">Čo presne sa mení</a></p>
+    </aside>
+  </div>
+
+  <section id="playground" class="toolsec">
+    <div class="wrap">
+      <p class="kicker">Kontrola</p>
+      <h2 class="toolh r">Vložte XML, vyberte banku. Dostanete presné chyby.</h2>
+      <p class="toollead r d1">Súbor sa číta priamo vo vašom prehliadači a nikam sa neodosiela. Do sekundy vidíte, ktorý element je zlý, akú má hodnotu a čo tam patrí namiesto nej.</p>
       <div class="play">
         <div class="play-body">
           <div class="pane">
@@ -490,73 +512,9 @@
         </div>
       </div>
       <p class="toolnote">Nič z toho, čo vložíte, sa neodosiela. Kontrola beží vo vašom prehliadači podľa zverejnených pravidiel bánk.</p>
-    </div>
-  </div>
-
-  <section id="problem" class="deep">
-    <div class="wrap">
-      <p class="kicker">01</p>
-      <h2 class="r">Tri dôvody, prečo rovnaký súbor prejde v jednej banke a v druhej nie.</h2>
-      <p class="sub r d1">Tatra banka, SLSP, VÚB aj ČSOB tvrdia, že prijímajú pain.001. Každá si k rovnakej XSD schéme pridala vlastné pravidlá.</p>
-      <div class="rule"></div>
-      <ol class="rules">
-        <li class="r d1">
-          <b>Diakritika blokuje súbor len v ČSOB.</b>
-          <p>ČSOB odmietne SEPA XML s diakritikou úplne. Povolené sú písmená a-z, A-Z, číslice 0-9, medzera a znaky <code>/ - ? : ( ) . , ' +</code>. Meno so „š“, „č“ alebo „ž“ stačí na zamietnutie.</p>
-        </li>
-        <li class="r d2">
-          <b><code>CdtrAgt/BIC</code> rieši každá banka inak.</b>
-          <p>VÚB ho má vo vlastnej špecifikácii ako povinný. Tatra banka ho vie odvodiť z IBAN a chýbajúci toleruje. ČSOB ho urobila nepovinným od 1. februára 2016.</p>
-        </li>
-        <li class="r d3">
-          <b>Dátum a limit transakcií majú iný strop.</b>
-          <p>Tatra banka odmieta <code>ReqdExctnDt</code> viac než 31 dní dopredu a max. 500 transakcií na blok <code>PmtInf</code>. VÚB akceptuje najviac 30 dní vopred.</p>
-        </li>
-      </ol>
-    </div>
-  </section>
-
-  <section id="endpoint">
-    <div class="wrap">
-      <p class="kicker">03</p>
-      <h2 class="r">Jedna funkcia. XML dnu, diagnóza von.</h2>
-      <p class="sub r d1">Žiadny server, žiadny API kľúč, žiadna registrácia. <code>doctor-pain001.js</code> je čistý JavaScript: prečítajte si ho, forknite, alebo ho spustite vo vlastnom kóde či CI.</p>
-
-      <div class="rule"></div>
-      <div class="endpoint">
-        <div class="codeblock r d1">
-          <div class="codeblock-head">
-            <span>doctor-pain001.js</span>
-            <span>0 závislostí</span>
-          </div>
-          <pre><span class="p">import</span> { diagnose } <span class="p">from</span> <span class="s">'./doctor-pain001.js'</span>;
-<span class="p">// alebo globálne: const { diagnose } = window.SepaDoctor;</span>
-
-<span class="p">const</span> result = diagnose({
-  <span class="k">xml</span>:             <span class="s">'&lt;Document xmlns="urn:iso:std:iso:20022:...'</span>,
-  <span class="k">bank</span>:            <span class="s">'tatrabanka'</span> <span class="p">| 'slsp' | 'vub' | 'csob' | 'generic'</span>,
-  <span class="k">expectedTxCount</span>: <span class="b">null</span> <span class="p">| number,</span>
-});
-
-<span class="p">// result</span>
-{
-  <span class="k">"status"</span>:     <span class="s">"fail"</span> | <span class="s">"warn"</span> | <span class="s">"pass"</span>,
-  <span class="k">"summary"</span>:    <span class="s">"…"</span>,
-  <span class="k">"expected"</span>:   { <span class="p">bankBic, schemaNamespace, execWindowDays, nbOfTxsShouldBe, ctrlSumShouldBe</span> },
-  <span class="k">"stats"</span>:      { <span class="p">txCount, sum, currencies, banksDetected</span> },
-  <span class="k">"problems"</span>:   [ { code, severity, message, path, value, fix } ],
-  <span class="k">"fixes"</span>:      [ { title, value, where } ],
-  <span class="k">"checklist"</span>:  [ <span class="s">"…"</span> ],
-  <span class="k">"disclaimer"</span>: <span class="s">"…"</span>
-}</pre>
-        </div>
-
-        <div class="endpoint-copy r d2">
-          <p>Celá kontrola beží na strane klienta. Formulár vyššie volá presne túto funkciu vo vašom prehliadači. Neexistuje backend ani API kľúč, ktorý by obsah vašej platby odniesol inam.</p>
-          <p>Pravidlá vychádzajú priamo z technickej dokumentácie Tatra banky, VÚB a ČSOB, z verejných vyjadrení SLSP, a zo štandardu ISO 20022 a EPC SEPA Credit Transfer. Nie z všeobecného čítania XSD schémy.</p>
-          <p class="fineprint">Zadarmo, otvorené, bez reklamy a bez sledovania nad rámec anonymných počtov použitia. Prípad, ktorý nástroj neodhalí, nahláste ako <a href="https://github.com/AndryRoby/sepa-pain001-doctor/issues" target="_blank" rel="noopener">issue na GitHube</a>.</p>
-          <p class="fineprint">Nástroj nie je prepojený s Tatra bankou, Slovenskou sporiteľňou, VÚB ani ČSOB a nie je banka. Čistý výsledok nezaručuje, že banka platbu prijme.</p>
-        </div>
+      <div class="toolfoot r d2">
+        <p>Pravidlá vychádzajú z technickej dokumentácie Tatra banky, VÚB a ČSOB, z verejných vyjadrení SLSP a zo štandardu ISO 20022. Prípad, ktorý nástroj neodhalí, nahláste ako <a href="https://github.com/AndryRoby/sepa-pain001-doctor/issues" target="_blank" rel="noopener">issue na GitHube</a>.</p>
+        <p>Nástroj nie je banka a nie je prepojený s Tatra bankou, Slovenskou sporiteľňou, VÚB ani ČSOB. Čistý výsledok nezaručuje, že banka platbu prijme.</p>
       </div>
     </div>
   </section>
@@ -569,7 +527,7 @@
       <div class="two r d1">
         <div>
           <p>Došlo k zmene v pravidlách SEPA schém. Ak je v platbe uvedená poštová adresa, od 15. novembra 2026 musí byť <b>štruktúrovaná alebo hybridná</b>. Plne neštruktúrovaná adresa, teda jeden alebo viac riadkov voľného textu v <code>&lt;AdrLine&gt;</code>, už neprejde a banka súbor odmietne.</p>
-          <p>Povinné minimum je <b>mesto</b> (<code>&lt;TwnNm&gt;</code>) a <b>dvojpísmenový kód krajiny</b> (<code>&lt;Ctry&gt;</code>). Hybridná adresa smie mať najviac dva riadky voľného textu popri týchto dvoch poliach.</p>
+          <p>Povinné minimum sú dve polia: <b>mesto v <code>&lt;TwnNm&gt;</code> a dvojpísmenový kód krajiny v <code>&lt;Ctry&gt;</code></b>. Hybridná adresa smie mať najviac dva riadky voľného textu popri týchto dvoch poliach.</p>
           <p>Týka sa to SEPA úhrad, okamžitých úhrad aj inkas, teda aj súborov <code>pain.001</code>, ktoré exportuje váš účtovný softvér. Adresa je naďalej nepovinná: súbor bez adries prejde aj po termíne.</p>
         </div>
         <div>
@@ -595,7 +553,7 @@
 
 <section id="pricing" class="band">
     <div class="wrap">
-      <p class="kicker">04</p>
+      <p class="kicker">Cena</p>
       <h2 class="r">Zadarmo.</h2>
       <p class="sub r d1">Vznikol z vlastnej potreby: overiť SEPA XML pred nahratím do internetbankingu. Bez účtu, bez platby, bez limitu na počet kontrol.</p>
       <div class="rule"></div>
@@ -622,7 +580,7 @@
 
   <section id="faq" class="deep">
     <div class="wrap">
-      <p class="kicker">05</p>
+      <p class="kicker">Otázky</p>
       <h2 class="r">Otázky, ktoré ľudia naozaj hľadajú.</h2>
       <p class="sub r d1">Priame odpovede na otázky o SEPA pain.001, ktoré tento nástroj diagnostikuje.</p>
       <div class="rule"></div>
@@ -654,13 +612,6 @@
     </div>
   </section>
 </main>
-
-<nav class="rail" aria-label="Stránka">
-  <a href="#problem" data-umami-event="index-problem"><i></i><span>Problém</span></a>
-  <a href="#playground" data-umami-event="index-playground"><i></i><span>Diagnostika</span></a>
-  <a href="#endpoint" data-umami-event="index-endpoint"><i></i><span>Ako to funguje</span></a>
-  <a href="#faq" data-umami-event="index-faq"><i></i><span>Otázky</span></a>
-</nav>
 
 <footer>
   <div class="wrap foot">
@@ -1123,20 +1074,6 @@
   }
 
   // bocny register vie, ktora sekcia je v strede obrazovky
-  var rail = document.querySelector('.rail');
-  if (rail) {
-    var links = Array.prototype.slice.call(rail.querySelectorAll('a'));
-    var targets = links.map(function (a) { return document.querySelector(a.getAttribute('href')); });
-    var railIo = new IntersectionObserver(function (entries) {
-      entries.forEach(function (en) {
-        var i = targets.indexOf(en.target);
-        if (i < 0 || !en.isIntersecting) return;
-        links.forEach(function (a, j) { a.setAttribute('aria-current', j === i ? 'true' : 'false'); });
-      });
-      rail.classList.add('on');
-    }, { rootMargin: '-45% 0px -45% 0px' });
-    targets.forEach(function (t) { if (t) railIo.observe(t); });
-  }
 })();
 </script>
 </body>

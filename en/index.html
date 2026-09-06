@@ -4,7 +4,7 @@
 <script src="/style/vzhlad.js?v=93c2659f"></script>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
-<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' https://homelab.tailbf8f27.ts.net 'sha256-P22VSqiEMB6TIcK3RCgCD0WWmESWUbteMsVC7DrL3Oc=' 'sha256-dFxbLOizyPbfm7UUWlNpGNPJAF5gwqWjhBJhyIDBDH0=' 'sha256-pseqWczA92NdCjj5PrUnCkReRuUay9ym4nopHvYIomA=' 'sha256-fo2+qHfT1vjTX+wGnFDYyCbWCIRKQ1j76QYbOky4QgY='; connect-src 'self' https://homelab.tailbf8f27.ts.net; style-src 'self' 'unsafe-inline'; img-src 'self' data:; font-src 'self'; object-src 'none'; base-uri 'self'; form-action 'none'">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' https://homelab.tailbf8f27.ts.net 'sha256-JzPajbx6TW29FDDNS8ZGrd6IutXURQ25gaObK+Pvvqk=' 'sha256-NsNAt4RxUHdw34RclJnFoVhPTw6ETTZjp5wuY5a/gn4=' 'sha256-2ZodU3iYQFA4jvgHC4ULhPQEzhYo2rN51tFf0TTKnIQ=' 'sha256-e/fIDlrPDq37+zeT58xFltRMoEhveZvQRnfcD10UZRw='; connect-src 'self' https://homelab.tailbf8f27.ts.net; style-src 'self' 'unsafe-inline'; img-src 'self' data:; font-src 'self'; object-src 'none'; base-uri 'self'; form-action 'none'">
 <meta name="color-scheme" content="dark">
 <meta name="theme-color" content="#0a0908">
 <link rel="icon" href="../favicon.svg" type="image/svg+xml">
@@ -33,93 +33,9 @@
 <script src="/style/prepinac.js?v=2988c181" defer></script>
 <script defer src="https://homelab.tailbf8f27.ts.net/script.js" data-website-id="338f035d-41c5-411e-8391-9a41db6accfd"></script>
 
-<script type="application/ld+json">
-{
-  "@context": "https://schema.org",
-  "@type": "SoftwareApplication",
-  "name": "SEPA pain.001 Doctor (slovenské banky)",
-  "url": "https://arling.sk/sepa-pain001-doctor/",
-  "description": "Free, client-side checker that finds why a SEPA pain.001 XML batch payment file gets rejected by Tatra banka, Slovenská sporiteľňa (SLSP), VÚB or ČSOB internet banking, and gives the exact bank rule it violates.",
-  "applicationCategory": "FinanceApplication",
-  "operatingSystem": "Any (web browser)",
-  "offers": {
-    "@type": "Offer",
-    "price": "0",
-    "priceCurrency": "EUR"
-  },
-  "author": {
-    "@type": "Organization",
-    "name": "ARLing s. r. o.",
-    "url": "https://arling.sk/",
-    "email": "andrej@arling.sk",
-    "address": {
-      "@type": "PostalAddress",
-      "addressLocality": "Bratislava",
-      "addressCountry": "SK"
-    }
-  },
-  "sameAs": [
-    "https://github.com/AndryRoby/sepa-pain001-doctor"
-  ]
-}
-</script>
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"SoftwareApplication","name":"SEPA pain.001 Doctor (slovenské banky)","url":"https://arling.sk/sepa-pain001-doctor/","description":"Free, client-side checker that finds why a SEPA pain.001 XML batch payment file gets rejected by Tatra banka, Slovenská sporiteľňa (SLSP), VÚB or ČSOB internet banking, and gives the exact bank rule it violates.","applicationCategory":"FinanceApplication","operatingSystem":"Any (web browser)","offers":{"@type":"Offer","price":"0","priceCurrency":"EUR"},"author":{"@type":"Organization","name":"ARLing s. r. o.","url":"https://arling.sk/","email":"andrej@arling.sk","address":{"@type":"PostalAddress","addressLocality":"Bratislava","addressCountry":"SK"}},"sameAs":["https://github.com/AndryRoby/sepa-pain001-doctor"]}</script>
 
-<script type="application/ld+json">
-{
-  "@context": "https://schema.org",
-  "@type": "FAQPage",
-  "mainEntity": [
-    {
-      "@type": "Question",
-      "name": "Prečo Tatra banka odmietla môj pain.001 súbor?",
-      "acceptedAnswer": {
-        "@type": "Answer",
-        "text": "Tatra banka pri importe kontroluje viac než to, či je XML validné pain.001. Kontroluje presný menný priestor pain.001.001.03, PmtMtd=TRF, SvcLvl/Cd=SEPA, ChrgBr=SLEV, BIC platiteľa presne TATRSKBX, dátum ReqdExctnDt (nie v minulosti, ani viac než 31 dní dopredu), maximálne 500 transakcií na blok PmtInf, dĺžkové limity mien a poznámky, a pri slovenskom IBAN príjemcu aj kontrolu modulo-11. Stačí porušiť jedno pravidlo a import zlyhá."
-      }
-    },
-    {
-      "@type": "Question",
-      "name": "Ako správne zapísať variabilný symbol do SEPA XML?",
-      "acceptedAnswer": {
-        "@type": "Answer",
-        "text": "pain.001.001.03 nemá samostatné polia pre VS, ŠS a KS. Podľa konvencie NBS sa zapisujú do PmtId/EndToEndId v poradí /VS.../SS.../KS..., napríklad /VS123/SS456/KS0308. VS aj ŠS majú maximálne 10 číslic, KS maximálne 4. Zlé poradie prevod nezastaví, ale protistrana si platbu nevie spárovať s faktúrou."
-      }
-    },
-    {
-      "@type": "Question",
-      "name": "Aké znaky sú povolené v SEPA platbe (diakritika)?",
-      "acceptedAnswer": {
-        "@type": "Answer",
-        "text": "ČSOB vo svojej dokumentácii uvádza presný zoznam: písmená a-z, A-Z, číslice 0-9, medzera a znaky / - ? : ( ) . , ' +. Diakritiku (č, š, ž, ä, ô, ľ) ČSOB do BusinessBanking Lite neimportuje vôbec. Pri iných bankách diakritika súbor nemusí zablokovať hneď, bezpečnejšie je exportovať bez nej vždy."
-      }
-    },
-    {
-      "@type": "Question",
-      "name": "Čo znamená chyba NbOfTxs alebo CtrlSum?",
-      "acceptedAnswer": {
-        "@type": "Answer",
-        "text": "GrpHdr/NbOfTxs musí presne zodpovedať počtu transakcií CdtTrfTxInf v súbore. GrpHdr/CtrlSum musí byť presný súčet súm InstdAmt na 2 desatinné miesta. Nezhoda (typicky po ručnej úprave súboru bez prepočtu súhrnov) patrí medzi najčastejšie a najmenej zrozumiteľné dôvody zamietnutia dávky."
-      }
-    },
-    {
-      "@type": "Question",
-      "name": "Musí byť v pain.001 BIC príjemcu?",
-      "acceptedAnswer": {
-        "@type": "Answer",
-        "text": "Závisí od banky. VÚB má CdtrAgt/BIC vo vlastnej špecifikácii označený ako povinný. Tatra banka ho vie odvodiť zo správneho SEPA IBAN a chýbajúci toleruje. ČSOB ho urobila nepovinným od 1. februára 2016. Ak generujete jeden súbor pre viac bánk, BIC radšej vždy uveďte."
-      }
-    },
-    {
-      "@type": "Question",
-      "name": "Odosielajú sa moje dáta niekam?",
-      "acceptedAnswer": {
-        "@type": "Answer",
-        "text": "Nie. Kontrola beží celá vo vašom prehliadači. XML, IBAN, sumy ani mená sa nikam neposielajú, nástroj nemá backend. Jedinou sieťovou aktivitou je načítanie statických súborov stránky a anonymné počítadlo použitia (Umami), ktoré zaznamená len výsledok (pass, warn, fail), nikdy obsah súboru."
-      }
-    }
-  ]
-}
-</script>
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"FAQPage","mainEntity":[{"@type":"Question","name":"Why did Tatra banka reject my pain.001 file?","acceptedAnswer":{"@type":"Answer","text":"Tatra banka pri importe kontroluje viac než to, či je XML validné pain.001. Kontroluje presný menný priestor pain.001.001.03, PmtMtd=TRF, SvcLvl/Cd=SEPA, ChrgBr=SLEV, BIC platiteľa presne TATRSKBX, dátum ReqdExctnDt (nie v minulosti, ani viac než 31 dní dopredu), maximálne 500 transakcií na blok PmtInf, dĺžkové limity mien a poznámky, a pri slovenskom IBAN príjemcu aj kontrolu modulo-11. Stačí porušiť jedno pravidlo a import zlyhá."}},{"@type":"Question","name":"How do I write the variable symbol into SEPA XML?","acceptedAnswer":{"@type":"Answer","text":"pain.001.001.03 nemá samostatné polia pre VS, ŠS a KS. Podľa konvencie NBS sa zapisujú do PmtId/EndToEndId v poradí /VS.../SS.../KS..., napríklad /VS123/SS456/KS0308. VS aj ŠS majú maximálne 10 číslic, KS maximálne 4. Zlé poradie prevod nezastaví, ale protistrana si platbu nevie spárovať s faktúrou."}},{"@type":"Question","name":"Which characters are allowed in a SEPA payment (accents)?","acceptedAnswer":{"@type":"Answer","text":"ČSOB vo svojej dokumentácii uvádza presný zoznam: písmená a-z, A-Z, číslice 0-9, medzera a znaky / - ? : ( ) . , ' +. Diakritiku (č, š, ž, ä, ô, ľ) ČSOB do BusinessBanking Lite neimportuje vôbec. Pri iných bankách diakritika súbor nemusí zablokovať hneď, bezpečnejšie je exportovať bez nej vždy."}},{"@type":"Question","name":"What does an NbOfTxs or CtrlSum error mean?","acceptedAnswer":{"@type":"Answer","text":"GrpHdr/NbOfTxs musí presne zodpovedať počtu transakcií CdtTrfTxInf v súbore. GrpHdr/CtrlSum musí byť presný súčet súm InstdAmt na 2 desatinné miesta. Nezhoda (typicky po ručnej úprave súboru bez prepočtu súhrnov) patrí medzi najčastejšie a najmenej zrozumiteľné dôvody zamietnutia dávky."}},{"@type":"Question","name":"Is the creditor BIC required in pain.001?","acceptedAnswer":{"@type":"Answer","text":"Závisí od banky. VÚB má CdtrAgt/BIC vo vlastnej špecifikácii označený ako povinný. Tatra banka ho vie odvodiť zo správneho SEPA IBAN a chýbajúci toleruje. ČSOB ho urobila nepovinným od 1. februára 2016. Ak generujete jeden súbor pre viac bánk, BIC radšej vždy uveďte."}},{"@type":"Question","name":"Is my data sent anywhere?","acceptedAnswer":{"@type":"Answer","text":"No. The whole check runs in your browser. The XML, IBANs, amounts and names are not sent anywhere; the tool has no backend. The only network activity is loading the page’s static files and an anonymous usage counter (Umami), which records only the outcome (pass, warn, fail), never the contents of the file."}}]}</script>
 
 <style>
   /* Iba to, co je vlastne tomuto nastroju. Farby, pisma, nadpisy, tlacidla,
@@ -134,12 +50,31 @@
   /* Hlavicka: nazov nastroja vedla wordmarku */
   .brand span { white-space:nowrap; }
   @media (max-width:400px) { .brand span { display:none; } }
-  /* bocny register az na sirokych obrazovkach, aby nesiahal do textu */
-  @media (max-width:1560px) { .rail { display:none; } }
 
-  /* Uvod: vlavo text, vpravo samotny nastroj ako artefakt */
-  .hero { grid-template-columns:7fr 6fr; align-items:center; }
-  @media (max-width:1080px) { .hero { grid-template-columns:1fr; } }
+  /* Uvod: vlavo veta a tlacidla, vpravo upozornenie na termin.
+     Nastroj tu uz nie je. V pravom stlpci mal 46 % sirky a v poli na XML boli
+     vidiet styri riadky, co je pri platobnom subore na nic. Ma vlastnu sekciu
+     nizsie, na celu sirku stranky. */
+  .hero { grid-template-columns:minmax(0,7fr) minmax(0,5fr); align-items:center;
+    padding-block:clamp(30px,5vh,64px); }
+  @media (max-width:960px) { .hero { grid-template-columns:minmax(0,1fr); } }
+  /* Sirku nadpisu urcuje stlpec mriezky. Pevnych 16ch ho lamalo na styri
+     riadky obrovskeho pisma, co zabralo cely uvod. */
+  .hero h1 { max-width:none; margin-bottom:clamp(16px,1.6vw,24px); }
+  .hero .lead { max-width:52ch; margin-bottom:clamp(22px,2vw,30px); }
+
+  /* Upozornenie na termin ako karta, nie ako dalsi odstavec v texte */
+  .upoz { border:1px solid var(--line); border-left:3px solid var(--accent);
+    border-radius:var(--radius); background:var(--card);
+    padding:clamp(18px,1.7vw,26px); min-width:0; }
+  .upoz p { margin:0 0 12px; font-size:15px; line-height:1.65; color:var(--body); }
+  .upoz p:last-child { margin-bottom:0; }
+  .upoz b { color:var(--ink); font-weight:600; }
+  .upoz-stitok { font:600 12px/1 var(--ui) !important; letter-spacing:.1em;
+    text-transform:uppercase; color:var(--accent) !important; margin-bottom:14px !important; }
+  .upoz-odkaz a { color:var(--ink); font-weight:600; text-decoration:none;
+    border-bottom:1px solid var(--accent); padding-bottom:2px; }
+  .upoz-odkaz a:hover { color:var(--accent); }
   .facts { list-style:none; margin:22px 0 0; padding:0; display:flex; flex-wrap:wrap; gap:6px 0;
     color:var(--muted); font-family:var(--ui); font-size:14px; }
   /* Oddelovac patri na koniec predchadzajucej polozky, nie na zaciatok dalsej:
@@ -155,21 +90,18 @@
     .facts li.brk ~ li { margin-top:-6px; }
     .facts li.lineend::after { content:none; }
   }
-  .toolcol { min-width:0; }
-  .toolh { font:600 clamp(19px,1.6vw,23px)/1.25 var(--display); color:var(--ink);
-    letter-spacing:-.01em; margin:0 0 14px; max-width:28ch; }
-  .toolnote { font-family:var(--ui); font-size:13px; color:var(--muted); margin:11px 2px 0; max-width:70ch; }
+  /* Sekcia nastroja */
+  .toolsec { padding-block:clamp(34px,5vh,58px); border-top:1px solid var(--line); }
+  .toolh { font:600 clamp(23px,2.4vw,34px)/1.2 var(--display); color:var(--ink);
+    letter-spacing:-.015em; margin:0 0 12px; max-width:26ch; }
+  .toollead { color:var(--body); max-width:68ch; margin:0 0 26px; font-size:16px; }
+  .toolnote { font-family:var(--ui); font-size:13px; color:var(--muted); margin:14px 2px 0; max-width:80ch; }
+  .toolfoot { margin-top:26px; padding-top:20px; border-top:1px solid var(--line);
+    display:grid; grid-template-columns:repeat(auto-fit,minmax(min(320px,100%),1fr));
+    gap:16px var(--gap); }
+  .toolfoot p { margin:0; font-family:var(--ui); font-size:13px; line-height:1.65; color:var(--muted); }
 
   .sub { color:var(--body); max-width:64ch; margin:0 0 24px; }
-
-  /* 01 Tri dovody */
-  .rules { display:grid; grid-template-columns:repeat(auto-fit,minmax(min(260px,100%),1fr)); gap:26px var(--gap);
-    margin:0; padding:0; list-style:none; counter-reset:r; }
-  .rules li { padding-top:14px; border-top:1px solid var(--line); min-width:0; }
-  .rules li::before { counter-increment:r; content:counter(r,decimal-leading-zero);
-    font:500 12px/1 var(--ui); letter-spacing:.12em; color:var(--accent); display:block; margin-bottom:10px; }
-  .rules b { display:block; font:600 clamp(17px,1.3vw,19px)/1.3 var(--display); color:var(--ink); margin-bottom:6px; }
-  .rules p { margin:0; font-size:15.5px; overflow-wrap:anywhere; }
 
   /* Nastroj */
   .play { border:1px solid var(--line); background:var(--card); border-radius:var(--radius); overflow:hidden;
@@ -232,14 +164,23 @@
   .kbd { font:11px/1 var(--mono); padding:2px 6px; border-radius:3px; border:1px solid var(--line);
     background:var(--paper-deep); color:var(--body); }
 
-  /* Na desktope musi byt vstup aj vysledok vidiet bez scrollovania stranky */
-  @media (min-width:1081px) {
-    /* Vstupne pole XML dostane vacsi podiel: pri pomere 1.35:1 sa z vlozeneho XML ukazovali
-     iba poldruha riadka a spodny riadok bol prerezany v polovici pismen. */
-    .play-body { height:540px; grid-template-rows:minmax(0,1.9fr) minmax(0,1fr); }
+  /* Od 1000 px su vstup a vysledok vedla seba. Pole na XML tak dostane polovicu
+     sirky stranky a celu vysku panela, teda pri --wrap 1432 px asi 690 x 470 px.
+     To je zhruba dvadsatpat viditelnych riadkov XML; ked boli panely pod sebou
+     v pravom stlpci hero, boli styri. */
+  @media (min-width:1000px) {
+    .play-body { grid-template-columns:minmax(0,1.05fr) minmax(0,1fr);
+      height:clamp(520px,64vh,680px); }
+    .pane + .pane { border-top:none; border-left:1px solid var(--line); }
     .pane { min-height:0; overflow:hidden; }
     #form-pane, .json-in, .output { min-height:0; }
     .form-section.grow, #f-xml { min-height:0; }
+  }
+  /* Pod tou hranicou su panely pod sebou, ale citatelne musia zostat oba:
+     pevna vyska namiesto troch riadkov. */
+  @media (max-width:999px) {
+    #f-xml { min-height:280px; }
+    .output { min-height:260px; }
   }
 
   .out-line { white-space:pre-wrap; word-break:break-word; }
@@ -321,18 +262,6 @@
   .permalink-row { padding:12px 16px 14px; border-top:1px solid var(--line); background:var(--paper-deep); }
   .fineprint { font-family:var(--ui); font-size:12px; color:var(--muted); line-height:1.6; margin:0; }
 
-  /* 03 Ako to funguje */
-  .endpoint { display:grid; grid-template-columns:minmax(0,1fr) minmax(0,1fr); gap:var(--gap); align-items:start; }
-  @media (max-width:900px) { .endpoint { grid-template-columns:minmax(0,1fr); } }
-  .codeblock { border:1px solid var(--line); background:var(--card); border-radius:var(--radius);
-    overflow:hidden; min-width:0; }
-  .codeblock-head { padding:9px 14px; border-bottom:1px solid var(--line); background:var(--paper-deep);
-    font:11px/1 var(--mono); letter-spacing:.04em; text-transform:uppercase; color:var(--muted);
-    display:flex; justify-content:space-between; align-items:center; }
-  .codeblock pre { margin:0; padding:16px 18px; font-size:12.5px; line-height:1.7; overflow-x:auto;
-    color:var(--body); font-family:var(--mono); background:var(--card); border:none; border-radius:0; }
-  .endpoint-copy p { margin:0 0 14px; font-size:16px; }
-
   /* 04 Zadarmo: tmavy pas */
   .ask { display:flex; flex-wrap:wrap; align-items:center; gap:14px 24px; margin-top:6px; }
   .ask p { margin:0; max-width:56ch; }
@@ -389,16 +318,15 @@
       <svg viewBox="0 0 488 215" width="38" height="15" aria-hidden="true" focusable="false"><path fill="#f4f4f7" fill-rule="evenodd" d="M0.00,213.00L74.00,214.00L181.00,85.00L285.00,214.00L360.00,214.00L206.00,21.00L185.00,4.00L164.00,10.00Z M221.00,0.00L263.00,50.00L395.00,50.00L409.00,55.00L419.00,76.00L401.00,96.00L313.00,98.00L411.00,214.00L487.00,214.00L422.00,139.00L457.00,123.00L482.00,88.00L482.00,48.00L463.00,19.00L417.00,0.00Z"/><path fill="#f2643c" d="M269.00,66.00L269.00,67.00L268.00,68.00L268.00,70.00L267.00,71.00L267.00,76.00L268.00,77.00L268.00,79.00L270.00,81.00L270.00,82.00L271.00,82.00L273.00,84.00L274.00,84.00L277.00,86.00L279.00,86.00L280.00,87.00L287.00,87.00L288.00,86.00L290.00,86.00L291.00,85.00L294.00,84.00L298.00,80.00L298.00,79.00L299.00,78.00L299.00,75.00L300.00,74.00L300.00,72.00L299.00,71.00L299.00,69.00L298.00,68.00L297.00,65.00L295.00,63.00L294.00,63.00L289.00,60.00L278.00,60.00L277.00,61.00L276.00,61.00L275.00,62.00L272.00,63.00Z"/></svg>
       <b>ARLing</b><span>SEPA pain.001 Doctor</span>
     </a>
-    <nav aria-label="Site"><a href="#problem">Problem</a><a href="#playground">Check</a><a href="#endpoint">How it works</a><a href="#faq">Questions</a><a href="https://arling.sk/en/#tools">Tools</a><a href="https://arling.sk/notes/">Notes</a><a href="https://arling.sk/how-we-work/">How we work</a><a href="mailto:andrej@arling.sk">Contact</a></nav>
+    <nav aria-label="Site"><a href="#playground">Check</a><a href="#termin-2026">Deadline 15 Nov</a><a href="#faq">Questions</a><a href="https://arling.sk/en/#tools">Tools</a><a href="https://arling.sk/notes/">Notes</a><a href="https://arling.sk/how-we-work/">How we work</a><a href="mailto:andrej@arling.sk">Contact</a></nav>
   </div>
 </header>
 
 <main>
   <div class="wrap hero" id="hero">
     <div>
-      <h1 id="h1"><span class="l">Your bank rejected</span><span class="l">your SEPA XML.</span><span class="l">Find out exactly</span><span class="l">why.</span></h1>
-      <p class="lead r d3">Paste a pain.001 batch payment file and pick your bank. You get the exact element, the value and the fix, instead of a generic error message.</p>
-      <p class="termin r d4"><b>New: the 15 November 2026 deadline.</b> From that day on, an address in a SEPA payment may no longer be free text. If the file contains an address, it must carry at least the town and the country code in their own fields, otherwise the bank rejects it. This check is part of the tool and it is free. <a href="#termin-2026">What exactly changes</a></p>
+      <h1 id="h1"><span class="l">Your bank rejected your SEPA XML.</span><span class="l">Find out exactly why.</span></h1>
+      <p class="lead r d3">Paste the pain.001 file from your accounting software, pick your bank, and you immediately know which line is wrong and what belongs there instead. Not “import error”, but the exact element, its value and the fix.</p>
       <div class="cta r d4">
         <a class="btn btn-solid" href="#playground" data-umami-event="hero_skontrolovat">Check my file</a>
         <a class="btn btn-line" href="https://github.com/AndryRoby/sepa-pain001-doctor" target="_blank" rel="noopener" data-umami-event="github_source">Source code on GitHub</a>
@@ -412,9 +340,19 @@
       </ul>
     </div>
 
-    <div class="toolcol r d2" id="playground">
-      <p class="kicker">02</p>
-      <h2 class="toolh">Paste the XML, pick your bank. You get the exact errors.</h2>
+    <aside class="upoz r d4">
+      <p class="upoz-stitok">Deadline 15 November 2026</p>
+      <p>From that day on, an address in a SEPA payment may no longer be written as a single line of free text. If the file carries an address, it must have at least the <b>town and the country code</b> in their own fields, otherwise the bank rejects the whole file.</p>
+      <p>The address stays optional. A file with no addresses passes after the deadline exactly as it does today.</p>
+      <p class="upoz-odkaz"><a href="#termin-2026">What exactly changes</a></p>
+    </aside>
+  </div>
+
+  <section id="playground" class="toolsec">
+    <div class="wrap">
+      <p class="kicker">Kontrola</p>
+      <h2 class="toolh r">Paste the XML, pick your bank. You get the exact errors.</h2>
+      <p class="toollead r d1">The file is read directly in your browser and never sent anywhere. Within a second you see which element is wrong, what value it has and what belongs there instead.</p>
       <div class="play">
         <div class="play-body">
           <div class="pane">
@@ -473,7 +411,7 @@
             </div>
             <div class="output" id="output">
               <div class="placeholder">
-                paste the XML and press <span class="kbd">Diagnostikovať</span> or <span class="kbd">⌘↵</span><span class="blink"></span>
+                paste the XML and press <span class="kbd">Check</span> or <span class="kbd">⌘↵</span><span class="blink"></span>
               </div>
             </div>
             <div class="status-strip">
@@ -490,73 +428,9 @@
         </div>
       </div>
       <p class="toolnote">Nothing you paste is sent anywhere. The check runs in your browser, against the banks’ own published rules.</p>
-    </div>
-  </div>
-
-  <section id="problem" class="deep">
-    <div class="wrap">
-      <p class="kicker">01</p>
-      <h2 class="r">Three reasons the same file passes at one bank and fails at another.</h2>
-      <p class="sub r d1">Tatra banka, SLSP, VÚB and ČSOB all say they accept pain.001. Each of them added its own rules on top of the same XSD schema.</p>
-      <div class="rule"></div>
-      <ol class="rules">
-        <li class="r d1">
-          <b>Accented characters only block the file at ČSOB.</b>
-          <p>ČSOB rejects SEPA XML with accented characters outright. Allowed are the letters a-z, A-Z, digits 0-9, the space and the characters <code>/ - ? : ( ) . , ' +</code>. A name containing “š”, “č” or “ž” is enough for a rejection.</p>
-        </li>
-        <li class="r d2">
-          <b><code>CdtrAgt/BIC</code> is handled differently by every bank.</b>
-          <p>VÚB marks it mandatory in its own specification. Tatra banka can derive it from the IBAN and tolerates a missing one. ČSOB made it optional as of 1 February 2016.</p>
-        </li>
-        <li class="r d3">
-          <b>The date and the transaction limit have different ceilings.</b>
-          <p>Tatra banka rejects a <code>ReqdExctnDt</code> more than 31 days ahead and allows at most 500 transactions per <code>PmtInf</code> block. VÚB accepts at most 30 days ahead.</p>
-        </li>
-      </ol>
-    </div>
-  </section>
-
-  <section id="endpoint">
-    <div class="wrap">
-      <p class="kicker">03</p>
-      <h2 class="r">One function. XML in, diagnosis out.</h2>
-      <p class="sub r d1">No server, no API key, no sign-up. <code>doctor-pain001.js</code> is plain JavaScript: read it, fork it, or run it in your own code or CI.</p>
-
-      <div class="rule"></div>
-      <div class="endpoint">
-        <div class="codeblock r d1">
-          <div class="codeblock-head">
-            <span>doctor-pain001.js</span>
-            <span>0 dependencies</span>
-          </div>
-          <pre><span class="p">import</span> { diagnose } <span class="p">from</span> <span class="s">'./doctor-pain001.js'</span>;
-<span class="p">// alebo globálne: const { diagnose } = window.SepaDoctor;</span>
-
-<span class="p">const</span> result = diagnose({
-  <span class="k">xml</span>:             <span class="s">'&lt;Document xmlns="urn:iso:std:iso:20022:...'</span>,
-  <span class="k">bank</span>:            <span class="s">'tatrabanka'</span> <span class="p">| 'slsp' | 'vub' | 'csob' | 'generic'</span>,
-  <span class="k">expectedTxCount</span>: <span class="b">null</span> <span class="p">| number,</span>
-});
-
-<span class="p">// result</span>
-{
-  <span class="k">"status"</span>:     <span class="s">"fail"</span> | <span class="s">"warn"</span> | <span class="s">"pass"</span>,
-  <span class="k">"summary"</span>:    <span class="s">"…"</span>,
-  <span class="k">"expected"</span>:   { <span class="p">bankBic, schemaNamespace, execWindowDays, nbOfTxsShouldBe, ctrlSumShouldBe</span> },
-  <span class="k">"stats"</span>:      { <span class="p">txCount, sum, currencies, banksDetected</span> },
-  <span class="k">"problems"</span>:   [ { code, severity, message, path, value, fix } ],
-  <span class="k">"fixes"</span>:      [ { title, value, where } ],
-  <span class="k">"checklist"</span>:  [ <span class="s">"…"</span> ],
-  <span class="k">"disclaimer"</span>: <span class="s">"…"</span>
-}</pre>
-        </div>
-
-        <div class="endpoint-copy r d2">
-          <p>The whole check runs on the client. The form above calls exactly this function in your browser. There is no backend and no API key that could carry the contents of your payment anywhere else.</p>
-          <p>The rules come straight from the technical documentation of Tatra banka, VÚB and ČSOB, from SLSP’s public statements, and from the ISO 20022 standard and the EPC SEPA Credit Transfer rulebook. Not from a general reading of the XSD schema.</p>
-          <p class="fineprint">Free, open, no ads and no tracking beyond anonymous usage counts. If the tool misses a case, report it as an <a href="https://github.com/AndryRoby/sepa-pain001-doctor/issues" target="_blank" rel="noopener">issue on GitHub</a>.</p>
-          <p class="fineprint">The tool is not affiliated with Tatra banka, Slovenská sporiteľňa, VÚB or ČSOB, and it is not a bank. A clean result does not guarantee that the bank will accept the payment.</p>
-        </div>
+      <div class="toolfoot r d2">
+        <p>The rules come from the technical documentation of Tatra banka, VÚB and ČSOB, from public statements by SLSP and from the ISO 20022 standard. If the tool misses a case, report it as an <a href="https://github.com/AndryRoby/sepa-pain001-doctor/issues" target="_blank" rel="noopener">issue on GitHub</a>.</p>
+        <p>This tool is not a bank and is not affiliated with Tatra banka, Slovenská sporiteľna, VÚB or ČSOB. A clean result does not guarantee that the bank will accept the payment.</p>
       </div>
     </div>
   </section>
@@ -568,9 +442,9 @@
       <div class="rule"></div>
       <div class="two r d1">
         <div>
-          <p>The SEPA scheme rulebooks have changed. If a payment carries a postal address, from 15 November 2026 it must be <b>structured or hybrid</b>. A fully unstructured address, meaning one or more lines of free text in <code>&lt;AdrLine&gt;</code>, no longer passes and the bank rejects the file.</p>
-          <p>The mandatory minimum is the <b>town</b> (<code>&lt;TwnNm&gt;</code>) and the <b>two-letter country code</b> (<code>&lt;Ctry&gt;</code>). A hybrid address may have at most two lines of free text alongside those two fields.</p>
-          <p>This applies to SEPA credit transfers, instant transfers and direct debits, so also to the <code>pain.001</code> files your accounting software exports. The address itself stays optional: a file with no addresses passes after the deadline too.</p>
+          <p>The SEPA scheme rulebooks have changed. If a payment carries a postal address, from 15 November 2026 it must be <b>structured or hybrid</b>. A fully unstructured address, meaning one or more lines of free text in <code>&lt;AdrLine&gt;</code>, will no longer pass and the bank rejects the file.</p>
+          <p>The mandatory minimum is two fields: <b>the town in <code>&lt;TwnNm&gt;</code> and the two-letter country code in <code>&lt;Ctry&gt;</code></b>. A hybrid address may carry at most two lines of free text alongside these two fields.</p>
+          <p>This applies to SEPA credit transfers, instant transfers and direct debits, so also to the <code>pain.001</code> files exported by your accounting software. The address stays optional: a file with no addresses passes after the deadline too.</p>
         </div>
         <div>
           <p class="mini">The old address, rejected after 15 Nov 2026:</p>
@@ -595,7 +469,7 @@
 
 <section id="pricing" class="band">
     <div class="wrap">
-      <p class="kicker">04</p>
+      <p class="kicker">Cena</p>
       <h2 class="r">Free.</h2>
       <p class="sub r d1">It grew out of our own need: to verify SEPA XML before uploading it to online banking. No account, no payment, no limit on the number of checks.</p>
       <div class="rule"></div>
@@ -622,30 +496,30 @@
 
   <section id="faq" class="deep">
     <div class="wrap">
-      <p class="kicker">05</p>
+      <p class="kicker">Otázky</p>
       <h2 class="r">The questions people actually search for.</h2>
       <p class="sub r d1">Direct answers about the SEPA pain.001 problems this tool diagnoses.</p>
       <div class="rule"></div>
 
       <details>
         <summary>Why did Tatra banka reject my pain.001 file?</summary>
-        <p>On import, Tatra banka checks more than whether the XML is valid pain.001. It checks the exact namespace pain.001.001.03, <code>PmtMtd=TRF</code>, <code>SvcLvl/Cd=SEPA</code>, <code>ChrgBr=SLEV</code>, the payer BIC being exactly <code>TATRSKBX</code>, the <code>ReqdExctnDt</code> date (not in the past, and no more than 31 days ahead), at most 500 transactions per <code>PmtInf</code> block, the length limits on names and remittance text, and, for a Slovak creditor IBAN, the modulo-11 check as well. Breaking one rule is enough for the import to fail.</p>
+        <p>On import, Tatra banka checks more than whether the XML is valid pain.001. It checks the exact namespace pain.001.001.03, <code>PmtMtd=TRF</code>, <code>SvcLvl/Cd=SEPA</code>, <code>ChrgBr=SLEV</code>, the debtor BIC being exactly <code>TATRSKBX</code>, the date <code>ReqdExctnDt</code> (not in the past, and not more than 31 days ahead), a maximum of 500 transactions per <code>PmtInf</code> block, length limits on names and remittance text, and for Slovak creditor IBANs also the modulo-11 check. Breaking a single rule is enough for the import to fail.</p>
       </details>
       <details>
         <summary>How do I write the variable symbol into SEPA XML?</summary>
-        <p>pain.001.001.03 has no separate fields for the Slovak VS, ŠS and KS symbols. By the NBS convention they go into <code>PmtId/EndToEndId</code> in the order <code>/VS.../SS.../KS...</code>, for example <code>/VS123/SS456/KS0308</code>. VS and ŠS take at most 10 digits, KS at most 4. A wrong order does not stop the transfer, but the other side cannot match the payment to an invoice.</p>
+        <p>pain.001.001.03 has no separate fields for the Slovak payment symbols VS, ŠS and KS. By the NBS convention they go into <code>PmtId/EndToEndId</code> in the order <code>/VS.../SS.../KS...</code>, for example <code>/VS123/SS456/KS0308</code>. VS and ŠS take at most 10 digits, KS at most 4. The wrong order does not stop the transfer, but the other side cannot match the payment to an invoice.</p>
       </details>
       <details>
         <summary>Which characters are allowed in a SEPA payment (accents)?</summary>
-        <p>ČSOB lists the exact set in its documentation: the letters a-z, A-Z, digits 0-9, the space and the characters <code>/ - ? : ( ) . , ' +</code>. Accented characters (č, š, ž, ä, ô, ľ) are not imported into BusinessBanking Lite at all. At other banks accents may not block the file straight away, but exporting without them is always safer.</p>
+        <p>ČSOB lists the exact set in its documentation: letters a-z, A-Z, digits 0-9, space and the characters <code>/ - ? : ( ) . , ' +</code>. ČSOB does not import diacritics (č, š, ž, ä, ô, ľ) into BusinessBanking Lite at all. At other banks diacritics may not block the file straight away, but exporting without them is safer every time.</p>
       </details>
       <details>
         <summary>What does an NbOfTxs or CtrlSum error mean?</summary>
-        <p><code>GrpHdr/NbOfTxs</code> must exactly match the number of <code>CdtTrfTxInf</code> transactions in the file. <code>GrpHdr/CtrlSum</code> must be the exact sum of the <code>InstdAmt</code> amounts to 2 decimal places. A mismatch, typically after editing the file by hand without recalculating the totals, is one of the most common and least understandable reasons for a rejected batch.</p>
+        <p><code>GrpHdr/NbOfTxs</code> must match exactly the number of <code>CdtTrfTxInf</code> transactions in the file. <code>GrpHdr/CtrlSum</code> must be the exact sum of the <code>InstdAmt</code> amounts to 2 decimal places. A mismatch, typically after editing the file by hand without recalculating the totals, is one of the most common and least understandable reasons for a batch to be rejected.</p>
       </details>
       <details>
         <summary>Is the creditor BIC required in pain.001?</summary>
-        <p>It depends on the bank. VÚB marks <code>CdtrAgt/BIC</code> mandatory in its own specification. Tatra banka can derive it from a correct SEPA IBAN and tolerates a missing one. ČSOB made it optional as of 1 February 2016. If you generate one file for several banks, always include the BIC.</p>
+        <p>It depends on the bank. VÚB marks <code>CdtrAgt/BIC</code> as mandatory in its own specification. Tatra banka can derive it from a correct SEPA IBAN and tolerates a missing one. ČSOB made it optional on 1 February 2016. If you generate one file for several banks, always include the BIC.</p>
       </details>
       <details>
         <summary>Is my data sent anywhere?</summary>
@@ -654,13 +528,6 @@
     </div>
   </section>
 </main>
-
-<nav class="rail" aria-label="Stránka">
-  <a href="#problem" data-umami-event="index-problem"><i></i><span>Problém</span></a>
-  <a href="#playground" data-umami-event="index-playground"><i></i><span>Diagnostika</span></a>
-  <a href="#endpoint" data-umami-event="index-endpoint"><i></i><span>How it works</span></a>
-  <a href="#faq" data-umami-event="index-faq"><i></i><span>Otázky</span></a>
-</nav>
 
 <footer>
   <div class="wrap foot">
@@ -672,7 +539,7 @@
 
 <!-- Scripts -->
 <script type="module">
-  import { diagnose } from './doctor-pain001.js';
+  import { diagnose } from '../doctor-pain001.js';
 
   // Intentionally broken: demonstrates several rules at once on first load:
   // wrong bank's BIC on the debtor account, diacritics in the creditor name
@@ -1123,20 +990,6 @@
   }
 
   // bocny register vie, ktora sekcia je v strede obrazovky
-  var rail = document.querySelector('.rail');
-  if (rail) {
-    var links = Array.prototype.slice.call(rail.querySelectorAll('a'));
-    var targets = links.map(function (a) { return document.querySelector(a.getAttribute('href')); });
-    var railIo = new IntersectionObserver(function (entries) {
-      entries.forEach(function (en) {
-        var i = targets.indexOf(en.target);
-        if (i < 0 || !en.isIntersecting) return;
-        links.forEach(function (a, j) { a.setAttribute('aria-current', j === i ? 'true' : 'false'); });
-      });
-      rail.classList.add('on');
-    }, { rootMargin: '-45% 0px -45% 0px' });
-    targets.forEach(function (t) { if (t) railIo.observe(t); });
-  }
 })();
 </script>
 </body>
