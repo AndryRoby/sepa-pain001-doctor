@@ -4,7 +4,7 @@
 <script src="/style/vzhlad.js?v=93c2659f"></script>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
-<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' https://homelab.tailbf8f27.ts.net 'sha256-P22VSqiEMB6TIcK3RCgCD0WWmESWUbteMsVC7DrL3Oc=' 'sha256-dFxbLOizyPbfm7UUWlNpGNPJAF5gwqWjhBJhyIDBDH0=' 'sha256-pseqWczA92NdCjj5PrUnCkReRuUay9ym4nopHvYIomA=' 'sha256-e/fIDlrPDq37+zeT58xFltRMoEhveZvQRnfcD10UZRw='; connect-src 'self' https://homelab.tailbf8f27.ts.net; style-src 'self' 'unsafe-inline'; img-src 'self' data:; font-src 'self'; object-src 'none'; base-uri 'self'; form-action 'none'">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' https://homelab.tailbf8f27.ts.net 'sha256-P22VSqiEMB6TIcK3RCgCD0WWmESWUbteMsVC7DrL3Oc=' 'sha256-dFxbLOizyPbfm7UUWlNpGNPJAF5gwqWjhBJhyIDBDH0=' 'sha256-3AZxRpEc16rkB/IjbuT7+QO3zxR1YDsy79hPfr8xfQA=' 'sha256-e/fIDlrPDq37+zeT58xFltRMoEhveZvQRnfcD10UZRw='; connect-src 'self' https://homelab.tailbf8f27.ts.net; style-src 'self' 'unsafe-inline'; img-src 'self' data:; font-src 'self'; object-src 'none'; base-uri 'self'; form-action 'none'">
 <meta name="color-scheme" content="dark">
 <meta name="theme-color" content="#0a0908">
 <link rel="icon" href="favicon.svg" type="image/svg+xml">
@@ -695,12 +695,128 @@
   }
 
   // ── Form <-> config ──────────────────────────────────────────────────
+  // Jazyk hlášok diagnózy. Bez neho by nemecká stránka vypísala slovenský
+  // výsledok, presne to Andrej 6. 9. 2026 videl na /de/.
+  const JAZYK = (document.documentElement.lang || 'sk').slice(0, 2);
+
+  /* i18n-slovnik */
+  // Popisky výsledku. Engine hlásky prekladá sám (SPRAVY v doctor-pain001.js),
+  // toto je to, čo okolo nich kreslí stránka.
+  const SLOVNIK = {
+    sk: {
+      inaBanka: 'iná / neuvedená banka',
+      banka: 'Banka',
+      ocakavanyBic: 'Očakávaný BIC platiteľa (DbtrAgt)',
+      mennyPriestor: 'Menný priestor schémy (xmlns)',
+      maxDni: 'Max. dní dopredu pre ReqdExctnDt',
+      dni: (n) => n + ' dní',
+      nezdokumentovane: 'nezdokumentované pre túto banku',
+      nbOfTxs: 'GrpHdr/NbOfTxs by malo byť',
+      ctrlSum: 'GrpHdr/CtrlSum by malo byť',
+      pocetTx: 'Počet transakcií v súbore',
+      sucetSum: 'Súčet súm',
+      blokyPmtInf: 'Bloky PmtInf',
+      bankyZIban: 'Banky rozpoznané z IBAN',
+      nadpisOcakavane: 'Očakávané hodnoty a štatistika',
+      nadpisProblemy: (n) => 'Problémy (' + n + ')',
+      nadpisOpravy: 'Opravy',
+      nadpisChecklist: 'Checklist',
+      kopirovat: 'kopírovať',
+      skopirovane: 'skopírované ✓',
+      kopirovatReport: 'kopírovať report',
+      formatovane: 'formátované',
+      rawJson: 'raw JSON',
+      neplatnyJson: 'Neplatný JSON: opravte syntax a skúste znova.',
+      neviemPrepnut: (m) => 'Nedá sa prepnúť na Formulár: JSON nie je platný: ' + m,
+      casMeranie: (ms) => ms + ' ms · klientská strana, 0 requestov',
+      vyzvaVloz: '# vložte XML a stlačte',
+      diagnostikovat: 'Diagnostikovať',
+      vychodText: (miest) => 'Adresa v tomto súbore nespĺňa pravidlá platné od 15. 11. 2026. Opraviť ju ručne v XML znamená prejsť ' + miest + '. Náš generátor vyrobí ten istý súbor z Excelu aj s adresou, v pain.001.001.03 aj .09.',
+      jednoMiesto: 'jedno miesto',
+      viacMiest: (n) => n + ' miest',
+      vychodVseobecny: 'Nájsť chybu je jedna vec, opraviť ju v XML druhá. Náš generátor skladá pain.001 priamo z Excelu, takže tieto chyby nevzniknú.',
+      otvoritGenerator: 'Otvoriť SEPA generátor',
+    },
+    en: {
+      inaBanka: 'other / unspecified bank',
+      banka: 'Bank',
+      ocakavanyBic: 'Expected debtor BIC (DbtrAgt)',
+      mennyPriestor: 'Schema namespace (xmlns)',
+      maxDni: 'Max. days ahead for ReqdExctnDt',
+      dni: (n) => n + ' days',
+      nezdokumentovane: 'not documented for this bank',
+      nbOfTxs: 'GrpHdr/NbOfTxs should be',
+      ctrlSum: 'GrpHdr/CtrlSum should be',
+      pocetTx: 'Transactions in the file',
+      sucetSum: 'Total amount',
+      blokyPmtInf: 'PmtInf blocks',
+      bankyZIban: 'Banks detected from IBAN',
+      nadpisOcakavane: 'Expected values and statistics',
+      nadpisProblemy: (n) => 'Problems (' + n + ')',
+      nadpisOpravy: 'Fixes',
+      nadpisChecklist: 'Checklist',
+      kopirovat: 'copy',
+      skopirovane: 'copied ✓',
+      kopirovatReport: 'copy report',
+      formatovane: 'formatted',
+      rawJson: 'raw JSON',
+      neplatnyJson: 'Invalid JSON: fix the syntax and try again.',
+      neviemPrepnut: (m) => 'Cannot switch to Form: the JSON is not valid: ' + m,
+      casMeranie: (ms) => ms + ' ms · client side, 0 requests',
+      vyzvaVloz: '# paste the XML and press',
+      diagnostikovat: 'Check',
+      vychodText: (miest) => 'The address in this file does not meet the rules that apply from 15 November 2026. Fixing it by hand in the XML means going through ' + miest + '. Our generator builds the same file from Excel, address included, in pain.001.001.03 and .09.',
+      jednoMiesto: 'one spot',
+      viacMiest: (n) => n + ' spots',
+      vychodVseobecny: 'Finding the error is one thing, fixing it in the XML is another. Our generator builds pain.001 straight from Excel, so these errors do not arise.',
+      otvoritGenerator: 'Open the SEPA generator',
+    },
+    de: {
+      inaBanka: 'andere / nicht angegebene Bank',
+      banka: 'Bank',
+      ocakavanyBic: 'Erwartete Auftraggeber-BIC (DbtrAgt)',
+      mennyPriestor: 'Schema-Namensraum (xmlns)',
+      maxDni: 'Max. Tage im Voraus für ReqdExctnDt',
+      dni: (n) => n + ' Tage',
+      nezdokumentovane: 'für diese Bank nicht dokumentiert',
+      nbOfTxs: 'GrpHdr/NbOfTxs sollte sein',
+      ctrlSum: 'GrpHdr/CtrlSum sollte sein',
+      pocetTx: 'Transaktionen in der Datei',
+      sucetSum: 'Gesamtbetrag',
+      blokyPmtInf: 'PmtInf-Blöcke',
+      bankyZIban: 'Aus der IBAN erkannte Banken',
+      nadpisOcakavane: 'Erwartete Werte und Statistik',
+      nadpisProblemy: (n) => 'Probleme (' + n + ')',
+      nadpisOpravy: 'Korrekturen',
+      nadpisChecklist: 'Checkliste',
+      kopirovat: 'kopieren',
+      skopirovane: 'kopiert ✓',
+      kopirovatReport: 'Bericht kopieren',
+      formatovane: 'formatiert',
+      rawJson: 'raw JSON',
+      neplatnyJson: 'Ungültiges JSON: korrigieren Sie die Syntax und versuchen Sie es erneut.',
+      neviemPrepnut: (m) => 'Wechsel zum Formular nicht möglich: das JSON ist ungültig: ' + m,
+      casMeranie: (ms) => ms + ' ms · clientseitig, 0 Requests',
+      vyzvaVloz: '# XML einfügen und drücken',
+      diagnostikovat: 'Prüfen',
+      vychodText: (miest) => 'Die Adresse in dieser Datei erfüllt die ab dem 15. November 2026 geltenden Regeln nicht. Sie im XML von Hand zu korrigieren bedeutet ' + miest + ' durchzugehen. Unser Generator erzeugt dieselbe Datei aus Excel, samt Adresse, in pain.001.001.03 und .09.',
+      jednoMiesto: 'eine Stelle',
+      viacMiest: (n) => n + ' Stellen',
+      vychodVseobecny: 'Den Fehler zu finden ist eine Sache, ihn im XML zu beheben eine andere. Unser Generator baut pain.001 direkt aus Excel, so entstehen diese Fehler gar nicht.',
+      otvoritGenerator: 'SEPA-Generator öffnen',
+    },
+  };
+  const UI = SLOVNIK[JAZYK] || SLOVNIK.sk;
+  /* /i18n-slovnik */
+
+
   function formToConfig() {
     const raw = $('f-expectedtxcount').value.trim();
     return {
       xml: $('f-xml').value,
       bank: $('f-bank').value,
       expectedTxCount: raw === '' ? null : Number(raw),
+      lang: JAZYK,
     };
   }
 
@@ -746,7 +862,7 @@
       jsonPane.hidden = true;
     } catch (e) {
       jsonError.hidden = false;
-      jsonError.textContent = 'Nedá sa prepnúť na Formulár: JSON nie je platný: ' + e.message;
+      jsonError.textContent = UI.neviemPrepnut(e.message);
       tabFormBtn.classList.remove('active');
       tabJsonBtn.classList.add('active');
       formPane.hidden = true;
@@ -796,20 +912,21 @@
     return `<tr><td class="k">${esc(label)}</td><td class="v mono${multiline ? ' multiline' : ''}">${esc(value)}</td></tr>`;
   }
 
-  const BANK_LABELS = { tatrabanka: 'Tatra banka', slsp: 'Slovenská sporiteľňa (SLSP)', vub: 'VÚB', csob: 'ČSOB', generic: 'iná / neuvedená banka' };
+  // Názvy bánk sú vlastné mená, prekladá sa len posledná položka.
+  const BANK_LABELS = { tatrabanka: 'Tatra banka', slsp: 'Slovenská sporiteľňa (SLSP)', vub: 'VÚB', csob: 'ČSOB', generic: UI.inaBanka };
 
   function renderResult(r) {
     const rows =
-      expectedRow('Banka', r.expected.bankLabel || BANK_LABELS[r.bank] || r.bank) +
-      expectedRow('Očakávaný BIC platiteľa (DbtrAgt)', r.expected.bankBic) +
-      expectedRow('Menný priestor schémy (xmlns)', r.expected.schemaNamespace) +
-      expectedRow('Max. dní dopredu pre ReqdExctnDt', r.expected.execWindowDays != null ? r.expected.execWindowDays + ' dní' : 'nezdokumentované pre túto banku') +
-      expectedRow('GrpHdr/NbOfTxs by malo byť', r.expected.nbOfTxsShouldBe) +
-      expectedRow('GrpHdr/CtrlSum by malo byť', r.expected.ctrlSumShouldBe) +
-      expectedRow('Počet transakcií v súbore', r.stats.txCount) +
-      expectedRow('Súčet súm', r.stats.sum + (r.stats.currencies.length ? ' ' + r.stats.currencies.join('/') : '')) +
-      expectedRow('Bloky PmtInf', r.stats.pmtInfCount) +
-      expectedRow('Banky rozpoznané z IBAN', r.stats.banksDetected.join(', '));
+      expectedRow(UI.banka, (r.bank === 'generic' ? UI.inaBanka : r.expected.bankLabel) || BANK_LABELS[r.bank] || r.bank) +
+      expectedRow(UI.ocakavanyBic, r.expected.bankBic) +
+      expectedRow(UI.mennyPriestor, r.expected.schemaNamespace) +
+      expectedRow(UI.maxDni, r.expected.execWindowDays != null ? UI.dni(r.expected.execWindowDays) : UI.nezdokumentovane) +
+      expectedRow(UI.nbOfTxs, r.expected.nbOfTxsShouldBe) +
+      expectedRow(UI.ctrlSum, r.expected.ctrlSumShouldBe) +
+      expectedRow(UI.pocetTx, r.stats.txCount) +
+      expectedRow(UI.sucetSum, r.stats.sum + (r.stats.currencies.length ? ' ' + r.stats.currencies.join('/') : '')) +
+      expectedRow(UI.blokyPmtInf, r.stats.pmtInfCount) +
+      expectedRow(UI.bankyZIban, r.stats.banksDetected.join(', '));
 
     const problemsHtml = r.problems
       .map(
@@ -827,7 +944,7 @@
             <div class="fix-title">${esc(f.title)}${f.where ? ` <span class="where">· ${esc(f.where)}</span>` : ''}</div>
             <pre class="fix-value${String(f.value).includes('\n') ? ' multiline' : ''}">${esc(f.value)}</pre>
           </div>
-          <button class="icon-btn copy-fix-btn" type="button" data-fix-index="${i}">kopírovať</button>
+          <button class="icon-btn copy-fix-btn" type="button" data-fix-index="${i}">${esc(UI.kopirovat)}</button>
         </div>`
       )
       .join('');
@@ -842,12 +959,10 @@
     let vychodText;
     let vychodUdalost;
     if (adresneChyby) {
-      vychodText = 'Adresa v tomto súbore nespĺňa pravidlá platné od 15. 11. 2026. Opraviť ju ručne v XML znamená prejsť ' +
-        (adresneChyby === 1 ? 'jedno miesto' : adresneChyby + ' miest') +
-        '. Náš generátor vyrobí ten istý súbor z Excelu aj s adresou, v pain.001.001.03 aj .09.';
+      vychodText = UI.vychodText(adresneChyby === 1 ? UI.jednoMiesto : UI.viacMiest(adresneChyby));
       vychodUdalost = 'exit_generator_adresa';
     } else if (r.problems.length) {
-      vychodText = 'Nájsť chybu je jedna vec, opraviť ju v XML druhá. Náš generátor skladá pain.001 priamo z Excelu, takže tieto chyby nevzniknú.';
+      vychodText = UI.vychodVseobecny;
       vychodUdalost = 'exit_generator_chyby';
     } else {
       vychodText = 'Súbor je v poriadku. Ak ho skladáte ručne alebo vzorcami v Exceli, náš generátor to spraví za pár sekúnd a rovno skontroluje.';
@@ -855,7 +970,7 @@
     }
     const vychodHtml = `<div class="vychod">
       <p>${esc(vychodText)}</p>
-      <a class="btn btn-line" href="https://arling.sk/sepa-pain001-generator/" data-umami-event="${esc(vychodUdalost)}">Otvoriť SEPA generátor</a>
+      <a class="btn btn-line" href="https://arling.sk/sepa-pain001-generator/" data-umami-event="${esc(vychodUdalost)}">${esc(UI.otvoritGenerator)}</a>
     </div>`;
 
     output.innerHTML = `<div class="result">
@@ -864,13 +979,13 @@
         <p class="result-summary">${esc(r.summary)}</p>
       </div>
       <div>
-        <div class="form-section-title">Očakávané hodnoty a štatistika</div>
+        <div class="form-section-title">${esc(UI.nadpisOcakavane)}</div>
         <table class="exp-table"><tbody>${rows}</tbody></table>
       </div>
-      ${r.problems.length ? `<div><div class="form-section-title">Problémy (${r.problems.length})</div>${problemsHtml}</div>` : ''}
-      ${r.fixes.length ? `<div><div class="form-section-title">Opravy</div>${fixesHtml}</div>` : ''}
+      ${r.problems.length ? `<div><div class="form-section-title">${esc(UI.nadpisProblemy(r.problems.length))}</div>${problemsHtml}</div>` : ''}
+      ${r.fixes.length ? `<div><div class="form-section-title">${esc(UI.nadpisOpravy)}</div>${fixesHtml}</div>` : ''}
       <div>
-        <div class="form-section-title">Checklist</div>
+        <div class="form-section-title">${esc(UI.nadpisChecklist)}</div>
         <ul class="checklist">${checklistHtml}</ul>
       </div>
       ${vychodHtml}
@@ -883,12 +998,12 @@
         const val = r.fixes[idx].value;
         try {
           await navigator.clipboard.writeText(val);
-          btn.textContent = 'skopírované ✓';
+          btn.textContent = UI.skopirovane;
           track('copy_fix');
         } catch (e) {
           btn.textContent = 'zlyhalo';
         }
-        setTimeout(() => { btn.textContent = 'kopírovať'; }, 1100);
+        setTimeout(() => { btn.textContent = UI.kopirovat; }, 1100);
       });
     });
   }
@@ -905,7 +1020,7 @@
   rawToggleBtn.addEventListener('click', () => {
     if (!lastResult) return;
     rawMode = !rawMode;
-    rawToggleBtn.textContent = rawMode ? 'formátované' : 'raw JSON';
+    rawToggleBtn.textContent = rawMode ? UI.formatovane : UI.rawJson;
     rerenderOutput();
   });
 
@@ -919,7 +1034,7 @@
   function runDiagnose() {
     const cfg = currentConfig();
     if (cfg === null) {
-      output.innerHTML = '<div class="placeholder" style="color:var(--accent)">Neplatný JSON: opravte syntax a skúste znova.</div>';
+      output.innerHTML = '<div class="placeholder" style="color:var(--accent)">' + esc(UI.neplatnyJson) + '</div>';
       setStatusPill('idle');
       meta.textContent = 'neplatný JSON';
       return;
@@ -933,7 +1048,7 @@
     rawToggleBtn.textContent = 'raw JSON';
     renderResult(result);
     setStatusPill(result.status);
-    timing.textContent = dt.toFixed(2) + ' ms · klientská strana, 0 requestov';
+    timing.textContent = UI.casMeranie(dt.toFixed(2));
 
     track('diagnose', {
       status: result.status,
@@ -950,7 +1065,7 @@
     input.value = JSON.stringify(SAMPLE_CONFIG, null, 2);
     jsonError.hidden = true;
     lastResult = null;
-    output.innerHTML = '<div class="placeholder"># vložte XML a stlačte <span class="kbd">Diagnostikovať</span> alebo <span class="kbd">⌘↵</span><span class="blink"></span></div>';
+    output.innerHTML = '<div class="placeholder">' + esc(UI.vyzvaVloz) + ' <span class="kbd">' + esc(UI.diagnostikovat) + '</span> ' + (JAZYK === 'de' ? 'oder' : JAZYK === 'en' ? 'or' : 'alebo') + ' <span class="kbd">⌘↵</span><span class="blink"></span></div>';
     statusPill.className = 'status-pill';
     statusPill.textContent = 'idle';
     meta.textContent = 'idle';
@@ -963,12 +1078,12 @@
     try {
       await navigator.clipboard.writeText(text);
       const old = copyReportBtn.textContent;
-      copyReportBtn.textContent = 'skopírované ✓';
+      copyReportBtn.textContent = UI.skopirovane;
       track('copy_report');
       setTimeout(() => { copyReportBtn.textContent = old; }, 1200);
     } catch (e) {
       copyReportBtn.textContent = 'zlyhalo';
-      setTimeout(() => { copyReportBtn.textContent = 'kopírovať report'; }, 1200);
+      setTimeout(() => { copyReportBtn.textContent = UI.kopirovatReport; }, 1200);
     }
   });
 
