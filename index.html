@@ -4,7 +4,7 @@
 <script src="/style/vzhlad.js?v=93c2659f"></script>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
-<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' https://homelab.tailbf8f27.ts.net 'sha256-P22VSqiEMB6TIcK3RCgCD0WWmESWUbteMsVC7DrL3Oc=' 'sha256-dFxbLOizyPbfm7UUWlNpGNPJAF5gwqWjhBJhyIDBDH0=' 'sha256-zDaXeRSFlzJ8pKCyPRjI796AoUGHPhAlLbkxofWr9Zo=' 'sha256-fo2+qHfT1vjTX+wGnFDYyCbWCIRKQ1j76QYbOky4QgY='; connect-src 'self' https://homelab.tailbf8f27.ts.net; style-src 'self' 'unsafe-inline'; img-src 'self' data:; font-src 'self'; object-src 'none'; base-uri 'self'; form-action 'none'">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' https://homelab.tailbf8f27.ts.net 'sha256-P22VSqiEMB6TIcK3RCgCD0WWmESWUbteMsVC7DrL3Oc=' 'sha256-dFxbLOizyPbfm7UUWlNpGNPJAF5gwqWjhBJhyIDBDH0=' 'sha256-pseqWczA92NdCjj5PrUnCkReRuUay9ym4nopHvYIomA=' 'sha256-fo2+qHfT1vjTX+wGnFDYyCbWCIRKQ1j76QYbOky4QgY='; connect-src 'self' https://homelab.tailbf8f27.ts.net; style-src 'self' 'unsafe-inline'; img-src 'self' data:; font-src 'self'; object-src 'none'; base-uri 'self'; form-action 'none'">
 <meta name="color-scheme" content="dark">
 <meta name="theme-color" content="#0a0908">
 <link rel="icon" href="favicon.svg" type="image/svg+xml">
@@ -262,6 +262,13 @@
     border-radius:6px; border:1px solid var(--line); text-transform:uppercase; letter-spacing:.03em; }
   .big-pill.pass { color:var(--ok); border-color:var(--ok); }
   .big-pill.warn { color:var(--warn); border-color:var(--warn); }
+  /* Východ na platený nástroj. Oddelený linkou, aby bolo jasné, že to už nie
+     je súčasť diagnózy, ale ponuka. Bez farebného pozadia: reklamný pruh za
+     výsledkom kontroly pôsobí, že sme nástroj postavili kvôli nemu. */
+  .vychod { border-top:1px solid var(--line); padding-top:16px; display:flex;
+            flex-wrap:wrap; align-items:center; gap:14px; }
+  .vychod p { margin:0; flex:1 1 320px; font-size:13.5px; color:var(--body); }
+  @media (max-width:560px){ .vychod .btn { width:100%; justify-content:center; } }
   .big-pill.fail { color:var(--accent); border-color:var(--accent); }
   .result-summary { font-size:13px; color:var(--body); line-height:1.6; margin:10px 0 0; font-family:var(--ui); }
 
@@ -872,6 +879,30 @@
 
     const checklistHtml = r.checklist.map((c) => `<li>${esc(c)}</li>`).join('');
 
+    // Východ na platený nástroj. Zámerne sa mení podľa toho, čo sa v súbore
+    // naozaj našlo: generická reklama za výsledkom kontroly je otravná a
+    // nikto na ňu neklikne. Tri rôzne udalosti, aby sa dalo zmerať, ktorý
+    // z tých troch prípadov vôbec niekoho posunie ďalej.
+    const adresneChyby = r.problems.filter((p) => String(p.code).indexOf('adresa') === 0).length;
+    let vychodText;
+    let vychodUdalost;
+    if (adresneChyby) {
+      vychodText = 'Adresa v tomto súbore nespĺňa pravidlá platné od 15. 11. 2026. Opraviť ju ručne v XML znamená prejsť ' +
+        (adresneChyby === 1 ? 'jedno miesto' : adresneChyby + ' miest') +
+        '. Náš generátor vyrobí ten istý súbor z Excelu aj s adresou, v pain.001.001.03 aj .09.';
+      vychodUdalost = 'exit_generator_adresa';
+    } else if (r.problems.length) {
+      vychodText = 'Nájsť chybu je jedna vec, opraviť ju v XML druhá. Náš generátor skladá pain.001 priamo z Excelu, takže tieto chyby nevzniknú.';
+      vychodUdalost = 'exit_generator_chyby';
+    } else {
+      vychodText = 'Súbor je v poriadku. Ak ho skladáte ručne alebo vzorcami v Exceli, náš generátor to spraví za pár sekúnd a rovno skontroluje.';
+      vychodUdalost = 'exit_generator_cisty';
+    }
+    const vychodHtml = `<div class="vychod">
+      <p>${esc(vychodText)}</p>
+      <a class="btn btn-line" href="https://arling.sk/sepa-pain001-generator/" data-umami-event="${esc(vychodUdalost)}">Otvoriť SEPA generátor</a>
+    </div>`;
+
     output.innerHTML = `<div class="result">
       <div>
         <span class="big-pill ${esc(r.status)}">${esc(r.status)}</span>
@@ -887,6 +918,7 @@
         <div class="form-section-title">Checklist</div>
         <ul class="checklist">${checklistHtml}</ul>
       </div>
+      ${vychodHtml}
       <div style="font-size:11px; color:var(--muted); line-height:1.6;">${esc(r.disclaimer)}</div>
     </div>`;
 
