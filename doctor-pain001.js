@@ -456,6 +456,150 @@ function parseAmountText(str) {
 
 // ──────────────────────────────── main logic ───────────────────────────────
 
+// ── Štruktúrovaná adresa: termín 15. novembra 2026 ──────────────────────────
+//
+// Od 15. 11. 2026 sa v SEPA schémach (SCT, SCT Inst, SDD Core aj B2B) prestáva
+// prijímať plne neštruktúrovaná poštová adresa. Ak je adresa v správe uvedená,
+// musí byť štruktúrovaná alebo hybridná, a v oboch prípadoch musí obsahovať
+// aspoň mesto (TwnNm) a kód krajiny (Ctry). Banka súbor so starou adresou
+// odmietne. Zároveň prestáva stačiť pain.001.001.03: tá verzia štruktúrované
+// adresné polia neunesie, nasledovník je pain.001.001.09.
+//
+// Zdroje overené 6. 9. 2026:
+//  - European Payments Council, zosúladenie schém SCT/SCT Inst/SDD na 15. 11. 2026
+//    https://www.europeanpaymentscouncil.eu/
+//  - ECB / Payments Market Practice Group, vzorový list korporátnym klientom
+//    o prechode na hybridnú adresu (2025-10-22)
+//    https://www.ecb.europa.eu/paym/groups/shared/docs/daba2-industry-template-hybrid-address-communication-to-corporates-pmpg-2025-10-22-.pdf
+//  - BNP Paribas, "Structured address in payments: the new rules in force from November 2026" (07/2026)
+//  - Komerční banka, "Nová pravidla pro vyplňování strukturované adresy u SEPA
+//    a zahraničních plateb" (pain.001.001.03 sa od 15. 11. 2026 prestane používať)
+//    https://www.kb.cz/cs/podpora/ucty-a-platby/nova-pravidla-pro-vyplnovani-strukturovane-adresy-u-sepa-a-zahranicnich-plateb-multicash
+//
+// Kontrola je zámerne opatrná: hlási len to, čo v súbore naozaj je. Súbor bez
+// adries neoznačuje za chybný, lebo adresa je v SEPA nepovinná a súbor bez nej
+// prejde aj po termíne.
+export const TERMIN_ADRESY = '2026-11-15';
+
+/** Cesta k prvku, napr. "Document/CstmrCdtTrfInitn/PmtInf/Cdtr/PstlAdr".
+ *  Pozor: funkcia path() vyssie je v skutocnosti firstChild, nie cesta. */
+function cestaK(node) {
+  const kusy = [];
+  for (let n = node; n && n.tag; n = n.parent) kusy.unshift(n.tag);
+  return kusy.filter((k) => k !== '#root').join('/');
+}
+
+/** Ktora strana platby to je, podla predkov prvku. */
+function ktoraStrana(node) {
+  for (let n = node; n && n.tag; n = n.parent) {
+    if (n.tag === 'Cdtr') return 'príjemcu';
+    if (n.tag === 'Dbtr') return 'platiteľa';
+    if (n.tag === 'UltmtCdtr') return 'konečného príjemcu';
+    if (n.tag === 'UltmtDbtr') return 'konečného platiteľa';
+    if (n.tag === 'InitgPty') return 'zadávateľa súboru';
+  }
+  return 'strany platby';
+}
+
+/** Rozoberie jeden <PstlAdr> na to, čo v ňom je. */
+function rozborAdresy(pstlAdr) {
+  const polia = {};
+  for (const ch of elementChildren(pstlAdr)) polia[ch.tag] = (polia[ch.tag] || []).concat(textOf(ch).trim());
+  const adrLine = (polia.AdrLine || []).filter(Boolean);
+  const struktura = ['Dept', 'SubDept', 'StrtNm', 'BldgNb', 'BldgNm', 'Flr', 'PstBx', 'Room', 'PstCd', 'TwnNm', 'TwnLctnNm', 'DstrctNm', 'CtrySubDvsn', 'Ctry']
+    .filter((k) => (polia[k] || []).some(Boolean));
+  const mesto = (polia.TwnNm || [])[0] || '';
+  const krajina = (polia.Ctry || [])[0] || '';
+  return { adrLine, struktura, mesto, krajina, prazdna: adrLine.length === 0 && struktura.length === 0 };
+}
+
+/**
+ * @param {object} documentEl koreň <Document>
+ * @param {function} addProblem
+ * @param {string} dnes ISO dátum, kvôli testovateľnosti; po termíne sa mení
+ *   závažnosť z "stredná" (ešte je čas) na "vysoká" (banka to už odmieta)
+ */
+function skontrolujAdresy(documentEl, addProblem, dnes) {
+  const vsetky = [];
+  findAll(documentEl, 'PstlAdr', vsetky);
+  if (!vsetky.length) return { spolu: 0, zle: 0 };
+
+  const poTermine = String(dnes || '') >= TERMIN_ADRESY;
+  const zavaznost = poTermine ? 'high' : 'medium';
+  let zle = 0;
+  const uzHlasene = new Set();
+
+  for (const adr of vsetky) {
+    const a = rozborAdresy(adr);
+    if (a.prazdna) continue;
+    const kde = cestaK(adr);
+    const cieCast = ktoraStrana(adr);
+
+    if (a.adrLine.length && !a.struktura.length) {
+      zle++;
+      if (uzHlasene.has('cela_nestruktura')) continue;
+      uzHlasene.add('cela_nestruktura');
+      addProblem({
+        code: 'adresa_nestrukturovana',
+        severity: zavaznost,
+        message: 'Adresa ' + cieCast + ' je zapísaná ako voľný text v <AdrLine>. ' +
+          (poTermine
+            ? 'Od 15. novembra 2026 banka takýto súbor odmieta: adresa musí mať aspoň mesto a kód krajiny vo vlastných poliach.'
+            : 'Od 15. novembra 2026 banka takýto súbor odmietne. Adresa musí mať aspoň mesto a kód krajiny vo vlastných poliach; dovtedy prejde, potom nie.'),
+        path: kde,
+        value: a.adrLine.join(' | '),
+        fix: '<PstlAdr><TwnNm>Bratislava</TwnNm><Ctry>SK</Ctry></PstlAdr>',
+      });
+      continue;
+    }
+
+    if (!a.mesto || !a.krajina) {
+      zle++;
+      const chyba = !a.mesto && !a.krajina ? 'mesto (TwnNm) ani kód krajiny (Ctry)' : !a.mesto ? 'mesto (TwnNm)' : 'kód krajiny (Ctry)';
+      if (uzHlasene.has('chyba_' + chyba)) continue;
+      uzHlasene.add('chyba_' + chyba);
+      addProblem({
+        code: 'adresa_bez_mesta_alebo_krajiny',
+        severity: zavaznost,
+        message: 'Adresa ' + cieCast + ' má štruktúrované polia, ale chýba v nej ' + chyba + '. ' +
+          'To je od 15. novembra 2026 povinné minimum pre každú adresu v SEPA platbe.',
+        path: kde,
+        value: a.struktura.join(', '),
+        fix: !a.mesto ? '<TwnNm>Bratislava</TwnNm>' : '<Ctry>SK</Ctry>',
+      });
+      continue;
+    }
+
+    if (a.adrLine.length > 2) {
+      zle++;
+      if (uzHlasene.has('vela_riadkov')) continue;
+      uzHlasene.add('vela_riadkov');
+      addProblem({
+        code: 'adresa_prilis_vela_riadkov',
+        severity: 'low',
+        message: 'Hybridná adresa smie mať najviac dva riadky <AdrLine>, tento má ' + a.adrLine.length + '. ' +
+          'Ulicu a číslo presuňte do <StrtNm> a <BldgNb>.',
+        path: kde,
+        value: a.adrLine.join(' | '),
+        fix: '<StrtNm>Ivanská cesta</StrtNm><BldgNb>32E</BldgNb>',
+      });
+    }
+
+    if (a.krajina && !/^[A-Z]{2}$/.test(a.krajina)) {
+      zle++;
+      addProblem({
+        code: 'adresa_zly_kod_krajiny',
+        severity: 'high',
+        message: 'Kód krajiny "' + a.krajina + '" nie je dvojpísmenový kód podľa ISO 3166-1. Banka ho odmietne.',
+        path: kde + '/Ctry',
+        value: a.krajina,
+        fix: '<Ctry>SK</Ctry>',
+      });
+    }
+  }
+  return { spolu: vsetky.length, zle: zle };
+}
+
 const PAIN_NAMESPACE = 'urn:iso:std:iso:20022:tech:xsd:pain.001.001.03';
 const SEVERITY_ORDER = { high: 0, medium: 1, low: 2 };
 
@@ -997,6 +1141,12 @@ export function diagnose(input) {
   if (bankKey === 'generic') {
     checklist.push('Bez vybranej konkrétnej banky sa neoverujú BIC banky, limit počtu transakcií ani okno dátumu splatnosti: vyberte banku pre presnejšiu diagnózu.');
   }
+
+  // Termín 15. 11. 2026: štruktúrovaná adresa. Beží až tu, aby sa hlásil
+  // po chybách, ktoré blokujú import už dnes.
+  const adresy = skontrolujAdresy(documentEl, addProblem, cfg.dnes || new Date().toISOString().slice(0, 10));
+  stats.adriesSpolu = adresy.spolu;
+  stats.adriesZlych = adresy.zle;
 
   return finish();
 

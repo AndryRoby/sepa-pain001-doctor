@@ -1,7 +1,7 @@
 // tests.mjs — plain Node test runner for doctor-pain001.js (no external dependencies).
 // Run with: node tests.mjs
 
-import { diagnose, expectedValues } from './doctor-pain001.js';
+import { diagnose, TERMIN_ADRESY, expectedValues } from './doctor-pain001.js';
 
 let pass = 0;
 let fail = 0;
@@ -731,6 +731,114 @@ function run(spec, bank, expectedTxCount) {
 }
 
 // ─────────────────────────────────────────────────────────────────────────
+// ── štruktúrovaná adresa, termín 15. 11. 2026 ─────────────────────────────
+// Toto je jediná kontrola, ktorá časom mení závažnosť, preto sa testuje na
+// oboch stranách termínu. Dátum sa vždy podáva zvonka (cfg.dnes), nikdy sa
+// nečíta systémový čas, inak by test o dva mesiace začal padať sám.
+function adrXml(dbtrAdr, cdtrAdr) {
+  return `<Document xmlns="urn:iso:std:iso:20022:tech:xsd:pain.001.001.03"><CstmrCdtTrfInitn>`
+    + `<GrpHdr><MsgId>M1</MsgId><CreDtTm>2026-09-06T10:00:00</CreDtTm><NbOfTxs>1</NbOfTxs><CtrlSum>10.00</CtrlSum><InitgPty><Nm>Test</Nm></InitgPty></GrpHdr>`
+    + `<PmtInf><PmtInfId>P1</PmtInfId><PmtMtd>TRF</PmtMtd><ReqdExctnDt>2026-09-10</ReqdExctnDt>`
+    + `<Dbtr><Nm>Firma</Nm>${dbtrAdr}</Dbtr>`
+    + `<DbtrAcct><Id><IBAN>SK3112000000198742637541</IBAN></Id></DbtrAcct>`
+    + `<DbtrAgt><FinInstnId><BIC>TATRSKBX</BIC></FinInstnId></DbtrAgt>`
+    + `<CdtTrfTxInf><PmtId><EndToEndId>E1</EndToEndId></PmtId><Amt><InstdAmt Ccy="EUR">10.00</InstdAmt></Amt>`
+    + `<Cdtr><Nm>Prijemca</Nm>${cdtrAdr}</Cdtr>`
+    + `<CdtrAcct><Id><IBAN>SK3112000000198742637541</IBAN></Id></CdtrAcct>`
+    + `</CdtTrfTxInf></PmtInf></CstmrCdtTrfInitn></Document>`;
+}
+const adrNalezy = (xml, dnes) => diagnose({ xml, bank: 'tatrabanka', dnes }).problems.filter((p) => p.code.indexOf('adresa') === 0);
+
+eq('TERMIN_ADRESY je 15. novembra 2026', TERMIN_ADRESY, '2026-11-15');
+
+{
+  // Súbor bez akejkoľvek adresy je v poriadku aj po termíne: adresa je v SEPA
+  // nepovinná a nová povinnosť platí len pre adresu, ktorá tam naozaj je.
+  const bez = adrXml('', '');
+  eq('bez adries: pred termínom nič nehlásime', adrNalezy(bez, '2026-09-06').length, 0);
+  eq('bez adries: ani po termíne nič nehlásime', adrNalezy(bez, '2026-12-01').length, 0);
+}
+
+{
+  const struktura = '<PstlAdr><StrtNm>Ivanska cesta</StrtNm><BldgNb>32E</BldgNb><PstCd>82104</PstCd><TwnNm>Bratislava</TwnNm><Ctry>SK</Ctry></PstlAdr>';
+  eq('plne štruktúrovaná adresa prejde aj po termíne', adrNalezy(adrXml(struktura, struktura), '2026-12-01').length, 0);
+}
+
+{
+  const volnyText = '<PstlAdr><AdrLine>Ivanska cesta 32E</AdrLine><AdrLine>821 04 Bratislava</AdrLine></PstlAdr>';
+  const dobra = '<PstlAdr><TwnNm>Bratislava</TwnNm><Ctry>SK</Ctry></PstlAdr>';
+  const pred = adrNalezy(adrXml(volnyText, dobra), '2026-09-06');
+  eq('voľný text: pred termínom sa hlási', pred.length, 1);
+  eq('voľný text: kód nálezu', pred[0].code, 'adresa_nestrukturovana');
+  eq('voľný text: pred termínom je to stredná závažnosť, nie blokujúca', pred[0].severity, 'medium');
+  ok('voľný text: hlási sa u platiteľa, nie u príjemcu', pred[0].message.indexOf('platite') !== -1);
+  ok('voľný text: oprava obsahuje TwnNm aj Ctry', pred[0].fix.indexOf('TwnNm') !== -1 && pred[0].fix.indexOf('Ctry') !== -1);
+  ok('voľný text: cesta ukazuje na Dbtr/PstlAdr', pred[0].path.indexOf('Dbtr/PstlAdr') !== -1);
+  ok('voľný text: cesta nezacina technickym #root', pred[0].path.indexOf('#root') === -1);
+
+  const po = adrNalezy(adrXml(volnyText, dobra), '2026-11-15');
+  eq('voľný text: v deň termínu je to už blokujúce', po[0].severity, 'high');
+  const poPo = adrNalezy(adrXml(volnyText, dobra), '2026-12-01');
+  eq('voľný text: po termíne blokujúce', poPo[0].severity, 'high');
+}
+
+{
+  const dobra = '<PstlAdr><TwnNm>Bratislava</TwnNm><Ctry>SK</Ctry></PstlAdr>';
+  const bezMesta = '<PstlAdr><StrtNm>Hlavna</StrtNm><BldgNb>1</BldgNb><Ctry>SK</Ctry></PstlAdr>';
+  const n1 = adrNalezy(adrXml(dobra, bezMesta), '2026-09-06');
+  eq('chýba mesto: hlási sa', n1.length, 1);
+  eq('chýba mesto: kód nálezu', n1[0].code, 'adresa_bez_mesta_alebo_krajiny');
+  ok('chýba mesto: pomenuje príjemcu', n1[0].message.indexOf('pr\u00edjemcu') !== -1);
+  ok('chýba mesto: oprava je TwnNm', n1[0].fix.indexOf('TwnNm') !== -1);
+
+  const bezKrajiny = '<PstlAdr><TwnNm>Bratislava</TwnNm></PstlAdr>';
+  const n2 = adrNalezy(adrXml(dobra, bezKrajiny), '2026-09-06');
+  eq('chýba krajina: hlási sa', n2.length, 1);
+  ok('chýba krajina: oprava je Ctry', n2[0].fix.indexOf('Ctry') !== -1);
+}
+
+{
+  const dobra = '<PstlAdr><TwnNm>Bratislava</TwnNm><Ctry>SK</Ctry></PstlAdr>';
+  const zlaKrajina = '<PstlAdr><TwnNm>Wien</TwnNm><Ctry>Austria</Ctry></PstlAdr>';
+  const n = adrNalezy(adrXml(dobra, zlaKrajina), '2026-09-06');
+  ok('krajina slovom namiesto kódu: hlási sa ako blokujúca', n.some((p) => p.code === 'adresa_zly_kod_krajiny' && p.severity === 'high'));
+}
+
+{
+  // Hybridná adresa smie mať najviac dva riadky.
+  const dobra = '<PstlAdr><TwnNm>Bratislava</TwnNm><Ctry>SK</Ctry></PstlAdr>';
+  const tri = '<PstlAdr><AdrLine>Riadok 1</AdrLine><AdrLine>Riadok 2</AdrLine><AdrLine>Riadok 3</AdrLine><TwnNm>Praha</TwnNm><Ctry>CZ</Ctry></PstlAdr>';
+  const n = adrNalezy(adrXml(dobra, tri), '2026-09-06');
+  ok('tri riadky adresy: hlási sa ako drobnosť', n.some((p) => p.code === 'adresa_prilis_vela_riadkov' && p.severity === 'low'));
+}
+
+{
+  // Prazdny <PstlAdr> nie je adresa, takze sa nehlasi.
+  const prazdna = '<PstlAdr></PstlAdr>';
+  const dobra = '<PstlAdr><TwnNm>Bratislava</TwnNm><Ctry>SK</Ctry></PstlAdr>';
+  eq('prázdny PstlAdr sa nehlási', adrNalezy(adrXml(prazdna, dobra), '2026-12-01').length, 0);
+}
+
+{
+  // Ten isty problem v dvadsiatich platbach nema zaplavit vysledok.
+  let tx = '';
+  for (let i = 0; i < 20; i++) {
+    tx += `<CdtTrfTxInf><PmtId><EndToEndId>E${i}</EndToEndId></PmtId><Amt><InstdAmt Ccy="EUR">1.00</InstdAmt></Amt>`
+      + `<Cdtr><Nm>P${i}</Nm><PstlAdr><AdrLine>Ulica ${i}</AdrLine></PstlAdr></Cdtr>`
+      + `<CdtrAcct><Id><IBAN>SK3112000000198742637541</IBAN></Id></CdtrAcct></CdtTrfTxInf>`;
+  }
+  const xml = `<Document xmlns="urn:iso:std:iso:20022:tech:xsd:pain.001.001.03"><CstmrCdtTrfInitn>`
+    + `<GrpHdr><MsgId>M</MsgId><CreDtTm>2026-09-06T10:00:00</CreDtTm><NbOfTxs>20</NbOfTxs><CtrlSum>20.00</CtrlSum><InitgPty><Nm>T</Nm></InitgPty></GrpHdr>`
+    + `<PmtInf><PmtInfId>P</PmtInfId><PmtMtd>TRF</PmtMtd><ReqdExctnDt>2026-09-10</ReqdExctnDt>`
+    + `<Dbtr><Nm>F</Nm></Dbtr><DbtrAcct><Id><IBAN>SK3112000000198742637541</IBAN></Id></DbtrAcct>`
+    + `<DbtrAgt><FinInstnId><BIC>TATRSKBX</BIC></FinInstnId></DbtrAgt>${tx}</PmtInf></CstmrCdtTrfInitn></Document>`;
+  const r = diagnose({ xml, bank: 'tatrabanka', dnes: '2026-09-06' });
+  const n = r.problems.filter((p) => p.code.indexOf('adresa') === 0);
+  eq('dvadsať rovnakých adries: hlási sa raz, nie dvadsaťkrát', n.length, 1);
+  eq('dvadsať rovnakých adries: štatistika pozná všetky', r.stats.adriesSpolu, 20);
+  eq('dvadsať rovnakých adries: štatistika pozná počet zlých', r.stats.adriesZlych, 20);
+}
+
 
 console.log(`\n${pass} passed, ${fail} failed`);
 if (fail > 0) {
