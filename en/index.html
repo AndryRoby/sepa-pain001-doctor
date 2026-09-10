@@ -4,7 +4,7 @@
 <script src="/style/vzhlad.js?v=93c2659f"></script>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
-<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' https://homelab.tailbf8f27.ts.net 'sha256-W6shBpMfCTkEDTlJQBf72YngllnJsmS9HCvm2W7x0iM=' 'sha256-NsNAt4RxUHdw34RclJnFoVhPTw6ETTZjp5wuY5a/gn4=' 'sha256-xwSIPYTLrPSAQsbWKSlQcgJRzKVdqnOFOqiEDm3FpEA=' 'sha256-e/fIDlrPDq37+zeT58xFltRMoEhveZvQRnfcD10UZRw='; connect-src 'self' https://homelab.tailbf8f27.ts.net; style-src 'self' 'unsafe-inline'; img-src 'self' data:; font-src 'self'; object-src 'none'; base-uri 'self'; form-action 'none'">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' https://homelab.tailbf8f27.ts.net 'sha256-W6shBpMfCTkEDTlJQBf72YngllnJsmS9HCvm2W7x0iM=' 'sha256-NsNAt4RxUHdw34RclJnFoVhPTw6ETTZjp5wuY5a/gn4=' 'sha256-hHsWlig0wpy3mlgktK0cgbe/GgrksyqIrr6r5GFoXsw=' 'sha256-e/fIDlrPDq37+zeT58xFltRMoEhveZvQRnfcD10UZRw='; connect-src 'self' https://homelab.tailbf8f27.ts.net; style-src 'self' 'unsafe-inline'; img-src 'self' data:; font-src 'self'; object-src 'none'; base-uri 'self'; form-action 'none'">
 <meta name="color-scheme" content="dark">
 <meta name="theme-color" content="#0a0908">
 <link rel="icon" href="../favicon.svg" type="image/svg+xml">
@@ -225,6 +225,15 @@
   .vychod { border-top:1px solid var(--line); padding-top:16px; display:flex;
             flex-wrap:wrap; align-items:center; gap:14px; }
   .vychod p { margin:0; flex:1 1 320px; font-size:13.5px; color:var(--body); }
+  /* E-001 (10. 9. 2026): ponuka platenej kontroly priamo pod verdiktom, len ked
+     sa nasla adresna alebo blokujuca chyba. Dovtedy sa clovek s chybou posielal
+     na bezplatny generator a platena kontrola bola az pod vysledkom: 20 kontrol
+     tyzdenne, 0 klikov. */
+  .ponuka { border:1px solid var(--accent); border-radius:12px; padding:14px 16px; display:flex; flex-wrap:wrap; align-items:center; gap:12px 16px; }
+  .ponuka .ponuka-text { flex:1 1 320px; }
+  .ponuka b { display:block; font-family:var(--ui); font-size:14px; color:var(--text); margin-bottom:4px; }
+  .ponuka p { margin:0; font-family:var(--ui); font-size:13px; color:var(--body); line-height:1.55; }
+  @media (max-width:560px){ .ponuka .btn { width:100%; justify-content:center; } }
   @media (max-width:560px){ .vychod .btn { width:100%; justify-content:center; } }
   .big-pill.fail { color:var(--accent); border-color:var(--accent); }
   .result-summary { font-size:13px; color:var(--body); line-height:1.6; margin:10px 0 0; font-family:var(--ui); }
@@ -657,6 +666,10 @@
   // toto je to, čo okolo nich kreslí stránka.
   const SLOVNIK = {
     sk: {
+      ponukaNadpis: (adr, blok) => adr ? (adr === 1 ? 'Jedna adresa v tomto súbore po 15. novembri 2026 neprejde.' : adr + ' adries v tomto súbore po 15. novembri 2026 neprejde.') : (blok === 1 ? 'Jedna blokujúca chyba: banka súbor pravdepodobne odmietne.' : blok + ' blokujúcich chýb: banka súbor pravdepodobne odmietne.'),
+      ponukaText: 'Nechcete to opravovať sami? Nahráte súbor, do 24 hodín dostanete opravený súbor a písomnú správu, ktorú prepošlete dodávateľovi účtovného programu. 149 €, o prijatí rozhoduje vaša banka.',
+      ponukaTlacidlo: 'Nechať opraviť súbor za 149 €',
+      ponukaUrl: 'https://arling.sk/kontrola-suboru/',
       inaBanka: 'iná / neuvedená banka',
       banka: 'Banka',
       ocakavanyBic: 'Očakávaný BIC platiteľa (DbtrAgt)',
@@ -699,6 +712,10 @@
       otvoritGenerator: 'Otvoriť SEPA generátor',
     },
     en: {
+      ponukaNadpis: (adr, blok) => adr ? (adr === 1 ? 'One address in this file will not pass after 15 November 2026.' : adr + ' addresses in this file will not pass after 15 November 2026.') : (blok === 1 ? 'One blocking error: the bank will most likely reject the file.' : blok + ' blocking errors: the bank will most likely reject the file.'),
+      ponukaText: 'Do not want to fix it yourself? Upload the file and within 24 hours you get the corrected file and a written report you can forward to your software vendor. 149 €, your bank decides acceptance.',
+      ponukaTlacidlo: 'Have the file fixed for 149 €',
+      ponukaUrl: 'https://arling.sk/kontrola-suboru/en/',
       inaBanka: 'other / unspecified bank',
       banka: 'Bank',
       ocakavanyBic: 'Expected debtor BIC (DbtrAgt)',
@@ -741,6 +758,10 @@
       otvoritGenerator: 'Open the SEPA generator',
     },
     de: {
+      ponukaNadpis: (adr, blok) => adr ? (adr === 1 ? 'Eine Adresse in dieser Datei geht nach dem 15. November 2026 nicht mehr durch.' : adr + ' Adressen in dieser Datei gehen nach dem 15. November 2026 nicht mehr durch.') : (blok === 1 ? 'Ein blockierender Fehler: die Bank lehnt die Datei sehr wahrscheinlich ab.' : blok + ' blockierende Fehler: die Bank lehnt die Datei sehr wahrscheinlich ab.'),
+      ponukaText: 'Nicht selbst korrigieren? Laden Sie die Datei hoch, innerhalb von 24 Stunden erhalten Sie die korrigierte Datei und einen schriftlichen Bericht für Ihren Softwareanbieter. 149 €, über die Annahme entscheidet Ihre Bank.',
+      ponukaTlacidlo: 'Datei für 149 € korrigieren lassen',
+      ponukaUrl: 'https://arling.sk/kontrola-suboru/de/',
       inaBanka: 'andere / nicht angegebene Bank',
       banka: 'Bank',
       ocakavanyBic: 'Erwartete Auftraggeber-BIC (DbtrAgt)',
@@ -972,6 +993,16 @@
       }
     }
 
+    // E-001: ponuka platenej kontroly hned pod verdiktom, ked je co opravovat.
+    const blokujuce = r.problems.filter((p) => p.severity === 'high').length;
+    const ponukaTyp = adresneChyby ? 'adresa' : blokujuce ? 'blokujuce' : '';
+    const ponukaHtml = ponukaTyp ? `<div class="ponuka">
+      <div class="ponuka-text"><b>${esc(UI.ponukaNadpis(adresneChyby, blokujuce))}</b><p>${esc(UI.ponukaText)}</p></div>
+      <a class="btn btn-solid ponuka-btn" href="${esc(UI.ponukaUrl)}?z=doctor-${ponukaTyp}" data-umami-event="kontrola_click" data-umami-event-place="doctor-vysledok" data-umami-event-typ="${ponukaTyp}">${esc(UI.ponukaTlacidlo)}</a>
+    </div>` : '';
+    if (r.problems.length) track('chyba_najdena', { n: r.problems.length, adresy: adresneChyby, blokujuce });
+    if (ponukaTyp) track('ponuka_zobrazena', { typ: ponukaTyp, n: adresneChyby || blokujuce });
+
     const vychodHtml = `<div class="vychod">
       <p>${esc(vychodText)}</p>
       <a class="btn btn-line" href="https://arling.sk/sepa-pain001-generator/" data-umami-event="${esc(vychodUdalost)}">${esc(UI.otvoritGenerator)}</a>
@@ -982,6 +1013,7 @@
         <span class="big-pill ${esc(r.status)}">${esc(r.status)}</span>
         <p class="result-summary">${esc(r.summary)}</p>
       </div>
+      ${ponukaHtml}
       <div>
         <div class="form-section-title">${esc(UI.nadpisOcakavane)}</div>
         <table class="exp-table"><tbody>${rows}</tbody></table>
@@ -995,6 +1027,9 @@
       ${vychodHtml}
       <div style="font-size:11px; color:var(--muted); line-height:1.6;">${esc(r.disclaimer)}</div>
     </div>`;
+
+    const ponukaBtn = output.querySelector('.ponuka-btn');
+    if (ponukaBtn) ponukaBtn.addEventListener('click', () => track('kontrola_click', { place: 'doctor-vysledok', typ: ponukaTyp }));
 
     output.querySelectorAll('.copy-fix-btn').forEach((btn) => {
       btn.addEventListener('click', async () => {
