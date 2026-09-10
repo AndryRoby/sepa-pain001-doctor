@@ -4,10 +4,10 @@
 <script src="/style/vzhlad.js?v=93c2659f"></script>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
-<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' https://homelab.tailbf8f27.ts.net 'sha256-oNADkJL9kQJUBKpT9LWqGoV7nchu+7VWX/XGhfvVCEw=' 'sha256-dFxbLOizyPbfm7UUWlNpGNPJAF5gwqWjhBJhyIDBDH0=' 'sha256-xugT4MI1oeuMjCAmf/9FOGnzgrixAu2q6+m7mHxlhWE=' 'sha256-e/fIDlrPDq37+zeT58xFltRMoEhveZvQRnfcD10UZRw='; connect-src 'self' https://homelab.tailbf8f27.ts.net; style-src 'self' 'unsafe-inline'; img-src 'self' data:; font-src 'self'; object-src 'none'; base-uri 'self'; form-action 'none'">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' https://homelab.tailbf8f27.ts.net 'sha256-oNADkJL9kQJUBKpT9LWqGoV7nchu+7VWX/XGhfvVCEw=' 'sha256-dFxbLOizyPbfm7UUWlNpGNPJAF5gwqWjhBJhyIDBDH0=' 'sha256-PBQWlfch8LSuRIvhRZvtwIDaMv62VtsyR5QVQ5yXmwA=' 'sha256-e/fIDlrPDq37+zeT58xFltRMoEhveZvQRnfcD10UZRw='; connect-src 'self' https://homelab.tailbf8f27.ts.net https://arling-asistent.arling.workers.dev; style-src 'self' 'unsafe-inline'; img-src 'self' data:; font-src 'self'; object-src 'none'; base-uri 'self'; form-action 'none'">
 <meta name="color-scheme" content="dark">
-<meta name="theme-color" content="#0a0908">
 <link rel="preconnect" href="https://homelab.tailbf8f27.ts.net" crossorigin>
+<meta name="theme-color" content="#0a0908">
 <link rel="icon" href="favicon.svg" type="image/svg+xml">
 <link rel="icon" href="favicon.ico" sizes="48x48">
 <link rel="apple-touch-icon" href="icon-180.png">
@@ -314,6 +314,14 @@
      sa nasla adresna alebo blokujuca chyba. Dovtedy sa clovek s chybou posielal
      na bezplatny generator a platena kontrola bola az pod vysledkom: 20 kontrol
      tyzdenne, 0 klikov. */
+  /* E-002: samoobslužná oprava za 29 € pod výsledkom. Rovnaký rámik ako
+     ponuka kontroly, len s políčkom súhlasu. */
+  .oprava{border:1px solid var(--accent);border-radius:12px;padding:16px 18px;margin-top:14px}
+  .oprava .prip-nadpis{margin:0 0 6px}
+  .oprava .prip-text{margin:0 0 10px}
+  .oprava-suhlas{display:flex;gap:10px;align-items:flex-start;font-family:var(--ui);font-size:13px;color:var(--body);line-height:1.5;margin:0 0 12px}
+  .oprava-suhlas input{margin-top:3px;flex:none}
+  .oprava .fineprint{margin:10px 0 0}
   .ponuka { border:1px solid var(--accent); border-radius:12px; padding:14px 16px; display:flex; flex-wrap:wrap; align-items:center; gap:12px 16px; }
   .ponuka .ponuka-text { flex:1 1 320px; }
   .ponuka b { display:block; font-family:var(--ui); font-size:14px; color:var(--text); margin-bottom:4px; }
@@ -533,6 +541,7 @@
           <p class="fineprint">Nastavenia (banka, očakávaný počet transakcií) sa po diagnostike uložia do odkazu na stránku. Samotný XML sa do odkazu neukladá, takže výsledok cez URL zdieľať nemožno. Na zdieľanie výsledku použite tlačidlo „kopírovať report“.</p>
         </div>
       </div>
+      <div class="oprava" id="oprava" data-oprava-link="" hidden></div>
       <div class="pripomienka">
         <p class="prip-nadpis">Nechcete to riešiť sami?</p>
         <p class="prip-text">Pošlete nám súbor a do 24 hodín dostanete písomnú správu, čo po 15. novembri neprejde, a opravený súbor. 149 €</p>
@@ -665,6 +674,7 @@
 <!-- Scripts -->
 <script type="module">
   import { diagnose } from './doctor-pain001.js';
+  import { applyDeterministicFixes } from './oprava.mjs';
 
   // Intentionally broken: demonstrates several rules at once on first load:
   // wrong bank's BIC on the debtor account, diacritics in the creditor name
@@ -751,6 +761,24 @@
   // toto je to, čo okolo nich kreslí stránka.
   const SLOVNIK = {
     sk: {
+      opravaNadpis: (n) => n === 1 ? 'Jednu z chýb vieme opraviť hneď.' : n + ' z chýb vieme opraviť hneď.',
+      opravaText: (co) => 'Opravený súbor si stiahnete priamo z prehliadača za 29 €: ' + co + '. Súbor nikam neposielate, opravuje sa u vás. Ostatné chyby ostávajú vypísané vyššie.',
+      opravaAdresy: (n) => (n === 1 ? '1 adresa rozdelená' : n + ' adries rozdelených') + ' do polí podľa pravidla od 15. 11. 2026',
+      opravaKrajiny: (n) => (n === 1 ? '1 názov krajiny' : n + ' názvov krajín') + ' na kód',
+      opravaIban: (n) => (n === 1 ? '1 IBAN' : n + ' IBAN-ov') + ' bez medzier',
+      opravaSucty: (n) => 'prepočítané súčty (' + n + ')',
+      opravaRucne: (n) => (n === 1 ? 'Jedna adresa' : n + ' adries') + ' sa nedá rozdeliť jednoznačne, tie ostanú tak, ako sú.',
+      opravaSuhlas: 'Súhlasím, že opravený súbor dostanem hneď po zaplatení, a beriem na vedomie, že tým strácam právo na odstúpenie od zmluvy.',
+      opravaTlacidlo: 'Zaplatiť 29 € a stiahnuť opravený súbor',
+      opravaDrobne: 'Platba cez Stripe, po nej sa vrátite sem a súbor sa stiahne. Ak sa niečo pokazí, napíšte na andrej@arling.sk. O prijatí súboru rozhoduje vaša banka.',
+      opravaOverujem: 'Overujem platbu…',
+      opravaNezaplatene: 'Platbu sa nepodarilo overiť. Ak ste zaplatili, napíšte na andrej@arling.sk a súbor vám opravíme ručne.',
+      opravaHotovo: 'Zaplatené. Opravený súbor je pripravený.',
+      opravaHotovoText: (co) => 'Opravené: ' + co + '.',
+      opravaStiahnut: 'Stiahnuť opravený súbor',
+      opravaVlozZnova: 'Vložte ten istý súbor do poľa vľavo a stlačte Diagnostikovať; tlačidlo na stiahnutie sa objaví tu.',
+      opravaPoTom: 'Chcete, aby súbor prešiel aj človek a napísal správu pre dodávateľa programu?',
+      opravaKontrolaOdkaz: 'Kontrola za 149 €',
       ponukaNadpis: (adr, blok) => adr ? (adr === 1 ? 'Jedna adresa v tomto súbore po 15. novembri 2026 neprejde.' : adr + ' adries v tomto súbore po 15. novembri 2026 neprejde.') : (blok === 1 ? 'Jedna blokujúca chyba: banka súbor pravdepodobne odmietne.' : blok + ' blokujúcich chýb: banka súbor pravdepodobne odmietne.'),
       ponukaText: 'Nechcete to opravovať sami? Nahráte súbor, do 24 hodín dostanete opravený súbor a písomnú správu, ktorú prepošlete dodávateľovi účtovného programu. 149 €, o prijatí rozhoduje vaša banka.',
       ponukaTlacidlo: 'Nechať opraviť súbor za 149 €',
@@ -797,6 +825,24 @@
       otvoritGenerator: 'Otvoriť SEPA generátor',
     },
     en: {
+      opravaNadpis: (n) => n === 1 ? 'One of the errors can be fixed right now.' : n + ' of the errors can be fixed right now.',
+      opravaText: (co) => 'Download the corrected file straight from your browser for 29 €: ' + co + '. The file is not sent anywhere, it is fixed on your device. The remaining errors stay listed above.',
+      opravaAdresy: (n) => (n === 1 ? '1 address split' : n + ' addresses split') + ' into fields per the rule from 15 November 2026',
+      opravaKrajiny: (n) => (n === 1 ? '1 country name' : n + ' country names') + ' to codes',
+      opravaIban: (n) => (n === 1 ? '1 IBAN' : n + ' IBANs') + ' without spaces',
+      opravaSucty: (n) => 'recalculated totals (' + n + ')',
+      opravaRucne: (n) => (n === 1 ? 'One address' : n + ' addresses') + ' cannot be split unambiguously and stay as they are.',
+      opravaSuhlas: 'I agree to receive the corrected file immediately after payment and acknowledge that I thereby lose my right of withdrawal.',
+      opravaTlacidlo: 'Pay 29 € and download the corrected file',
+      opravaDrobne: 'Payment via Stripe; afterwards you return here and the file downloads. If anything goes wrong, write to andrej@arling.sk. Your bank decides acceptance.',
+      opravaOverujem: 'Verifying the payment…',
+      opravaNezaplatene: 'The payment could not be verified. If you did pay, write to andrej@arling.sk and we will fix the file by hand.',
+      opravaHotovo: 'Paid. Your corrected file is ready.',
+      opravaHotovoText: (co) => 'Fixed: ' + co + '.',
+      opravaStiahnut: 'Download the corrected file',
+      opravaVlozZnova: 'Paste the same file into the box on the left and press Diagnose; the download button will appear here.',
+      opravaPoTom: 'Want a person to go through the file and write a report for your software vendor?',
+      opravaKontrolaOdkaz: 'Check for 149 €',
       ponukaNadpis: (adr, blok) => adr ? (adr === 1 ? 'One address in this file will not pass after 15 November 2026.' : adr + ' addresses in this file will not pass after 15 November 2026.') : (blok === 1 ? 'One blocking error: the bank will most likely reject the file.' : blok + ' blocking errors: the bank will most likely reject the file.'),
       ponukaText: 'Do not want to fix it yourself? Upload the file and within 24 hours you get the corrected file and a written report you can forward to your software vendor. 149 €, your bank decides acceptance.',
       ponukaTlacidlo: 'Have the file fixed for 149 €',
@@ -843,6 +889,24 @@
       otvoritGenerator: 'Open the SEPA generator',
     },
     de: {
+      opravaNadpis: (n) => n === 1 ? 'Einer der Fehler lässt sich sofort beheben.' : n + ' der Fehler lassen sich sofort beheben.',
+      opravaText: (co) => 'Laden Sie die korrigierte Datei für 29 € direkt aus dem Browser herunter: ' + co + '. Die Datei wird nirgendwohin gesendet, sie wird auf Ihrem Gerät korrigiert. Die übrigen Fehler bleiben oben aufgelistet.',
+      opravaAdresy: (n) => (n === 1 ? '1 Adresse' : n + ' Adressen') + ' in Felder aufgeteilt nach der Regel ab 15. 11. 2026',
+      opravaKrajiny: (n) => (n === 1 ? '1 Ländername' : n + ' Ländernamen') + ' in Codes',
+      opravaIban: (n) => (n === 1 ? '1 IBAN' : n + ' IBANs') + ' ohne Leerzeichen',
+      opravaSucty: (n) => 'neu berechnete Summen (' + n + ')',
+      opravaRucne: (n) => (n === 1 ? 'Eine Adresse' : n + ' Adressen') + ' lässt sich nicht eindeutig aufteilen und bleibt unverändert.',
+      opravaSuhlas: 'Ich stimme zu, die korrigierte Datei sofort nach der Zahlung zu erhalten, und nehme zur Kenntnis, dass ich damit mein Widerrufsrecht verliere.',
+      opravaTlacidlo: '29 € zahlen und korrigierte Datei herunterladen',
+      opravaDrobne: 'Zahlung über Stripe; danach kehren Sie hierher zurück und die Datei wird heruntergeladen. Falls etwas schiefgeht, schreiben Sie an andrej@arling.sk. Über die Annahme entscheidet Ihre Bank.',
+      opravaOverujem: 'Zahlung wird geprüft…',
+      opravaNezaplatene: 'Die Zahlung konnte nicht bestätigt werden. Falls Sie bezahlt haben, schreiben Sie an andrej@arling.sk, wir korrigieren die Datei von Hand.',
+      opravaHotovo: 'Bezahlt. Ihre korrigierte Datei ist bereit.',
+      opravaHotovoText: (co) => 'Korrigiert: ' + co + '.',
+      opravaStiahnut: 'Korrigierte Datei herunterladen',
+      opravaVlozZnova: 'Fügen Sie dieselbe Datei links ein und drücken Sie Diagnostizieren; der Download-Button erscheint hier.',
+      opravaPoTom: 'Soll ein Mensch die Datei durchgehen und einen Bericht für Ihren Softwareanbieter schreiben?',
+      opravaKontrolaOdkaz: 'Prüfung für 149 €',
       ponukaNadpis: (adr, blok) => adr ? (adr === 1 ? 'Eine Adresse in dieser Datei geht nach dem 15. November 2026 nicht mehr durch.' : adr + ' Adressen in dieser Datei gehen nach dem 15. November 2026 nicht mehr durch.') : (blok === 1 ? 'Ein blockierender Fehler: die Bank lehnt die Datei sehr wahrscheinlich ab.' : blok + ' blockierende Fehler: die Bank lehnt die Datei sehr wahrscheinlich ab.'),
       ponukaText: 'Nicht selbst korrigieren? Laden Sie die Datei hoch, innerhalb von 24 Stunden erhalten Sie die korrigierte Datei und einen schriftlichen Bericht für Ihren Softwareanbieter. 149 €, über die Annahme entscheidet Ihre Bank.',
       ponukaTlacidlo: 'Datei für 149 € korrigieren lassen',
@@ -1168,9 +1232,11 @@
     const dt = performance.now() - t0;
 
     lastResult = result;
+    lastCfg = cfg;
     rawMode = false;
     rawToggleBtn.textContent = 'raw JSON';
     renderResult(result);
+    ukazOpravu(cfg);
     setStatusPill(result.status);
     timing.textContent = UI.casMeranie(dt.toFixed(2));
 
@@ -1183,6 +1249,117 @@
     updatePermalink({ bank: cfg.bank, expectedTxCount: typeof cfg.expectedTxCount === 'number' ? cfg.expectedTxCount : null });
   }
   runBtn.addEventListener('click', runDiagnose);
+
+  /* ── Samoobslužná oprava za 29 € (E-002, 10. 9. 2026) ─────────────────────
+   * Deterministické opravy (oprava.mjs) bežia v prehliadači. Platba cez Stripe
+   * (odkaz v atribúte data-oprava-link), návrat s ?session_id=..., overenie
+   * zaplatenia cez worker (/v1/kontrola/status, amount_total), stiahnutie.
+   * Súbor neopúšťa prehliadač; do sessionStorage sa uloží len na čas platby. */
+  const OPRAVA_API = 'https://arling-asistent.arling.workers.dev';
+  const OPRAVA_KLUC = 'doctor:oprava';
+  const opravaBox = document.getElementById('oprava');
+  const opravaLinkNow = () => (opravaBox ? (opravaBox.getAttribute('data-oprava-link') || '') : '');
+  let lastCfg = null;
+  let opravaZaplatene = false;
+  let opravaSession = null;
+
+  function opravaPocty(fx) {
+    return {
+      adresy: fx.adresy.pocet || 0,
+      krajiny: fx.krajiny.pocet || 0,
+      iban: fx.iban.pocet || 0,
+      sucty: (fx.sucty.zmeny || []).length,
+      rucne: (fx.adresy.rucne || []).length,
+    };
+  }
+  function opravaMoznaTxt(p) {
+    const casti = [];
+    if (p.adresy) casti.push(UI.opravaAdresy(p.adresy));
+    if (p.krajiny) casti.push(UI.opravaKrajiny(p.krajiny));
+    if (p.iban) casti.push(UI.opravaIban(p.iban));
+    if (p.sucty) casti.push(UI.opravaSucty(p.sucty));
+    return casti.join(', ');
+  }
+  function stiahniOpraveny(xml) {
+    const blob = new Blob([xml], { type: 'application/xml' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url; a.download = 'opraveny-pain001.xml';
+    document.body.appendChild(a); a.click(); a.remove();
+    setTimeout(() => URL.revokeObjectURL(url), 2000);
+    track('oprava_stiahnuta', { lang: JAZYK });
+  }
+  function ukazOpravu(cfg) {
+    if (!opravaBox) return;
+    let fx;
+    try { fx = applyDeterministicFixes(cfg.xml); } catch (e) { opravaBox.hidden = true; return; }
+    const p = opravaPocty(fx);
+    const moznych = p.adresy + p.krajiny + p.iban + p.sucty;
+    if (!moznych) { opravaBox.hidden = true; return; }
+    const co = opravaMoznaTxt(p);
+    if (opravaZaplatene) {
+      opravaBox.innerHTML = '<p class="prip-nadpis">' + esc(UI.opravaHotovo) + '</p>'
+        + '<p class="prip-text">' + esc(UI.opravaHotovoText(co)) + (p.rucne ? ' ' + esc(UI.opravaRucne(p.rucne)) : '') + '</p>'
+        + '<div class="cta"><button type="button" class="btn btn-solid" id="oprava-stiahnut">' + esc(UI.opravaStiahnut) + '</button></div>'
+        + '<p class="fineprint">' + esc(UI.opravaPoTom) + ' <a href="' + esc(UI.ponukaUrl) + '?z=doctor-oprava">' + esc(UI.opravaKontrolaOdkaz) + '</a></p>';
+      opravaBox.hidden = false;
+      opravaBox.querySelector('#oprava-stiahnut').addEventListener('click', () => stiahniOpraveny(fx.xml));
+      return;
+    }
+    const opravaLink = opravaLinkNow();
+    if (!opravaLink) { opravaBox.hidden = true; return; }
+    opravaBox.innerHTML = '<p class="prip-nadpis">' + esc(UI.opravaNadpis(moznych)) + '</p>'
+      + '<p class="prip-text">' + esc(UI.opravaText(co)) + (p.rucne ? ' ' + esc(UI.opravaRucne(p.rucne)) : '') + '</p>'
+      + '<label class="oprava-suhlas"><input type="checkbox" id="oprava-suhlas"> <span>' + esc(UI.opravaSuhlas) + '</span></label>'
+      + '<div class="cta"><button type="button" class="btn btn-solid" id="oprava-kupit" disabled>' + esc(UI.opravaTlacidlo) + '</button></div>'
+      + '<p class="fineprint">' + esc(UI.opravaDrobne) + '</p>';
+    opravaBox.hidden = false;
+    track('oprava_zobrazena', { n: moznych, lang: JAZYK });
+    const chk = opravaBox.querySelector('#oprava-suhlas');
+    const btn = opravaBox.querySelector('#oprava-kupit');
+    chk.addEventListener('change', () => { btn.disabled = !chk.checked; });
+    btn.addEventListener('click', () => {
+      try { sessionStorage.setItem(OPRAVA_KLUC, JSON.stringify({ xml: cfg.xml, bank: cfg.bank, t: Date.now() })); } catch (e) { /* bez úložiska sa súbor po návrate vloží znova */ }
+      track('oprava_kupa_click', { n: moznych, lang: JAZYK });
+      window.location.href = opravaLink;
+    });
+  }
+  async function opravaPoNavrate() {
+    let sid = '';
+    try { sid = new URL(window.location.href).searchParams.get('session_id') || ''; } catch (e) { sid = ''; }
+    if (!sid || !opravaBox) return;
+    opravaSession = sid;
+    opravaBox.hidden = false;
+    opravaBox.innerHTML = '<p class="prip-text">' + esc(UI.opravaOverujem) + '</p>';
+    let st = null;
+    try {
+      const r = await fetch(OPRAVA_API + '/v1/kontrola/status?session_id=' + encodeURIComponent(sid), { method: 'GET' });
+      st = await r.json();
+    } catch (e) { st = null; }
+    if (!st || !st.paid) {
+      opravaBox.innerHTML = '<p class="prip-text">' + esc(UI.opravaNezaplatene) + '</p>';
+      return;
+    }
+    if (typeof st.amount_total === 'number' && st.amount_total >= 14900) {
+      // Toto je relácia kontroly za 149 €: patrí na stránku nahrania.
+      window.location.href = UI.ponukaUrl.replace(/\/$/, '') + '/nahrat/?session_id=' + encodeURIComponent(sid);
+      return;
+    }
+    opravaZaplatene = true;
+    let ulozene = null;
+    try { ulozene = JSON.parse(sessionStorage.getItem(OPRAVA_KLUC) || 'null'); } catch (e) { ulozene = null; }
+    if (ulozene && typeof ulozene.xml === 'string' && ulozene.xml.length) {
+      configToForm({ xml: ulozene.xml, bank: ulozene.bank || 'generic', expectedTxCount: null });
+      runDiagnose();
+      try { sessionStorage.removeItem(OPRAVA_KLUC); } catch (e) { /* nič */ }
+      const btn = document.getElementById('oprava-stiahnut');
+      if (btn) btn.click();
+    } else {
+      opravaBox.innerHTML = '<p class="prip-nadpis">' + esc(UI.opravaHotovo) + '</p><p class="prip-text">' + esc(UI.opravaVlozZnova) + '</p>';
+    }
+  }
+  opravaPoNavrate();
+
 
   resetBtn.addEventListener('click', () => {
     configToForm(SAMPLE_CONFIG);
