@@ -4,7 +4,7 @@
 <script src="/style/vzhlad.js?v=93c2659f"></script>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
-<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' https://homelab.tailbf8f27.ts.net 'sha256-i1+7T8XHD008mEl8iUZmvOIQ00Qiplwrg2pJRxad13Y=' 'sha256-yJPYWqyENJ7ZW1WSo+qy4SKTEJSJh+6+mbADXIPxopg=' 'sha256-+ngg7dWPX95EdXAshEcezKgP6W8eQtq6zaEy3oGOcRw=' 'sha256-e/fIDlrPDq37+zeT58xFltRMoEhveZvQRnfcD10UZRw='; connect-src 'self' https://homelab.tailbf8f27.ts.net https://arling-asistent.arling.workers.dev; style-src 'self' 'unsafe-inline'; img-src 'self' data:; font-src 'self'; object-src 'none'; base-uri 'self'; form-action 'none'">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' https://homelab.tailbf8f27.ts.net 'sha256-i1+7T8XHD008mEl8iUZmvOIQ00Qiplwrg2pJRxad13Y=' 'sha256-yJPYWqyENJ7ZW1WSo+qy4SKTEJSJh+6+mbADXIPxopg=' 'sha256-mJnuvCgfNNyuMr0kjWWqBmvGobw00Tk/maF7qRlxrwo=' 'sha256-e/fIDlrPDq37+zeT58xFltRMoEhveZvQRnfcD10UZRw='; connect-src 'self' https://homelab.tailbf8f27.ts.net https://arling-asistent.arling.workers.dev; style-src 'self' 'unsafe-inline'; img-src 'self' data:; font-src 'self'; object-src 'none'; base-uri 'self'; form-action 'none'">
 <meta name="color-scheme" content="dark">
 <link rel="preconnect" href="https://homelab.tailbf8f27.ts.net" crossorigin>
 <meta name="theme-color" content="#0a0908">
@@ -240,6 +240,10 @@
   .oprava-suhlas{display:flex;gap:10px;align-items:flex-start;font-family:var(--ui);font-size:13px;color:var(--body);line-height:1.5;margin:0 0 12px}
   .oprava-suhlas input{margin-top:3px;flex:none}
   .oprava .fineprint{margin:10px 0 0}
+  /* 17. 9. 2026: ponuka menuje kody pravidiel, ktore diagnoza v tomto subore
+     naozaj nasla, a pocet miest, kde ich oprava zmeni. */
+  .oprava-kody{margin:0 0 10px;padding:0;list-style:none;font-family:var(--mono);font-size:12.5px;color:var(--ink);line-height:1.7}
+  .oprava-kody li{overflow-wrap:anywhere}
   .ponuka { border:1px solid var(--accent); border-radius:12px; padding:14px 16px; display:flex; flex-wrap:wrap; align-items:center; gap:12px 16px; }
   .ponuka .ponuka-text { flex:1 1 320px; }
   .ponuka b { display:block; font-family:var(--ui); font-size:14px; color:var(--text); margin-bottom:4px; }
@@ -683,8 +687,13 @@
   // toto je to, čo okolo nich kreslí stránka.
   const SLOVNIK = {
     sk: {
-      opravaNadpis: (n) => n === 1 ? 'Jednu z chýb vieme opraviť hneď.' : n + ' z chýb vieme opraviť hneď.',
-      opravaText: (co) => 'Opravený súbor si stiahnete priamo z prehliadača za 29 €: ' + co + '. Súbor nikam neposielate, opravuje sa u vás. Ostatné chyby ostávajú vypísané vyššie.',
+      opravaNadpis: (n) => n === 1 ? 'Jednu z nájdených chýb vie nástroj opraviť vo vašom súbore.' : n + ' z nájdených chýb vie nástroj opraviť vo vašom súbore.',
+      opravaKodyNadpis: 'Nájdené pravidlá v tomto súbore:',
+      opravaJednAdresy: (n) => n === 1 ? '1 adresa' : n + ' adries',
+      opravaJednKrajiny: (n) => n === 1 ? '1 názov krajiny' : n + ' názvov krajín',
+      opravaJednIban: (n) => n === 1 ? '1 IBAN' : n + ' IBAN-ov',
+      opravaJednSucty: (n) => n === 1 ? '1 súčet' : n + ' súčtov',
+      opravaText: (co) => 'Čo treba zmeniť, vypisuje bezplatná diagnóza vyššie v časti Opravy. Za 29 € to nástroj spraví za vás v celom súbore a opravený XML si stiahnete: ' + co + '. Súbor nikam neposielate, opravuje sa u vás v prehliadači. Ostatné chyby ostávajú vypísané vyššie.',
       opravaAdresy: (n) => (n === 1 ? '1 adresa rozdelená' : n + ' adries rozdelených') + ' do polí podľa pravidla od 15. 11. 2026',
       opravaKrajiny: (n) => (n === 1 ? '1 názov krajiny' : n + ' názvov krajín') + ' na kód',
       opravaIban: (n) => (n === 1 ? '1 IBAN' : n + ' IBAN-ov') + ' bez medzier',
@@ -747,8 +756,13 @@
       otvoritGenerator: 'Otvoriť SEPA generátor',
     },
     en: {
-      opravaNadpis: (n) => n === 1 ? 'One of the errors can be fixed right now.' : n + ' of the errors can be fixed right now.',
-      opravaText: (co) => 'Download the corrected file straight from your browser for 29 €: ' + co + '. The file is not sent anywhere, it is fixed on your device. The remaining errors stay listed above.',
+      opravaNadpis: (n) => n === 1 ? 'One of the errors found can be fixed by the tool in your file.' : n + ' of the errors found can be fixed by the tool in your file.',
+      opravaKodyNadpis: 'Rules found in this file:',
+      opravaJednAdresy: (n) => n === 1 ? '1 address' : n + ' addresses',
+      opravaJednKrajiny: (n) => n === 1 ? '1 country name' : n + ' country names',
+      opravaJednIban: (n) => n === 1 ? '1 IBAN' : n + ' IBANs',
+      opravaJednSucty: (n) => n === 1 ? '1 total' : n + ' totals',
+      opravaText: (co) => 'The free diagnosis above lists what to change in the Fixes section. For 29 € the tool makes the change for you in the whole file and you download the corrected XML: ' + co + '. The file is not sent anywhere, it is fixed in your browser. The remaining errors stay listed above.',
       opravaAdresy: (n) => (n === 1 ? '1 address split' : n + ' addresses split') + ' into fields per the rule from 15 November 2026',
       opravaKrajiny: (n) => (n === 1 ? '1 country name' : n + ' country names') + ' to codes',
       opravaIban: (n) => (n === 1 ? '1 IBAN' : n + ' IBANs') + ' without spaces',
@@ -811,8 +825,13 @@
       otvoritGenerator: 'Open the SEPA generator',
     },
     de: {
-      opravaNadpis: (n) => n === 1 ? 'Einer der Fehler lässt sich sofort beheben.' : n + ' der Fehler lassen sich sofort beheben.',
-      opravaText: (co) => 'Laden Sie die korrigierte Datei für 29 € direkt aus dem Browser herunter: ' + co + '. Die Datei wird nirgendwohin gesendet, sie wird auf Ihrem Gerät korrigiert. Die übrigen Fehler bleiben oben aufgelistet.',
+      opravaNadpis: (n) => n === 1 ? 'Einen der gefundenen Fehler korrigiert das Werkzeug in Ihrer Datei.' : n + ' der gefundenen Fehler korrigiert das Werkzeug in Ihrer Datei.',
+      opravaKodyNadpis: 'Gefundene Regeln in dieser Datei:',
+      opravaJednAdresy: (n) => n === 1 ? '1 Adresse' : n + ' Adressen',
+      opravaJednKrajiny: (n) => n === 1 ? '1 Ländername' : n + ' Ländernamen',
+      opravaJednIban: (n) => n === 1 ? '1 IBAN' : n + ' IBANs',
+      opravaJednSucty: (n) => n === 1 ? '1 Summe' : n + ' Summen',
+      opravaText: (co) => 'Was zu ändern ist, listet die kostenlose Diagnose oben im Abschnitt Korrekturen. Für 29 € ändert es das Werkzeug für Sie in der ganzen Datei und Sie laden die korrigierte XML herunter: ' + co + '. Die Datei wird nirgendwohin gesendet, sie wird in Ihrem Browser korrigiert. Die übrigen Fehler bleiben oben aufgelistet.',
       opravaAdresy: (n) => (n === 1 ? '1 Adresse' : n + ' Adressen') + ' in Felder aufgeteilt nach der Regel ab 15. 11. 2026',
       opravaKrajiny: (n) => (n === 1 ? '1 Ländername' : n + ' Ländernamen') + ' in Codes',
       opravaIban: (n) => (n === 1 ? '1 IBAN' : n + ' IBANs') + ' ohne Leerzeichen',
@@ -1158,7 +1177,7 @@
     rawMode = false;
     rawToggleBtn.textContent = 'raw JSON';
     renderResult(result);
-    ukazOpravu(cfg);
+    ukazOpravu(cfg, result);
     setStatusPill(result.status);
     timing.textContent = UI.casMeranie(dt.toFixed(2));
 
@@ -1186,6 +1205,15 @@
   let opravaZaplatene = false;
   let opravaSession = null;
 
+  /* Ponuka smie pomenovat len pravidlo, ktore diagnoza v tomto subore naozaj
+     nahlasila (bod 2 planu zo 17. 9. 2026). Vlavo je oprava z oprava.mjs,
+     vpravo kody z doctor-pain001.js, ktore tu istu chybu hlasia. */
+  const OPRAVA_KODY = [
+    { kluc: 'adresy', kody: ['adresa_nestrukturovana', 'adresa_bez_mesta_alebo_krajiny', 'adresa_prilis_vela_riadkov'], jednotka: (x) => UI.opravaJednAdresy(x) },
+    { kluc: 'krajiny', kody: ['adresa_zly_kod_krajiny'], jednotka: (x) => UI.opravaJednKrajiny(x) },
+    { kluc: 'iban', kody: ['dbtr_iban_has_spaces'], jednotka: (x) => UI.opravaJednIban(x) },
+    { kluc: 'sucty', kody: ['nb_of_txs_mismatch', 'ctrl_sum_mismatch'], jednotka: (x) => UI.opravaJednSucty(x) },
+  ];
   function opravaPocty(fx) {
     return {
       adresy: fx.adresy.pocet || 0,
@@ -1210,15 +1238,37 @@
     a.href = url; a.download = 'opraveny-pain001.xml';
     document.body.appendChild(a); a.click(); a.remove();
     setTimeout(() => URL.revokeObjectURL(url), 2000);
-    track('oprava_stiahnuta', { lang: JAZYK });
+    track('oprava_stiahnuta', { jazyk: JAZYK });
   }
-  function ukazOpravu(cfg) {
+  function ukazOpravu(cfg, vysledok) {
     if (!opravaBox) return;
+    // Ponuka za 29 € az po najdenej chybe: pri cistom subore nie je co
+    // opravovat a ponuka za zelenym verdiktom je len reklama. Udalost
+    // chyba_najdena posiela renderResult, ktory bezi pred tymto volanim.
+    const najdene = new Set((vysledok && vysledok.problems ? vysledok.problems : []).map((x) => String(x.code)));
+    if (!najdene.size) { opravaBox.hidden = true; return; }
     let fx;
     try { fx = applyDeterministicFixes(cfg.xml); } catch (e) { opravaBox.hidden = true; return; }
     const p = opravaPocty(fx);
     const moznych = p.adresy + p.krajiny + p.iban + p.sucty;
     if (!moznych) { opravaBox.hidden = true; return; }
+    // Kod pravidla plus pocet miest, kde ho oprava zmeni. Bez zhody kodu
+    // ponuku neukazujeme, lebo by nemala co pomenovat.
+    const polozky = [];
+    OPRAVA_KODY.forEach((s) => {
+      const pocet = p[s.kluc];
+      if (!pocet) return;
+      const kody = s.kody.filter((k) => najdene.has(k));
+      if (!kody.length) return;
+      polozky.push({ kody: kody, pocet: pocet, text: kody.join(', ') + ': ' + s.jednotka(pocet) });
+    });
+    if (!polozky.length) { opravaBox.hidden = true; return; }
+    const hlavnyKod = polozky[0].kody[0];
+    const hlavnyPocet = polozky[0].pocet;
+    opravaBox.setAttribute('data-umami-event-kod', hlavnyKod);
+    opravaBox.setAttribute('data-umami-event-pocet', String(hlavnyPocet));
+    const kodyHtml = '<p class="prip-text">' + esc(UI.opravaKodyNadpis) + '</p><ul class="oprava-kody">'
+      + polozky.map((x) => '<li>' + esc(x.text) + '</li>').join('') + '</ul>';
     const co = opravaMoznaTxt(p);
     if (opravaZaplatene) {
       opravaBox.innerHTML = '<p class="prip-nadpis">' + esc(UI.opravaHotovo) + '</p>'
@@ -1232,18 +1282,20 @@
     const opravaLink = opravaLinkNow();
     if (!opravaLink) { opravaBox.hidden = true; return; }
     opravaBox.innerHTML = '<p class="prip-nadpis">' + esc(UI.opravaNadpis(moznych)) + '</p>'
+      + kodyHtml
       + '<p class="prip-text">' + esc(UI.opravaText(co)) + (p.rucne ? ' ' + esc(UI.opravaRucne(p.rucne)) : '') + '</p>'
       + '<label class="oprava-suhlas"><input type="checkbox" id="oprava-suhlas"> <span>' + esc(UI.opravaSuhlas) + '</span></label>'
-      + '<div class="cta"><button type="button" class="btn btn-solid" id="oprava-kupit" disabled>' + esc(UI.opravaTlacidlo) + '</button></div>'
+      + '<div class="cta"><button type="button" class="btn btn-solid" id="oprava-kupit" data-umami-event-kod="' + esc(hlavnyKod) + '" data-umami-event-pocet="' + hlavnyPocet + '" disabled>' + esc(UI.opravaTlacidlo) + '</button></div>'
       + '<p class="fineprint">' + esc(UI.opravaDrobne) + '</p>';
     opravaBox.hidden = false;
-    track('oprava_zobrazena', { n: moznych, lang: JAZYK });
+    track('oprava_zobrazena', { n: moznych, jazyk: JAZYK });
+    track('oprava_ponuka_zobrazena', { kod: hlavnyKod, pocet: hlavnyPocet, n: moznych, produkt: 'sepa', jazyk: JAZYK });
     const chk = opravaBox.querySelector('#oprava-suhlas');
     const btn = opravaBox.querySelector('#oprava-kupit');
     chk.addEventListener('change', () => { btn.disabled = !chk.checked; });
     btn.addEventListener('click', () => {
       try { sessionStorage.setItem(OPRAVA_KLUC, JSON.stringify({ xml: cfg.xml, bank: cfg.bank, t: Date.now() })); } catch (e) { /* bez úložiska sa súbor po návrate vloží znova */ }
-      track('oprava_kupa_click', { n: moznych, lang: JAZYK });
+      track('oprava_kupa_click', { kod: hlavnyKod, pocet: hlavnyPocet, n: moznych, produkt: 'sepa', jazyk: JAZYK });
       track('klik_kupit', { produkt: 'sepa', jazyk: JAZYK, cena: 29 });
       window.location.href = opravaLink;
     });
