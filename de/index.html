@@ -1,7 +1,7 @@
 <!doctype html>
 <html lang="de">
 <head>
-<script src="/style/vzhlad.js?v=93c2659f"></script>
+<script src="/style/vzhlad.js?v=16f0484e"></script>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' https://homelab.tailbf8f27.ts.net 'sha256-i1+7T8XHD008mEl8iUZmvOIQ00Qiplwrg2pJRxad13Y=' 'sha256-yJPYWqyENJ7ZW1WSo+qy4SKTEJSJh+6+mbADXIPxopg=' 'sha256-mJnuvCgfNNyuMr0kjWWqBmvGobw00Tk/maF7qRlxrwo=' 'sha256-e/fIDlrPDq37+zeT58xFltRMoEhveZvQRnfcD10UZRw='; connect-src 'self' https://homelab.tailbf8f27.ts.net https://arling-asistent.arling.workers.dev; style-src 'self' 'unsafe-inline'; img-src 'self' data:; font-src 'self'; object-src 'none'; base-uri 'self'; form-action 'none'">
@@ -30,8 +30,8 @@
 <link rel="manifest" href="../manifest.json" />
 <link rel="preload" href="/fonts/arling-sans.woff2" as="font" type="font/woff2" crossorigin>
 <link rel="preload" href="/fonts/arling-serif.woff2" as="font" type="font/woff2" crossorigin>
-<link rel="stylesheet" href="/style/paper.css?v=89016e6c">
-<script src="/style/prepinac.js?v=2988c181" defer></script>
+<link rel="stylesheet" href="/style/paper.css?v=2ebf5aa4">
+<script src="/style/prepinac.js?v=668e98c9" defer></script>
 <script defer src="https://homelab.tailbf8f27.ts.net/script.js" data-website-id="338f035d-41c5-411e-8391-9a41db6accfd"></script>
 
 <script type="application/ld+json">{"@context":"https://schema.org","@type":"SoftwareApplication","name":"SEPA pain.001 Doctor (slovenské banky)","url":"https://arling.sk/sepa-pain001-doctor/","description":"Ab dem 15. November 2026 weisen Banken SEPA-Zahlungen mit unstrukturierter Adresse zurück. Fügen Sie Ihre pain.001-Datei ein und sehen Sie, welche Zahlungen durchgehen und welche nicht, samt genauer Korrektur. Prüft auch die Anforderungen von Tatra banka, SLSP, VÚB und ČSOB. Kostenlos, im Browser, nichts wird hochgeladen.","applicationCategory":"FinanceApplication","operatingSystem":"Any (web browser)","offers":{"@type":"Offer","price":"0","priceCurrency":"EUR"},"author":{"@type":"Organization","name":"ARLing s. r. o.","url":"https://arling.sk/","email":"andrej@arling.sk","address":{"@type":"PostalAddress","addressLocality":"Bratislava","addressCountry":"SK"}},"sameAs":["https://github.com/AndryRoby/sepa-pain001-doctor"]}</script>
@@ -347,19 +347,21 @@
 <body class="noc">
 <div class="wash" aria-hidden="true"><i></i><i></i></div>
 
-<a class="skip" href="#playground">Zur Prüfung springen</a>
-
-<header>
+<a class="skip site-skip" href="#arling-obsah" data-site-label="skip">Zum Inhalt springen</a>
+<header class="site-header">
   <div class="wrap bar">
-    <a class="brand" href="https://arling.sk/">
+    <a class="brand" href="https://arling.sk/de/" aria-label="ARLing Startseite" data-site-home>
       <svg viewBox="0 0 488 215" width="38" height="15" aria-hidden="true" focusable="false"><path fill="#f4f4f7" fill-rule="evenodd" d="M0.00,213.00L74.00,214.00L181.00,85.00L285.00,214.00L360.00,214.00L206.00,21.00L185.00,4.00L164.00,10.00Z M221.00,0.00L263.00,50.00L395.00,50.00L409.00,55.00L419.00,76.00L401.00,96.00L313.00,98.00L411.00,214.00L487.00,214.00L422.00,139.00L457.00,123.00L482.00,88.00L482.00,48.00L463.00,19.00L417.00,0.00Z"/><path fill="#f2643c" d="M269.00,66.00L269.00,67.00L268.00,68.00L268.00,70.00L267.00,71.00L267.00,76.00L268.00,77.00L268.00,79.00L270.00,81.00L270.00,82.00L271.00,82.00L273.00,84.00L274.00,84.00L277.00,86.00L279.00,86.00L280.00,87.00L287.00,87.00L288.00,86.00L290.00,86.00L291.00,85.00L294.00,84.00L298.00,80.00L298.00,79.00L299.00,78.00L299.00,75.00L300.00,74.00L300.00,72.00L299.00,71.00L299.00,69.00L298.00,68.00L297.00,65.00L295.00,63.00L294.00,63.00L289.00,60.00L278.00,60.00L277.00,61.00L276.00,61.00L275.00,62.00L272.00,63.00Z"/></svg>
       <b>ARLing</b><span>SEPA pain.001 Doctor</span>
     </a>
-    <nav aria-label="Site"><a href="#playground">Prüfen</a><a href="#termin-2026">Stichtag 15. 11.</a><a href="#faq">Fragen</a><a href="https://arling.sk/de/#tools">Werkzeuge</a><a href="https://arling.sk/games/">Spiele</a><a href="https://arling.sk/notes/">Notes</a><a href="https://arling.sk/how-we-work/">Wie wir arbeiten</a><a href="mailto:andrej@arling.sk">Kontakt</a></nav>
+    <details class="site-menu" open>
+      <summary class="site-menu-toggle"><svg viewBox="0 0 18 12" fill="none" aria-hidden="true"><path d="M1 1h16M1 6h16M1 11h16" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg><span data-site-label="menu">Menü</span></summary>
+      <div class="site-menu-panel"><nav id="hlavne-menu" class="site-main-nav" aria-label="Hauptnavigation" data-site-aria="nav"><a href="https://arling.sk/shop/" data-site-nav="0">Shop</a><a href="https://arling.sk/de/#tools" data-site-nav="1">Werkzeuge</a><a href="https://arling.sk/games/" data-site-nav="2">Gratis-Rätsel</a><a href="https://arling.sk/notes/de/" data-site-nav="3">Artikel</a><a href="https://arling.sk/ucet/de/" data-site-nav="4">Konto</a></nav><div class="site-page-links"><p data-site-label="stranka">Auf dieser Seite</p><nav aria-label="Auf dieser Seite" data-site-aria="stranka"><a href="#playground">Prüfen</a><a href="#termin-2026">Stichtag 15. 11.</a><a href="#faq">Fragen</a></nav></div></div>
+    </details>
   </div>
 </header>
 
-<main>
+<main id="arling-obsah" tabindex="-1">
   <div class="wrap hero" id="hero">
     <div>
       <h1 id="h1"><span class="l">Ihre Bank hat Ihre SEPA-XML abgelehnt.</span><span class="l">Erfahren Sie genau, warum.</span></h1>
@@ -593,7 +595,7 @@
   <div class="wrap foot">
     <div><b>ARLing s. r. o.</b><br>Ivanská cesta 32E<br>821 04 Bratislava, Slowakei</div>
     <div>Handelsregister-Nr. 56583486<br>USt-IdNr. SK2122352100<br><a href="mailto:andrej@arling.sk">andrej@arling.sk</a></div>
-    <div><a href="https://arling.sk/privacy/">Datenschutz</a> · <a href="https://arling.sk/podmienky/">AGB</a> · <a href="https://arling.sk/gdpr/">DSGVO</a> · <a href="https://arling.sk/impressum/">Impressum</a> · <a href="https://arling.sk/llms.txt">llms.txt</a> · <a href="https://arling.sk/sitemap-index.xml">Sitemap</a><br>Die Werkzeuge werden ohne Gewähr bereitgestellt. Anonyme Besuchszählung über eigenes Umami.</div>
+    <div><a href="https://arling.sk/shop/">Shop</a> · <a href="https://arling.sk/privacy/de/">Datenschutz</a> · <a href="https://arling.sk/podmienky/de/">AGB</a> · <a href="https://arling.sk/gdpr/de/">DSGVO</a> · <a href="https://arling.sk/impressum/de/">Impressum</a> · <a href="https://arling.sk/llms.txt">llms.txt</a> · <a href="https://arling.sk/sitemap-index.xml">Sitemap</a><br>Die Werkzeuge werden ohne Gewähr bereitgestellt. Anonyme Besuchszählung über eigenes Umami.</div>
   </div>
 </footer>
 
