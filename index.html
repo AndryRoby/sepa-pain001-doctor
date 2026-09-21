@@ -1,7 +1,7 @@
 <!doctype html>
 <html lang="sk">
 <head>
-<script src="/style/vzhlad.js?v=dc0ce8df"></script>
+<script src="/style/vzhlad.js?v=2fa7f462"></script>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' https://homelab.tailbf8f27.ts.net 'sha256-oNADkJL9kQJUBKpT9LWqGoV7nchu+7VWX/XGhfvVCEw=' 'sha256-dFxbLOizyPbfm7UUWlNpGNPJAF5gwqWjhBJhyIDBDH0=' 'sha256-/75gekMfKTol2UZVtHAzkww9S2LsanBl8IMNITC5tMA=' 'sha256-e/fIDlrPDq37+zeT58xFltRMoEhveZvQRnfcD10UZRw='; connect-src 'self' https://homelab.tailbf8f27.ts.net https://arling-asistent.arling.workers.dev; style-src 'self' 'unsafe-inline'; img-src 'self' data:; font-src 'self'; object-src 'none'; base-uri 'self'; form-action 'none'">
@@ -30,7 +30,8 @@
 <link rel="manifest" href="manifest.json" />
 <link rel="preload" href="/fonts/arling-sans.woff2" as="font" type="font/woff2" crossorigin>
 <link rel="preload" href="/fonts/arling-serif.woff2" as="font" type="font/woff2" crossorigin>
-<link rel="stylesheet" href="/style/paper.css?v=2ebf5aa4">
+<link rel="stylesheet" href="/style/paper.css?v=4ee4d148">
+<link rel="stylesheet" href="/style/nastroj.css?v=c9081cae">
 <script src="/style/prepinac.js?v=668e98c9" defer></script>
 <script defer src="https://homelab.tailbf8f27.ts.net/script.js" data-website-id="338f035d-41c5-411e-8391-9a41db6accfd"></script>
 
@@ -149,7 +150,7 @@
   .hero .lead { max-width:52ch; margin-bottom:clamp(22px,2vw,30px); }
 
   /* Upozornenie na termin ako karta, nie ako dalsi odstavec v texte */
-  .upoz { border:1px solid var(--line); border-left:3px solid var(--accent);
+  .upoz { border:1px solid var(--line);
     border-radius:var(--radius); background:var(--card);
     padding:clamp(18px,1.7vw,26px); min-width:0; }
   .upoz p { margin:0 0 12px; font-size:15px; line-height:1.65; color:var(--body); }
@@ -210,7 +211,7 @@
   .pane + .pane { border-top:1px solid var(--line); }
   .pane-head { display:flex; align-items:center; justify-content:space-between; gap:10px; padding:9px 14px;
     border-bottom:1px solid var(--line); background:var(--paper-deep); flex-wrap:wrap; }
-  .pane-title { font:11px/1.4 var(--mono); letter-spacing:.04em; text-transform:uppercase; color:var(--muted); }
+  .pane-title { font:11px/1.4 var(--mono); letter-spacing:0; text-transform:none; color:var(--muted); }
   .pane-actions { display:flex; gap:6px; flex-wrap:wrap; }
 
   .tabs { display:flex; gap:4px; }
@@ -230,7 +231,7 @@
   #form-pane { flex:1; overflow:auto; padding:14px 16px; display:flex; flex-direction:column; gap:16px; min-height:300px; }
   .form-section { display:flex; flex-direction:column; gap:10px; min-width:0; }
   .form-section.grow { flex:1; min-height:180px; }
-  .form-section-title { font:11px/1 var(--ui); letter-spacing:.08em; text-transform:uppercase; color:var(--muted);
+  .form-section-title { font:11px/1 var(--ui); letter-spacing:0; text-transform:none; color:var(--muted);
     border-bottom:1px solid var(--line); padding-bottom:6px; }
   .field-grid { display:grid; grid-template-columns:1fr 1fr; gap:10px 12px; }
   @media (max-width:480px) { .field-grid { grid-template-columns:minmax(0,1fr); } }
@@ -428,7 +429,7 @@
   .footer-en b { color:var(--muted); }
 </style>
 </head>
-<body class="noc">
+<body class="noc nastroj">
 <div class="wash" aria-hidden="true"><i></i><i></i></div>
 
 <a class="skip site-skip" href="#arling-obsah" data-site-label="skip">Prejsť na obsah</a>
@@ -438,42 +439,50 @@
       <svg viewBox="0 0 488 215" width="38" height="15" aria-hidden="true" focusable="false"><path fill="#f4f4f7" fill-rule="evenodd" d="M0.00,213.00L74.00,214.00L181.00,85.00L285.00,214.00L360.00,214.00L206.00,21.00L185.00,4.00L164.00,10.00Z M221.00,0.00L263.00,50.00L395.00,50.00L409.00,55.00L419.00,76.00L401.00,96.00L313.00,98.00L411.00,214.00L487.00,214.00L422.00,139.00L457.00,123.00L482.00,88.00L482.00,48.00L463.00,19.00L417.00,0.00Z"/><path fill="#f2643c" d="M269.00,66.00L269.00,67.00L268.00,68.00L268.00,70.00L267.00,71.00L267.00,76.00L268.00,77.00L268.00,79.00L270.00,81.00L270.00,82.00L271.00,82.00L273.00,84.00L274.00,84.00L277.00,86.00L279.00,86.00L280.00,87.00L287.00,87.00L288.00,86.00L290.00,86.00L291.00,85.00L294.00,84.00L298.00,80.00L298.00,79.00L299.00,78.00L299.00,75.00L300.00,74.00L300.00,72.00L299.00,71.00L299.00,69.00L298.00,68.00L297.00,65.00L295.00,63.00L294.00,63.00L289.00,60.00L278.00,60.00L277.00,61.00L276.00,61.00L275.00,62.00L272.00,63.00Z"/></svg>
       <b>ARLing</b><span>SEPA pain.001 Doctor</span>
     </a>
-    <details class="site-menu" open>
-      <summary class="site-menu-toggle"><svg viewBox="0 0 18 12" fill="none" aria-hidden="true"><path d="M1 1h16M1 6h16M1 11h16" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg><span data-site-label="menu">Menu</span></summary>
-      <div class="site-menu-panel"><nav id="hlavne-menu" class="site-main-nav" aria-label="Hlavná navigácia" data-site-aria="nav"><a href="https://arling.sk/shop/" data-site-nav="0">Obchod</a><a href="https://arling.sk/#tools" data-site-nav="1">Nástroje</a><a href="https://arling.sk/games/" data-site-nav="2">Hry</a><a href="https://arling.sk/notes/" data-site-nav="3">Články</a><a href="https://arling.sk/ucet/" data-site-nav="4">Účet</a></nav><div class="site-page-links"><p data-site-label="stranka">Na tejto stránke</p><nav aria-label="Na tejto stránke" data-site-aria="stranka"><a href="#playground">Kontrola</a><a href="#termin-2026">Termín 15. 11.</a><a href="#faq">Otázky</a></nav></div></div>
+    <details class="site-menu">
+      <summary class="site-menu-toggle"><span class="site-menu-text" data-site-label="produkty">Produkty</span><span class="site-menu-bars" aria-hidden="true"><i></i><i></i><i></i></span><span class="site-menu-word" data-site-label="menu">Menu</span></summary>
+      <div class="site-menu-panel" role="navigation" aria-label="Produkty" data-site-aria="produkty"><div class="site-cols"><div class="site-col"><p>Firemný softvér</p><ul><li><a href="https://arling.sk/proof/sk/"><b>Proof</b><span>Schválenie zákazníkom pred tlačou</span></a></li><li><a href="https://arling.sk/renewals/sk/"><b>Renewals</b><span>Doklady dodávateľov a termíny obnov</span></a></li><li><a href="https://arling.sk/asistent/"><b>Asistent</b><span>Predajný asistent pre e-shop</span></a></li></ul></div><div class="site-col"><p>Faktúry a platby</p><ul><li><a href="https://arling.sk/efaktura/"><b>E-faktúra</b><span>Kontrola, náhľad a tvorba XML</span></a></li><li><a href="https://arling.sk/sepa-pain001-doctor/"><b>Kontrola pain.001</b><span>Prečo banka odmietla súbor</span></a></li><li><a href="https://arling.sk/sepa-pain001-generator/"><b>Generátor pain.001</b><span>Hromadný príkaz z tabuľky</span></a></li><li><a href="https://arling.sk/camt053-to-excel/"><b>Výpis do Excelu</b><span>camt.053 a MT940 do tabuľky</span></a></li><li><a href="https://arling.sk/parovac-platieb/"><b>Párovač platieb</b><span>Výpis proti faktúram</span></a></li><li><a href="https://arling.sk/kontrola-suboru/"><b>Kontrola SEPA súboru</b><span>Pred zmenou v novembri 2026</span></a></li><li><a href="https://arling.sk/bankove-nastroje/"><b>Bankové nástroje Pro</b><span>Jedna licencia, štyri nástroje</span></a></li></ul></div><div class="site-col"><p>Dokumenty a firma</p><ul><li><a href="https://arling.sk/gdpr-dokumenty/"><b>GDPR dokumenty</b><span>Pre firmu a e-shop za 10 minút</span></a></li><li><a href="https://arling.sk/vzory-zmluv/"><b>Vzory zmlúv</b><span>Podľa slovenského práva, zadarmo</span></a></li><li><a href="https://arling.sk/zivotopis/"><b>Životopis</b><span>Hotové CV bez registrácie</span></a></li><li><a href="https://arling.sk/feed-doctor/"><b>Feed Doctor</b><span>Kontrola produktového feedu</span></a></li><li><a href="https://arling.sk/mail-doctor/"><b>Mail Doctor</b><span>SPF, DKIM a DMARC domény</span></a></li></ul></div><div class="site-col"><p>Vydavateľstvo</p><ul><li><a href="https://arling.sk/shop/"><b>Obchod</b><span>Knihy, hlavolamy a darčeky</span></a></li><li><a href="https://arling.sk/classics/"><b>Klasika pre e-ink</b><span>Knihy pripravené pre čítačku</span></a></li><li><a href="https://arling.sk/morning-quiet/"><b>Ranné ticho</b><span>Denné vydania na e-ink</span></a></li><li><a href="https://arling.sk/games/"><b>Hry v prehliadači</b><span>Denná logická hra zadarmo</span></a></li><li><a href="https://arling.sk/puzzle-post/"><b>Puzzle Post</b><span>Hlavolamy poštou</span></a></li><li><a href="https://arling.sk/memory-post/"><b>Memory Post</b><span>Spomienky na papieri</span></a></li></ul></div></div><p class="site-dev"><span>Pre vývojárov</span><a href="https://arling.sk/cors-doctor/">CORS</a><a href="https://arling.sk/jwt-doctor/">JWT</a><a href="https://arling.sk/cookie-samesite-doctor/">Cookie SameSite</a><a href="https://arling.sk/redirect-loop-doctor/">Redirect loop</a><a href="https://arling.sk/stripe-webhook-doctor/">Stripe webhook</a><a href="https://arling.sk/firebase-auth-domain-doctor/">Firebase auth</a><a href="https://arling.sk/google-oauth-redirect-doctor/">Google OAuth</a><a href="https://arling.sk/supabase-redirect-doctor/">Supabase redirect</a><a href="https://arling.sk/flutter-supabase-doctor/">Flutter + Supabase</a><a href="https://arling.sk/expo-universal-links-doctor/">Expo links</a><a href="https://arling.sk/expo-supabase-auth-doctor/">Expo + Supabase</a><a href="https://arling.sk/api/">Puzzle API</a></p><div class="site-col site-firma"><p>Firma</p><ul><li><a href="https://arling.sk/#nastroje"><b>Nástroje</b></a></li><li><a href="https://arling.sk/#piloty"><b>Piloty</b></a></li><li><a href="https://arling.sk/how-we-work/"><b>Ako pracujeme</b></a></li><li><a href="https://arling.sk/notes/"><b>Návody</b></a></li><li><a href="https://arling.sk/kontakt/"><b>Kontakt</b></a></li><li><a href="https://arling.sk/ucet/"><b>Účet</b></a></li><li><a href="https://arling.sk/brand/"><b>Značka</b></a></li><li><a href="https://arling.sk/podmienky/"><b>Podmienky</b></a></li><li><a href="https://arling.sk/privacy/"><b>Ochrana údajov</b></a></li><li><a href="https://arling.sk/impressum/"><b>Impressum</b></a></li></ul></div><p class="site-menu-cta"><a class="site-cta" href="https://arling.sk/proof/sk/" data-site-cta data-site-label="cta" data-umami-event="shell_cta_menu">Vyskúšať Proof zadarmo</a></p></div>
     </details>
+    <nav id="hlavne-menu" class="site-main-nav" aria-label="Hlavná navigácia" data-site-aria="nav"><a href="https://arling.sk/#nastroje" data-site-nav="0">Nástroje</a><a href="https://arling.sk/#piloty" data-site-nav="1">Piloty</a><a href="https://arling.sk/notes/" data-site-nav="2">Návody</a><a href="https://arling.sk/how-we-work/" data-site-nav="3">O firme</a></nav>
+    <a class="site-cta" href="https://arling.sk/proof/sk/" data-site-cta data-site-label="cta" data-umami-event="shell_cta">Vyskúšať Proof zadarmo</a>
   </div>
+  <div class="site-page-links"><div class="wrap"><p data-site-label="stranka">Na tejto stránke</p><nav aria-label="Na tejto stránke" data-site-aria="stranka"><a href="#playground">Kontrola</a><a href="#termin-2026">Termín 15. 11.</a><a href="#faq">Otázky</a></nav></div></div>
 </header>
 
 <main id="arling-obsah" tabindex="-1">
-  <div class="wrap hero" id="hero">
-    <div>
-      <h1 id="h1"><span class="l">Banka odmietla váš SEPA XML.</span><span class="l">Zistite presne prečo.</span></h1>
-      <p class="lead r d3">Vložíte súbor pain.001 z účtovného programu, vyberiete banku a hneď viete, ktorý riadok je zlý a čo tam má byť namiesto neho. Nie „chyba pri importe“, ale konkrétny element, jeho hodnota a oprava.</p>
-      <div class="cta r d4">
-        <a class="btn btn-solid" href="#playground" data-umami-event="hero_skontrolovat">Skontrolovať môj súbor</a>
-        <a class="btn btn-line" href="https://github.com/AndryRoby/sepa-pain001-doctor" target="_blank" rel="noopener" data-umami-event="github_source">Zdrojový kód na GitHube</a>
-      </div>
-      <ul class="facts proof r d5">
-        <li><b>4</b> banky: Tatra banka, SLSP, VÚB, ČSOB</li>
-        <li class="lineend"><b>160+</b> automatizovaných testov</li>
-        <li class="brk" aria-hidden="true"></li>
-        <li><b>0 €</b>, bez účtu</li>
-        <li>beží vo vašom prehliadači</li>
-      </ul>
-    </div>
-
-    <aside class="upoz r d4">
+  <div class="wrap uv-lead" id="hero">
+    <p class="uv-masthead"><span>SEPA pain.001 Doctor</span><span>Nástroje pre prácu</span><span>ARLing s. r. o., Bratislava</span></p>
+    <div class="uv-lead-grid">
+      <div>
+        <h1 id="h1">Banka odmietla váš súbor? Zistite presne prečo.</h1>
+        <p class="uv-lead-p">Vložíte súbor pain.001 z účtovného programu, vyberiete banku a hneď viete, ktorý riadok je zlý a čo tam má byť namiesto neho: nie „chyba pri importe“, ale konkrétny element, jeho hodnota a oprava.</p>
+        <p class="uv-actions">
+          <a class="btn btn-solid" href="#playground" data-umami-event="hero_skontrolovat">Skontrolovať môj súbor</a>
+          <a class="uv-quiet" href="https://github.com/AndryRoby/sepa-pain001-doctor" target="_blank" rel="noopener" data-umami-event="github_source">Zdrojový kód na GitHube</a>
+        </p>
+        <dl class="uv-facts">
+          <div><dt>Zadarmo</dt><dd>Celá kontrola, všetky nálezy aj presné miesto v XML. Bez účtu a bez limitu na počet súborov.</dd></div>
+          <div><dt>Platí sa</dt><dd>Nič za túto kontrolu. Za <b>149 &euro;</b> ju <a href="https://arling.sk/kontrola-suboru/">urobíme za vás</a> aj s písomným záverom.</dd></div>
+          <div><dt>Hranice</dt><dd><b>4</b> banky: Tatra banka, SLSP, VÚB, ČSOB. Za pravidlami je viac než <b>160</b> automatizovaných testov.</dd></div>
+          <div><dt>Vaše údaje</dt><dd>Nič sa nikam nenahráva. Súbor sa číta a kontroluje priamo vo vašom prehliadači.</dd></div>
+        </dl>
+        <aside class="upoz r d4">
       <p class="upoz-stitok">Termín 15. novembra 2026</p>
       <p>Od toho dňa nesmie byť adresa v SEPA platbe napísaná ako jeden riadok voľného textu. Ak je adresa v súbore uvedená, musí mať aspoň <b>mesto a kód krajiny</b> vo vlastných poliach, inak banka odmietne celý súbor.</p>
       <p>Adresa je naďalej nepovinná. Súbor bez adries prejde aj po termíne presne ako dnes.</p>
       <p class="upoz-odkaz"><a href="#termin-2026">Čo presne sa mení</a></p>
     </aside>
+      </div>
+      <figure class="uv-lead-art">
+        <img src="nahlad/vystup.png" width="1242" height="1360" loading="eager" fetchpriority="high" decoding="async"
+             alt="Nástroj po kontrole: záver, zoznam nálezov a pri každom presná cesta v XML.">
+        <figcaption>Skutočná kontrola vzorového súboru, ktorý nástroj ponúka pri otvorení, spustená na tejto stránke. Nič neopustilo prehliadač; nižšie si to zopakujete s vlastným súborom.</figcaption>
+      </figure>
+    </div>
   </div>
 
   <section id="playground" class="toolsec">
     <div class="wrap">
-      <p class="kicker">Kontrola</p>
       <h2 class="toolh r">Vložte XML, vyberte banku. Dostanete presné chyby.</h2>
       <p class="toollead r d1">Súbor sa číta priamo vo vašom prehliadači a nikam sa neodosiela. Do sekundy vidíte, ktorý element je zlý, akú má hodnotu a čo tam patrí namiesto nej.</p>
       <div class="play">
@@ -582,7 +591,6 @@
 
     <section id="termin-2026" class="deep">
     <div class="wrap">
-      <p class="kicker">Termín</p>
       <h2 class="r">15. november 2026: adresa už nesmie byť voľný text.</h2>
       <div class="rule"></div>
       <div class="two r d1">
@@ -614,7 +622,6 @@
 
 <section id="pricing" class="band">
     <div class="wrap">
-      <p class="kicker">Cena</p>
       <h2 class="r">Zadarmo.</h2>
       <p class="sub r d1">Vznikol z vlastnej potreby: overiť SEPA XML pred nahratím do internetbankingu. Bez účtu, bez platby, bez limitu na počet kontrol.</p>
       <div class="rule"></div>
@@ -629,7 +636,7 @@
           <button class="btn btn-solid" type="submit" data-umami-event="subscribe_submit">Dať vedieť</button>
         </form>
         <p id="subscribe-thanks" hidden>Ďakujeme. Ozveme sa len vtedy, keď bude niečo nové.</p>
-        <p id="subscribe-error" hidden>Nepodarilo sa uložiť. Napíšte na <a href="mailto:andrej@arling.sk">andrej@arling.sk</a>.</p>
+        <p id="subscribe-error" hidden>Nepodarilo sa uložiť. Napíšte na <a href="mailto:andrej@arling.sk" data-umami-event="klik_email" data-umami-event-produkt="sepa-pain001-doctor">andrej@arling.sk</a>.</p>
         <p class="fineprint subscribe-privacy"><a href="https://arling.sk/privacy/">Súkromie</a></p>
       </div>
       <div class="ask business-ask r d4" id="business">
@@ -642,7 +649,6 @@
 
   <section id="faq" class="deep">
     <div class="wrap">
-      <p class="kicker">Otázky</p>
       <h2 class="r">Otázky, ktoré ľudia naozaj hľadajú.</h2>
       <p class="sub r d1">Priame odpovede na otázky o SEPA pain.001, ktoré tento nástroj diagnostikuje.</p>
       <div class="rule"></div>
@@ -673,13 +679,32 @@
       </details>
     </div>
   </section>
+  <section class="uv-colophon" id="tirag">
+    <div class="wrap">
+      <h2 class="r">Kto to vydáva a ako to prebieha.</h2>
+      <dl class="uv-colophon-rows">
+        <div><dt>Vydavateľ</dt><dd>ARLing s. r. o., Ivanská cesta 32E, 821 04 Bratislava, Slovensko. IČO 56583486, IČ DPH SK2122352100.</dd></div>
+        <div><dt>Kto to robí</dt><dd>Píše a udržiava ho jeden človek v Bratislave. Zdrojový kód je verejný na <a href="https://github.com/AndryRoby/sepa-pain001-doctor">GitHube</a>.</dd></div>
+        <div><dt>Platba a doručenie</dt><dd>Táto kontrola je zadarmo a nič sa neodomyká. Platí sa len <a href="https://arling.sk/kontrola-suboru/">kontrola s písomným záverom</a>, cez Stripe.</dd></div>
+        <div><dt>Ukážka a podmienky</dt><dd>Vzorový súbor je pripravený priamo v nástroji, takže výsledok vidíte skôr, než vložíte svoj vlastný.</dd></div>
+        <div><dt>Odpoveď</dt><dd>Na <a href="mailto:andrej@arling.sk" data-umami-event="klik_email" data-umami-event-produkt="sepa-pain001-doctor">andrej@arling.sk</a> odpovedáme do 24 hodín.</dd></div>
+        <div><dt>Čo to nie je</dt><dd>Nie sme banka ani daňový poradca. Kontrola je formátová a čistý výsledok nie je zárukou, že banka platbu prijme.</dd></div>
+      </dl>
+      <p class="uv-colophon-akcie">
+        <a class="btn btn-line" href="https://arling.sk/podmienky/">Podmienky</a>
+        <a class="btn btn-line" href="https://arling.sk/privacy/">Ochrana údajov</a>
+      </p>
+    </div>
+  </section>
 </main>
 
-<footer>
+<footer class="site-footer">
   <div class="wrap foot">
-    <div><b>ARLing s. r. o.</b><br>Ivanská cesta 32E<br>821 04 Bratislava, Slovensko</div>
-    <div>IČO 56583486<br>IČ DPH SK2122352100<br><a href="mailto:andrej@arling.sk">andrej@arling.sk</a></div>
-    <div><a href="https://arling.sk/shop/">obchod</a> · <a href="https://arling.sk/privacy/">ochrana údajov</a> · <a href="https://arling.sk/podmienky/">podmienky</a> · <a href="https://arling.sk/gdpr/">GDPR</a> · <a href="https://arling.sk/impressum/">Impressum</a> · <a href="https://arling.sk/llms.txt">llms.txt</a> · <a href="https://arling.sk/sitemap-index.xml">mapa stránky</a><br>Nástroje sú poskytované tak, ako sú, bez záruky. Anonymné počty návštev cez vlastné Umami.</div>
+    <div class="site-foot-top"><div><a class="site-brand" href="https://arling.sk/" aria-label="ARLing: úvod" data-site-home><svg viewBox="0 0 488 215" width="38" height="15" aria-hidden="true" focusable="false"><path fill="#f4f4f7" fill-rule="evenodd" d="M0.00,213.00L74.00,214.00L181.00,85.00L285.00,214.00L360.00,214.00L206.00,21.00L185.00,4.00L164.00,10.00Z M221.00,0.00L263.00,50.00L395.00,50.00L409.00,55.00L419.00,76.00L401.00,96.00L313.00,98.00L411.00,214.00L487.00,214.00L422.00,139.00L457.00,123.00L482.00,88.00L482.00,48.00L463.00,19.00L417.00,0.00Z"/><path fill="#f2643c" d="M269.00,66.00L269.00,67.00L268.00,68.00L268.00,70.00L267.00,71.00L267.00,76.00L268.00,77.00L268.00,79.00L270.00,81.00L270.00,82.00L271.00,82.00L273.00,84.00L274.00,84.00L277.00,86.00L279.00,86.00L280.00,87.00L287.00,87.00L288.00,86.00L290.00,86.00L291.00,85.00L294.00,84.00L298.00,80.00L298.00,79.00L299.00,78.00L299.00,75.00L300.00,74.00L300.00,72.00L299.00,71.00L299.00,69.00L298.00,68.00L297.00,65.00L295.00,63.00L294.00,63.00L289.00,60.00L278.00,60.00L277.00,61.00L276.00,61.00L275.00,62.00L272.00,63.00Z"/></svg><b>ARLing</b></a><p class="site-foot-firma">ARLing s. r. o., IČO <span class="num">56583486</span>, Bratislava. Vlastný server v Európskej únii. Softvér pre firmy, živnostníkov aj jednotlivcov.</p></div><a class="site-cta" href="https://arling.sk/proof/sk/" data-umami-event="shell_footer_cta">Vyskúšať Proof zadarmo<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h13M13 6l6 6-6 6"/></svg></a></div>
+    <div class="site-foot-cols"><div><p>Firemný softvér</p><ul><li><a href="https://arling.sk/proof/sk/">Proof</a></li><li><a href="https://arling.sk/renewals/sk/">Renewals</a></li><li><a href="https://arling.sk/asistent/">Asistent</a></li></ul></div><div><p>Faktúry a platby</p><ul><li><a href="https://arling.sk/efaktura/">E-faktúra</a></li><li><a href="https://arling.sk/sepa-pain001-doctor/">Kontrola pain.001</a></li><li><a href="https://arling.sk/sepa-pain001-generator/">Generátor pain.001</a></li><li><a href="https://arling.sk/camt053-to-excel/">Výpis do Excelu</a></li><li><a href="https://arling.sk/parovac-platieb/">Párovač platieb</a></li><li><a href="https://arling.sk/kontrola-suboru/">Kontrola SEPA súboru</a></li><li><a href="https://arling.sk/bankove-nastroje/">Bankové nástroje Pro</a></li></ul></div><div><p>Dokumenty a firma</p><ul><li><a href="https://arling.sk/gdpr-dokumenty/">GDPR dokumenty</a></li><li><a href="https://arling.sk/vzory-zmluv/">Vzory zmlúv</a></li><li><a href="https://arling.sk/zivotopis/">Životopis</a></li><li><a href="https://arling.sk/feed-doctor/">Feed Doctor</a></li><li><a href="https://arling.sk/mail-doctor/">Mail Doctor</a></li></ul></div><div><p>Vydavateľstvo</p><ul><li><a href="https://arling.sk/shop/">Obchod</a></li><li><a href="https://arling.sk/classics/">Klasika pre e-ink</a></li><li><a href="https://arling.sk/morning-quiet/">Ranné ticho</a></li><li><a href="https://arling.sk/games/">Hry v prehliadači</a></li><li><a href="https://arling.sk/puzzle-post/">Puzzle Post</a></li><li><a href="https://arling.sk/memory-post/">Memory Post</a></li></ul></div><div><p>Firma</p><ul><li><a href="https://arling.sk/how-we-work/">Ako pracujeme</a></li><li><a href="https://arling.sk/notes/">Návody</a></li><li><a href="https://arling.sk/kontakt/">Kontakt</a></li><li><a href="https://arling.sk/ucet/">Účet</a></li><li><a href="https://arling.sk/brand/">Značka</a></li><li><a href="https://arling.sk/podmienky/">Podmienky</a></li><li><a href="https://arling.sk/privacy/">Ochrana údajov</a></li><li><a href="https://arling.sk/impressum/">Impressum</a></li></ul></div></div>
+    <p class="site-dev"><span>Pre vývojárov</span><a href="https://arling.sk/cors-doctor/">CORS</a><a href="https://arling.sk/jwt-doctor/">JWT</a><a href="https://arling.sk/cookie-samesite-doctor/">Cookie SameSite</a><a href="https://arling.sk/redirect-loop-doctor/">Redirect loop</a><a href="https://arling.sk/stripe-webhook-doctor/">Stripe webhook</a><a href="https://arling.sk/firebase-auth-domain-doctor/">Firebase auth</a><a href="https://arling.sk/google-oauth-redirect-doctor/">Google OAuth</a><a href="https://arling.sk/supabase-redirect-doctor/">Supabase redirect</a><a href="https://arling.sk/flutter-supabase-doctor/">Flutter + Supabase</a><a href="https://arling.sk/expo-universal-links-doctor/">Expo links</a><a href="https://arling.sk/expo-supabase-auth-doctor/">Expo + Supabase</a><a href="https://arling.sk/api/">Puzzle API</a></p>
+    <div class="site-foot-bottom"><p>ARLing s. r. o., Ivanská cesta 32E, 821 04 Bratislava, Slovensko. IČO 56583486, IČ DPH SK2122352100. <a href="mailto:andrej@arling.sk">andrej@arling.sk</a></p><p><a href="https://arling.sk/impressum/">Impressum</a> · <a href="https://arling.sk/llms.txt">llms.txt</a> · <a href="https://arling.sk/sitemap-index.xml">Sitemap</a></p></div>
+    <p class="site-foot-legal">Nástroje sú poskytované tak, ako sú, bez záruky. Anonymné počty návštev cez vlastné Umami. <a href="https://arling.sk/privacy/">Ochrana údajov</a> · <a href="https://arling.sk/podmienky/">Podmienky</a> · <a href="https://arling.sk/gdpr/">GDPR</a></p>
   </div>
 </footer>
 
