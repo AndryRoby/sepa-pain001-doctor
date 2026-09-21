@@ -4,7 +4,7 @@
 <script src="/style/vzhlad.js?v=ea3504cb"></script>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
-<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' https://homelab.tailbf8f27.ts.net 'sha256-oNADkJL9kQJUBKpT9LWqGoV7nchu+7VWX/XGhfvVCEw=' 'sha256-dFxbLOizyPbfm7UUWlNpGNPJAF5gwqWjhBJhyIDBDH0=' 'sha256-/75gekMfKTol2UZVtHAzkww9S2LsanBl8IMNITC5tMA=' 'sha256-e/fIDlrPDq37+zeT58xFltRMoEhveZvQRnfcD10UZRw='; connect-src 'self' https://homelab.tailbf8f27.ts.net https://arling-asistent.arling.workers.dev; style-src 'self' 'unsafe-inline'; img-src 'self' data:; font-src 'self'; object-src 'none'; base-uri 'self'; form-action 'none'">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' https://homelab.tailbf8f27.ts.net 'sha256-oNADkJL9kQJUBKpT9LWqGoV7nchu+7VWX/XGhfvVCEw=' 'sha256-dFxbLOizyPbfm7UUWlNpGNPJAF5gwqWjhBJhyIDBDH0=' 'sha256-wHGOohq1cN77ZqGjpaTSBZTMguhEUmB+CV20yy4ggfU=' 'sha256-e/fIDlrPDq37+zeT58xFltRMoEhveZvQRnfcD10UZRw='; connect-src 'self' https://homelab.tailbf8f27.ts.net https://arling-asistent.arling.workers.dev; style-src 'self' 'unsafe-inline'; img-src 'self' data:; font-src 'self'; object-src 'none'; base-uri 'self'; form-action 'none'">
 <meta name="color-scheme" content="dark">
 <link rel="preconnect" href="https://homelab.tailbf8f27.ts.net" crossorigin>
 <meta name="theme-color" content="#0a0908">
@@ -815,6 +815,7 @@
       opravaDrobne: 'Platba cez Stripe, po nej sa vrátite sem a súbor sa stiahne. Ak sa niečo pokazí, napíšte na andrej@arling.sk. O prijatí súboru rozhoduje vaša banka.',
       opravaOverujem: 'Overujem platbu…',
       opravaNezaplatene: 'Platbu sa nepodarilo overiť. Ak ste zaplatili, napíšte na andrej@arling.sk a súbor vám opravíme ručne.',
+      opravaInaSuma: 'Táto platba nie je opravou za 29 €. Opravený súbor sa vydáva len po zaplatení presne 29 € v eurách v ostrom režime. Ak ste zaplatili za opravu, napíšte na andrej@arling.sk s číslom objednávky.',
       opravaHotovo: 'Zaplatené. Opravený súbor je pripravený.',
       opravaHotovoText: (co) => 'Opravené: ' + co + '.',
       opravaStiahnut: 'Stiahnuť opravený súbor',
@@ -884,6 +885,7 @@
       opravaDrobne: 'Payment via Stripe; afterwards you return here and the file downloads. If anything goes wrong, write to andrej@arling.sk. Your bank decides acceptance.',
       opravaOverujem: 'Verifying the payment…',
       opravaNezaplatene: 'The payment could not be verified. If you did pay, write to andrej@arling.sk and we will fix the file by hand.',
+      opravaInaSuma: 'This payment is not the 29 € fix. The corrected file is released only after a live payment of exactly 29 € in euro. If you did pay for the fix, write to andrej@arling.sk with your order number.',
       opravaHotovo: 'Paid. Your corrected file is ready.',
       opravaHotovoText: (co) => 'Fixed: ' + co + '.',
       opravaStiahnut: 'Download the corrected file',
@@ -953,6 +955,7 @@
       opravaDrobne: 'Zahlung über Stripe; danach kehren Sie hierher zurück und die Datei wird heruntergeladen. Falls etwas schiefgeht, schreiben Sie an andrej@arling.sk. Über die Annahme entscheidet Ihre Bank.',
       opravaOverujem: 'Zahlung wird geprüft…',
       opravaNezaplatene: 'Die Zahlung konnte nicht bestätigt werden. Falls Sie bezahlt haben, schreiben Sie an andrej@arling.sk, wir korrigieren die Datei von Hand.',
+      opravaInaSuma: 'Diese Zahlung ist nicht die Korrektur für 29 €. Die korrigierte Datei wird nur nach einer Livezahlung von genau 29 € in Euro freigegeben. Falls Sie für die Korrektur bezahlt haben, schreiben Sie an andrej@arling.sk mit Ihrer Bestellnummer.',
       opravaHotovo: 'Bezahlt. Ihre korrigierte Datei ist bereit.',
       opravaHotovoText: (co) => 'Korrigiert: ' + co + '.',
       opravaStiahnut: 'Korrigierte Datei herunterladen',
@@ -1310,6 +1313,23 @@
    * Súbor neopúšťa prehliadač; do sessionStorage sa uloží len na čas platby. */
   const OPRAVA_API = 'https://arling-asistent.arling.workers.dev';
   const OPRAVA_KLUC = 'doctor:oprava';
+  /* Ceny v centoch presne podľa registra: ops/stripe/oprava-29-odkazy.json
+     (oprava 29 €) a ops/stripe/cena-149.mjs (kontrola 149 €). */
+  const CENA_OPRAVY = 2900;
+  const CENA_KONTROLY = 14900;
+  /* Rozhodnutie o jednej odpovedi workera. Čistá funkcia, aby sa dala
+     testovať: ops/stripe/oprava-29.test.mjs.
+     Predtým tu stačilo „zaplatené a pod 149 €“, takže opravu odomkla aj
+     zaplatená e-faktúra za 2,90 € a každá testovacia platba (nález N1 auditu
+     z 21. 9. 2026). Testovací odkaz na opravu neexistuje, preto sa tu
+     testovacia platba neprijíma vôbec: livemode musí byť true. */
+  function posudOpravu(st) {
+    if (!st || typeof st !== 'object' || !st.paid) return 'nezaplatene';
+    const zaklad = typeof st.amount_subtotal === 'number' ? st.amount_subtotal : st.amount_total;
+    if (typeof zaklad === 'number' && zaklad >= CENA_KONTROLY) return 'kontrola';
+    if (zaklad === CENA_OPRAVY && st.currency === 'eur' && st.livemode === true) return 'oprava';
+    return 'inaSuma';
+  }
   const opravaBox = document.getElementById('oprava');
   const opravaLinkNow = () => (opravaBox ? (opravaBox.getAttribute('data-oprava-link') || '') : '');
   let lastCfg = null;
@@ -1423,14 +1443,19 @@
       const r = await fetch(OPRAVA_API + '/v1/kontrola/status?session_id=' + encodeURIComponent(sid), { method: 'GET' });
       st = await r.json();
     } catch (e) { st = null; }
-    if (!st || !st.paid) {
+    const posudok = posudOpravu(st);
+    if (posudok === 'nezaplatene') {
       opravaBox.innerHTML = '<p class="prip-text">' + esc(UI.opravaNezaplatene) + '</p>';
       return;
     }
     track('platba_hotova', { produkt: 'sepa', jazyk: JAZYK, cena: st.amount_total });
-    if (typeof st.amount_total === 'number' && st.amount_total >= 14900) {
+    if (posudok === 'kontrola') {
       // Toto je relácia kontroly za 149 €: patrí na stránku nahrania.
       window.location.href = UI.ponukaUrl.replace(/\/$/, '') + '/nahrat/?session_id=' + encodeURIComponent(sid);
+      return;
+    }
+    if (posudok !== 'oprava') {
+      opravaBox.innerHTML = '<p class="prip-text">' + esc(UI.opravaInaSuma) + '</p>';
       return;
     }
     opravaZaplatene = true;
