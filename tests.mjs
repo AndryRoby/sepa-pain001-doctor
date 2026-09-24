@@ -192,13 +192,12 @@ const PASS_SPEC = {
   ],
 };
 
-// The structured-address deadline (TERMIN_ADRESY, 15. 11. 2026) changes both
-// the expected message version and the severity of address findings, so every
-// test pins the date instead of reading the clock. Without this the suite
-// would silently change behaviour overnight on 15. 11. 2026 — the baseline
-// .03 file would start reporting schema_namespace_03_po_termine and the
-// "zero problems" assertion would fail for a reason that has nothing to do
-// with the code under test.
+// The structured-address deadline (TERMIN_ADRESY) would change both the
+// expected message version and the severity of address findings, so every
+// test pins the date instead of reading the clock. Since 24. 9. 2026
+// TERMIN_ADRESY is null: the EPC postponed the 15. 11. 2026 end of the
+// unstructured address on 9. 9. 2026 and sets a new date in October 2026.
+// The pinned dates stay, so the suite is ready once a new date is set.
 function run(spec, bank, expectedTxCount, dnes) {
   return diagnose({
     xml: buildPain001(spec),
@@ -250,33 +249,38 @@ function run(spec, bank, expectedTxCount, dnes) {
 {
   const spec = clone(PASS_SPEC);
   spec.namespace = 'urn:iso:std:iso:20022:tech:xsd:pain.001.001.09';
-  // .09 is a valid message version, not an error. Before the deadline it only
-  // gets a "your bank may still want .03" note; after it, nothing at all.
+  // .09 is a valid message version, not an error. It only gets a "your bank
+  // may still want .03" note.
   const r = run(spec, 'tatrabanka');
   lacks('pain.001.001.09 pred termínom: nie je to chyba', r.problems, 'schema_namespace_unexpected');
   has('pain.001.001.09 pred termínom: len poznámka', r.problems, 'schema_namespace_09_skoro');
   eq('pain.001.001.09 pred termínom: nízka závažnosť', severityOf(r.problems, 'schema_namespace_09_skoro'), 'low');
+  ok('pain.001.001.09: poznámka nesľubuje dátum prechodu',
+    JSON.stringify(r.problems).indexOf('15. 11. 2026') === -1);
 
+  // Zmena 24. 9. 2026: pôvodne test čakal, že po 15. 11. 2026 poznámka zmizne
+  // a očakávaná verzia sa prepne na .09. EPC 9. 9. 2026 termín odložila
+  // (TERMIN_ADRESY je null), preto sa 20. 11. 2026 nemení nič.
   const rPo = run(spec, 'tatrabanka', null, DNES_PO);
-  lacks('pain.001.001.09 po termíne: bez poznámky', rPo.problems, 'schema_namespace_09_skoro');
-  lacks('pain.001.001.09 po termíne: bez chyby', rPo.problems, 'schema_namespace_unexpected');
-  eq('pain.001.001.09 po termíne: očakávaný menný priestor je .09',
-    rPo.expected.schemaNamespace, 'urn:iso:std:iso:20022:tech:xsd:pain.001.001.09');
+  has('pain.001.001.09 po 15. 11. 2026: bez termínu EPC stále len poznámka', rPo.problems, 'schema_namespace_09_skoro');
+  lacks('pain.001.001.09 po 15. 11. 2026: bez chyby', rPo.problems, 'schema_namespace_unexpected');
+  eq('pain.001.001.09 po 15. 11. 2026: očakávaný menný priestor ostáva .03',
+    rPo.expected.schemaNamespace, 'urn:iso:std:iso:20022:tech:xsd:pain.001.001.03');
 }
 {
-  // .03 is fine today and questionable after the deadline — but only
-  // "questionable": the SEPA date is about the address, each bank decides
-  // its own accepted message version, so this must not be a hard error.
+  // .03 is fine today. Keby EPC určila nový termín, po ňom by prišlo
+  // upozornenie "over si verziu v banke", nikdy tvrdá chyba: termín SEPA
+  // hovorí o adrese, verziu správy si určuje každá banka sama.
   const spec = clone(PASS_SPEC);
   const r = run(spec, 'tatrabanka');
   lacks('pain.001.001.03 pred termínom: bez výhrady', r.problems, 'schema_namespace_03_po_termine');
 
+  // Zmena 24. 9. 2026: pôvodne test čakal upozornenie po 15. 11. 2026. Termín
+  // EPC odložila (TERMIN_ADRESY je null), preto upozornenie neprichádza.
   const rPo = run(spec, 'tatrabanka', null, DNES_PO);
-  has('pain.001.001.03 po termíne: upozorní na verziu', rPo.problems, 'schema_namespace_03_po_termine');
-  eq('pain.001.001.03 po termíne: stredná, nie vysoká závažnosť',
-    severityOf(rPo.problems, 'schema_namespace_03_po_termine'), 'medium');
-  ok('pain.001.001.03 po termíne: pošle overiť si to v banke',
-    JSON.stringify(rPo.problems).indexOf('Overte si') !== -1);
+  lacks('pain.001.001.03 po 15. 11. 2026: bez termínu EPC bez výhrady', rPo.problems, 'schema_namespace_03_po_termine');
+  eq('pain.001.001.03 po 15. 11. 2026: očakávaný menný priestor ostáva .03',
+    rPo.expected.schemaNamespace, 'urn:iso:std:iso:20022:tech:xsd:pain.001.001.03');
 }
 
 // ─────────────────────────────────────────────────────────────────────────
@@ -772,10 +776,14 @@ function run(spec, bank, expectedTxCount, dnes) {
 }
 
 // ─────────────────────────────────────────────────────────────────────────
-// ── štruktúrovaná adresa, termín 15. 11. 2026 ─────────────────────────────
-// Toto je jediná kontrola, ktorá časom mení závažnosť, preto sa testuje na
-// oboch stranách termínu. Dátum sa vždy podáva zvonka (cfg.dnes), nikdy sa
-// nečíta systémový čas, inak by test o dva mesiace začal padať sám.
+// ── štruktúrovaná adresa, termín EPC odložený ─────────────────────────────
+// Toto je jediná kontrola, ktorá by časom menila závažnosť, preto sa testuje
+// na oboch stranách pôvodného termínu 15. 11. 2026. Dátum sa vždy podáva
+// zvonka (cfg.dnes), nikdy sa nečíta systémový čas.
+// Zmena 24. 9. 2026: EPC 9. 9. 2026 koniec voľnej adresy odložila a nový
+// termín určí v októbri 2026, preto je TERMIN_ADRESY null a voľná adresa je
+// aj po 15. 11. 2026 upozornenie (medium), nie blokujúca chyba (high).
+// Zdroj: https://www.europeanpaymentscouncil.eu/news-insights/news/epc-delays-address-format-migration-timeline
 function adrXml(dbtrAdr, cdtrAdr) {
   return `<Document xmlns="urn:iso:std:iso:20022:tech:xsd:pain.001.001.03"><CstmrCdtTrfInitn>`
     + `<GrpHdr><MsgId>M1</MsgId><CreDtTm>2026-09-06T10:00:00</CreDtTm><NbOfTxs>1</NbOfTxs><CtrlSum>10.00</CtrlSum><InitgPty><Nm>Test</Nm></InitgPty></GrpHdr>`
@@ -790,11 +798,11 @@ function adrXml(dbtrAdr, cdtrAdr) {
 }
 const adrNalezy = (xml, dnes) => diagnose({ xml, bank: 'tatrabanka', dnes }).problems.filter((p) => p.code.indexOf('adresa') === 0);
 
-eq('TERMIN_ADRESY je 15. novembra 2026', TERMIN_ADRESY, '2026-11-15');
+eq('TERMIN_ADRESY je null, kým EPC neurčí nový termín', TERMIN_ADRESY, null);
 
 {
-  // Súbor bez akejkoľvek adresy je v poriadku aj po termíne: adresa je v SEPA
-  // nepovinná a nová povinnosť platí len pre adresu, ktorá tam naozaj je.
+  // Súbor bez akejkoľvek adresy je v poriadku kedykoľvek: adresa je v SEPA
+  // nepovinná a pravidlo platí len pre adresu, ktorá tam naozaj je.
   const bez = adrXml('', '');
   eq('bez adries: pred termínom nič nehlásime', adrNalezy(bez, '2026-09-06').length, 0);
   eq('bez adries: ani po termíne nič nehlásime', adrNalezy(bez, '2026-12-01').length, 0);
@@ -817,10 +825,22 @@ eq('TERMIN_ADRESY je 15. novembra 2026', TERMIN_ADRESY, '2026-11-15');
   ok('voľný text: cesta ukazuje na Dbtr/PstlAdr', pred[0].path.indexOf('Dbtr/PstlAdr') !== -1);
   ok('voľný text: cesta nezacina technickym #root', pred[0].path.indexOf('#root') === -1);
 
+  ok('voľný text: hláška odporúča štruktúrovanú adresu', pred[0].message.indexOf('odporúčame') !== -1);
+  ok('voľný text: hláška netvrdí, že banka súbor odmietne', !/odmiet/.test(pred[0].message));
+  ok('voľný text: hláška netvrdí termín 15. 11. 2026', !/15\. ?(11\.|nov)/.test(pred[0].message));
+
+  // Zmena 24. 9. 2026: pôvodne tu bolo 'high' (blokujúce) v deň termínu aj po ňom.
+  // EPC termín odložila, preto ostáva 'medium' (upozornenie) aj po 15. 11. 2026.
   const po = adrNalezy(adrXml(volnyText, dobra), '2026-11-15');
-  eq('voľný text: v deň termínu je to už blokujúce', po[0].severity, 'high');
+  eq('voľný text: 15. 11. 2026 stále len upozornenie', po[0].severity, 'medium');
   const poPo = adrNalezy(adrXml(volnyText, dobra), '2026-12-01');
-  eq('voľný text: po termíne blokujúce', poPo[0].severity, 'high');
+  eq('voľný text: 1. 12. 2026 stále len upozornenie', poPo[0].severity, 'medium');
+  for (const lang of ['en', 'de']) {
+    const m = diagnose({ xml: adrXml(volnyText, dobra), bank: 'tatrabanka', dnes: '2026-12-01', lang })
+      .problems.find((p) => p.code === 'adresa_nestrukturovana');
+    ok('voľný text ' + lang + ': bez tvrdenia o 15. novembri', m && !/15\.? November/.test(m.message));
+    eq('voľný text ' + lang + ': upozornenie', m && m.severity, 'medium');
+  }
 }
 
 {
