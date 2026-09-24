@@ -62,27 +62,33 @@ export function countryCode(value) {
 export function fixCountryNames(xml) {
   let count = 0;
   const unresolved = [];
-  const out = xml.replace(/<Ctry>([^<]*)<\/Ctry>/g, (m, v) => {
+  const zmeny = [];
+  const out = xml.replace(/<Ctry>([^<]*)<\/Ctry>/g, (m, v, offset) => {
     const trimmed = v.trim();
     if (/^[A-Z]{2}$/.test(trimmed)) return trimmed === v ? m : `<Ctry>${trimmed}</Ctry>`;
     const code = countryCode(trimmed);
     if (!code) { if (!unresolved.includes(trimmed)) unresolved.push(trimmed); return m; }
     count++;
+    zmeny.push({ kde: partyBefore(xml.slice(0, offset)) || '?', z: v, na: code });
     return `<Ctry>${code}</Ctry>`;
   });
-  return { xml: out, count, unresolved };
+  return { xml: out, count, unresolved, zmeny };
 }
+
+const ACCOUNT_TAGS = ['DbtrAcct', 'CdtrAcct'];
 
 /** (c) medzery a iné biele znaky vnútri <IBAN>. */
 export function fixIbanWhitespace(xml) {
   let count = 0;
-  const out = xml.replace(/<IBAN>([^<]*)<\/IBAN>/g, (m, v) => {
+  const zmeny = [];
+  const out = xml.replace(/<IBAN>([^<]*)<\/IBAN>/g, (m, v, offset) => {
     const clean = v.replace(/\s+/g, '');
     if (clean === v) return m;
     count++;
+    zmeny.push({ kde: partyBefore(xml.slice(0, offset), ACCOUNT_TAGS) || '?', z: v, na: clean });
     return `<IBAN>${clean}</IBAN>`;
   });
-  return { xml: out, count };
+  return { xml: out, count, zmeny };
 }
 
 // Formáty PSČ, ktoré vieme priradiť ku krajine. Slovensko a Česko majú
@@ -194,9 +200,9 @@ const STRUCTURED_TAGS = /<(Dept|SubDept|StrtNm|BldgNb|BldgNm|Flr|PstBx|Room|PstC
 const PARTY_TAGS = ['Dbtr', 'Cdtr', 'UltmtDbtr', 'UltmtCdtr', 'InitgPty'];
 
 /** Strana, ktorej adresa patrí: posledná otvorená značka strany pred pozíciou. */
-function partyBefore(prefix) {
+function partyBefore(prefix, tags = PARTY_TAGS) {
   let best = null;
-  for (const tag of PARTY_TAGS) {
+  for (const tag of tags) {
     const open = prefix.lastIndexOf(`<${tag}>`);
     if (open < 0) continue;
     const close = prefix.lastIndexOf(`</${tag}>`);
@@ -330,9 +336,58 @@ export function applyDeterministicFixes(xml) {
   return {
     xml: d.xml,
     adresy: { pocet: a.count, rucne: a.manual, zoznam: a.zoznam },
-    krajiny: { pocet: b.count, nezname: b.unresolved },
-    iban: { pocet: c.count },
+    krajiny: { pocet: b.count, nezname: b.unresolved, zmeny: b.zmeny },
+    iban: { pocet: c.count, zmeny: c.zmeny },
     sucty: { zmeny: d.changes, rucne: d.manual, pocetPlatieb: d.txCount, sucet: d.sum },
   };
+}
+
+// ---------------------------------------------------------------------------
+// bezplatný náhľad pred platbou (F-N4, 24. 9. 2026)
+// ---------------------------------------------------------------------------
+
+/** Najviac toľko dvojíc „pred a po“ smie vidieť človek pred platbou. Strop
+ *  platí aj vtedy, keď volajúci pošle väčšie číslo. */
+export const NAHLAD_STROP = 3;
+
+/**
+ * Z výsledku applyDeterministicFixes vyberie najviac NAHLAD_STROP zmien ako
+ * krátke úryvky XML: len zmenené prvky, nikdy okolie (mená, sumy, iné účty)
+ * ani celý súbor. Poradie: najprv po jednej zmene z každého druhu (adresa,
+ * krajina, IBAN, súčet), aby náhľad ukázal, čo všetko oprava robí; potom
+ * ďalšie v poradí zo súboru. Test: nahlad.test.mjs.
+ *
+ * @returns {{dvojice: {druh: string, kde: string, pred: string, po: string}[], spolu: number}}
+ */
+export function nahladOpravy(fx, max = NAHLAD_STROP) {
+  const strop = Math.max(0, Math.min(Number(max) || 0, NAHLAD_STROP));
+  const druhy = [
+    ((fx && fx.adresy && fx.adresy.zoznam) || []).map((x) => ({
+      druh: 'adresa',
+      kde: x.strana,
+      pred: x.riadky.map((r) => `<AdrLine>${r}</AdrLine>`).join('\n'),
+      po: ['StrtNm', 'BldgNb', 'PstCd', 'TwnNm', 'Ctry'].map((k) => `<${k}>${x.polia[k]}</${k}>`).join('\n'),
+    })),
+    ((fx && fx.krajiny && fx.krajiny.zmeny) || []).map((x) => ({
+      druh: 'krajina', kde: x.kde, pred: `<Ctry>${x.z}</Ctry>`, po: `<Ctry>${x.na}</Ctry>`,
+    })),
+    ((fx && fx.iban && fx.iban.zmeny) || []).map((x) => ({
+      druh: 'iban', kde: x.kde, pred: `<IBAN>${x.z}</IBAN>`, po: `<IBAN>${x.na}</IBAN>`,
+    })),
+    ((fx && fx.sucty && fx.sucty.zmeny) || []).map((x) => ({
+      druh: 'sucet', kde: x.kde, pred: `<${x.prvok}>${x.z}</${x.prvok}>`, po: `<${x.prvok}>${x.na}</${x.prvok}>`,
+    })),
+  ];
+  const spolu = druhy.reduce((s, d) => s + d.length, 0);
+  const dvojice = [];
+  for (let kolo = 0; dvojice.length < strop; kolo++) {
+    let pridane = false;
+    for (const d of druhy) {
+      if (dvojice.length >= strop) break;
+      if (kolo < d.length) { dvojice.push(d[kolo]); pridane = true; }
+    }
+    if (!pridane) break;
+  }
+  return { dvojice, spolu };
 }
 
