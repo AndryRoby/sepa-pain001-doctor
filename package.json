@@ -5,7 +5,7 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "test": "node tests.mjs"
+    "test": "node tests.mjs && node --test platba.test.mjs nahlad.test.mjs csp.test.mjs"
   },
   "license": "MIT",
   "author": "ARLing s. r. o. <andrej@arling.sk>"

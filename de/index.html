@@ -4,7 +4,7 @@
 <script src="/style/vzhlad.js?v=129a47d9"></script>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
-<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' https://homelab.tailbf8f27.ts.net 'sha256-mv4eL44oM27fUmgA7KOWcciDgFfxVGj8mdVx1kMOHWE=' 'sha256-yJPYWqyENJ7ZW1WSo+qy4SKTEJSJh+6+mbADXIPxopg=' 'sha256-5NweJV78YCLKPtq/yhaMzkrQ4OfZJsafWqQXc4HBTe4=' 'sha256-e/fIDlrPDq37+zeT58xFltRMoEhveZvQRnfcD10UZRw='; connect-src 'self' https://homelab.tailbf8f27.ts.net https://arling-asistent.arling.workers.dev; style-src 'self' 'unsafe-inline'; img-src 'self' data:; font-src 'self'; object-src 'none'; base-uri 'self'; form-action 'none'">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' https://homelab.tailbf8f27.ts.net 'sha256-mv4eL44oM27fUmgA7KOWcciDgFfxVGj8mdVx1kMOHWE=' 'sha256-yJPYWqyENJ7ZW1WSo+qy4SKTEJSJh+6+mbADXIPxopg=' 'sha256-vVS55SjUcd+13Lc0hXCHslRXQCwwqxtAzGKRlN0r3AE=' 'sha256-e/fIDlrPDq37+zeT58xFltRMoEhveZvQRnfcD10UZRw='; connect-src 'self' https://homelab.tailbf8f27.ts.net https://arling-asistent.arling.workers.dev; style-src 'self' 'unsafe-inline'; img-src 'self' data:; font-src 'self'; object-src 'none'; base-uri 'self'; form-action 'none'">
 <meta name="color-scheme" content="dark">
 <link rel="preconnect" href="https://homelab.tailbf8f27.ts.net" crossorigin>
 <meta name="theme-color" content="#0a0908">
@@ -30,7 +30,7 @@
 <link rel="manifest" href="../manifest.json" />
 <link rel="preload" href="/fonts/arling-sans.woff2" as="font" type="font/woff2" crossorigin>
 <link rel="preload" href="/fonts/arling-serif.woff2" as="font" type="font/woff2" crossorigin>
-<link rel="stylesheet" href="/style/paper.css?v=1a185094">
+<link rel="stylesheet" href="/style/paper.css?v=ce09c693">
 <link rel="stylesheet" href="/style/nastroj.css?v=c9081cae">
 <script src="/style/prepinac.js?v=668e98c9" defer></script>
 <script defer src="https://homelab.tailbf8f27.ts.net/script.js" data-website-id="338f035d-41c5-411e-8391-9a41db6accfd"></script>
@@ -245,6 +245,24 @@
      naozaj nasla, a pocet miest, kde ich oprava zmeni. */
   .oprava-kody{margin:0 0 10px;padding:0;list-style:none;font-family:var(--mono);font-size:12.5px;color:var(--ink);line-height:1.7}
   .oprava-kody li{overflow-wrap:anywhere}
+  /* F-N4 (24. 9. 2026): bezplatny nahlad opravy, najviac 3 dvojice pred a po.
+     Na telefone pod sebou, od 640 px vedla seba. Bez kariet: dvojice deli
+     vlasova linka, useky XML maju podklad ako pole na vstup. */
+  .nahlad{margin:4px 0 14px;border-top:1px solid var(--line);padding-top:12px}
+  .nahlad-nadpis{font:600 14px/1.45 var(--ui);color:var(--ink);margin:0 0 10px}
+  .nahlad-zoznam{list-style:none;margin:0;padding:0}
+  .nahlad-par{padding:12px 0;border-bottom:1px solid var(--line)}
+  .nahlad-par:first-child{padding-top:0}
+  .nahlad-kde{font:500 12.5px/1.4 var(--ui);color:var(--muted);margin:0 0 8px}
+  .nahlad-kde span{font-family:var(--mono);color:var(--body)}
+  .nahlad-stlpce{display:grid;grid-template-columns:minmax(0,1fr);gap:10px}
+  @media (min-width:640px){.nahlad-stlpce{grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:12px}}
+  .nahlad-strana{min-width:0}
+  .nahlad-stitok{display:block;font:600 11px/1.3 var(--ui);letter-spacing:.06em;text-transform:uppercase;color:var(--muted);margin:0 0 4px}
+  .nahlad-po .nahlad-stitok{color:var(--ok)}
+  .nahlad pre{margin:0;padding:8px 10px;background:var(--paper-deep);border:1px solid var(--line);border-radius:8px;font:12.5px/1.6 var(--mono);color:var(--ink);white-space:pre-wrap;overflow-wrap:anywhere}
+  .nahlad-po pre{border-color:var(--ok)}
+  .nahlad-pozn{font:13px/1.55 var(--ui);color:var(--body);margin:10px 0 0}
   .ponuka { border:1px solid var(--accent); border-radius:12px; padding:14px 16px; display:flex; flex-wrap:wrap; align-items:center; gap:12px 16px; }
   .ponuka .ponuka-text { flex:1 1 320px; }
   .ponuka b { display:block; font-family:var(--ui); font-size:14px; color:var(--text); margin-bottom:4px; }
@@ -357,7 +375,7 @@
     </a>
     <details class="site-menu">
       <summary class="site-menu-toggle"><span class="site-menu-text" data-site-label="produkty">Produkte</span><span class="site-menu-bars" aria-hidden="true"><i></i><i></i><i></i></span><span class="site-menu-word" data-site-label="menu">Menü</span></summary>
-      <div class="site-menu-panel" role="navigation" aria-label="Produkte" data-site-aria="produkty"><div class="site-cols"><div class="site-col"><p>Unternehmenssoftware</p><ul><li><a href="https://arling.sk/proof/de/"><b>Proof</b><span>Kundenfreigabe vor dem Druck</span></a></li><li><a href="https://arling.sk/renewals/de/"><b>Renewals</b><span>Lieferantendokumente und Fristen</span></a></li><li><a href="https://arling.sk/asistent/de/"><b>Asistent</b><span>Verkaufsassistent für Onlineshops</span></a></li><li><a href="https://arling.sk/technologies/"><b>Stacklog</b><span>Worauf eine Website läuft und wann es sich änderte (EN)</span></a></li><li><a href="https://arling.sk/world/"><b>The World in Squares</b><span>Kauf dir ein Quadrat der Weltkarte, benenne es und zeichne darauf (EN)</span></a></li></ul></div><div class="site-col"><p>Rechnungen und Zahlungen</p><ul><li><a href="https://arling.sk/efaktura/de/"><b>E-Rechnung</b><span>Prüfen, Vorschau und XML erstellen</span></a></li><li><a href="https://arling.sk/sepa-pain001-doctor/"><b>pain.001-Prüfung</b><span>Warum die Bank die Datei ablehnt</span></a></li><li><a href="https://arling.sk/sepa-pain001-generator/"><b>pain.001-Generator</b><span>Sammelüberweisung aus einer Tabelle</span></a></li><li><a href="https://arling.sk/camt053-to-excel/"><b>Kontoauszug nach Excel</b><span>camt.053 und MT940 als Tabelle</span></a></li><li><a href="https://arling.sk/parovac-platieb/de/"><b>Zahlungsabgleich</b><span>Kontoauszug gegen Rechnungen</span></a></li><li><a href="https://arling.sk/kontrola-suboru/de/"><b>SEPA-Dateiprüfung</b><span>Adressen und Fehler, bevor die Bank sie sieht</span></a></li><li><a href="https://arling.sk/bankove-nastroje/de/"><b>Banking-Werkzeuge Pro</b><span>Eine Lizenz, vier Werkzeuge</span></a></li></ul></div><div class="site-col"><p>Dokumente und Firma</p><ul><li><a href="https://arling.sk/gdpr-dokumenty/de/"><b>DSGVO-Dokumente</b><span>Für Firma oder Shop in 10 Minuten</span></a></li><li><a href="https://arling.sk/vzory-zmluv/"><b>Vertragsvorlagen<em class="site-sk">SK</em></b><span>Nach slowakischem Recht, kostenlos</span></a></li><li><a href="https://arling.sk/zivotopis/de/"><b>Lebenslauf</b><span>Fertiger Lebenslauf ohne Konto</span></a></li><li><a href="https://arling.sk/feed-doctor/de/"><b>Feed Doctor</b><span>Produktfeed prüfen</span></a></li><li><a href="https://arling.sk/mail-doctor/"><b>Mail Doctor</b><span>SPF, DKIM und DMARC einer Domain</span></a></li></ul></div><div class="site-col"><p>Verlag</p><ul><li><a href="https://arling.sk/shop/"><b>Shop</b><span>Bücher, Rätsel und Geschenke</span></a></li><li><a href="https://arling.sk/classics/"><b>Klassiker für E-Ink</b><span>Bücher für den E-Reader</span></a></li><li><a href="https://arling.sk/morning-quiet/"><b>Morning Quiet</b><span>Tägliche Ausgaben für E-Ink</span></a></li><li><a href="https://arling.sk/games/"><b>Browserspiele</b><span>Ein kostenloses Logikrätsel pro Tag</span></a></li><li><a href="https://arling.sk/puzzle-post/"><b>Puzzle Post</b><span>Rätsel per Post</span></a></li><li><a href="https://arling.sk/memory-post/"><b>Memory Post</b><span>Erinnerungen auf Papier</span></a></li></ul></div></div><p class="site-dev"><span>Für Entwickler</span><em>Kostenlose Diagnosen für Fehler bei CORS, JWT, OAuth, Supabase und Stripe-Webhooks.</em><a href="https://arling.sk/de/#vyvojari">Alle Entwickler-Tools<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h13M13 6l6 6-6 6"/></svg></a></p><div class="site-col site-firma"><p>Unternehmen</p><ul><li><a href="https://arling.sk/de/#nastroje"><b>Werkzeuge</b></a></li><li><a href="https://arling.sk/de/#piloty"><b>Piloten</b></a></li><li><a href="https://arling.sk/how-we-work/de/"><b>Wie wir arbeiten</b></a></li><li><a href="https://arling.sk/notes/de/"><b>Anleitungen</b></a></li><li><a href="https://arling.sk/kontakt/de/"><b>Kontakt</b></a></li><li><a href="https://arling.sk/ucet/de/"><b>Konto</b></a></li><li><a href="https://arling.sk/brand/en/"><b>Marke</b></a></li><li><a href="https://arling.sk/podmienky/de/"><b>Bedingungen</b></a></li><li><a href="https://arling.sk/privacy/de/"><b>Datenschutz</b></a></li><li><a href="https://arling.sk/impressum/de/"><b>Impressum</b></a></li></ul></div><p class="site-menu-cta"><a class="site-cta" href="https://arling.sk/proof/de/" data-site-cta data-site-label="cta" data-umami-event="shell_cta_menu">Proof kostenlos testen</a></p></div>
+      <div class="site-menu-panel" role="navigation" aria-label="Produkte" data-site-aria="produkty"><div class="site-cols"><div class="site-col"><p>Unternehmenssoftware</p><ul><li><a href="https://arling.sk/proof/de/"><b>Proof</b><span>Kundenfreigabe vor dem Druck</span></a></li><li><a href="https://arling.sk/renewals/de/"><b>Renewals</b><span>Lieferantendokumente und Fristen</span></a></li><li><a href="https://arling.sk/asistent/de/"><b>Asistent</b><span>Verkaufsassistent für Onlineshops</span></a></li><li><a href="https://arling.sk/technologies/"><b>Stacklog</b><span>Worauf eine Website läuft und wann es sich änderte (EN)</span></a></li><li><a href="https://arling.sk/world/"><b>The World in Squares</b><span>Kauf dir ein Quadrat der Weltkarte, benenne es und zeichne darauf (EN)</span></a></li></ul></div><div class="site-col"><p>Rechnungen und Zahlungen</p><ul><li><a href="https://arling.sk/efaktura/de/"><b>E-Rechnung</b><span>Prüfen, Vorschau und XML erstellen</span></a></li><li><a href="https://arling.sk/sepa-pain001-doctor/"><b>pain.001-Prüfung</b><span>Warum die Bank die Datei ablehnt</span></a></li><li><a href="https://arling.sk/sepa-pain001-generator/"><b>pain.001-Generator</b><span>Sammelüberweisung aus einer Tabelle</span></a></li><li><a href="https://arling.sk/camt053-to-excel/"><b>Kontoauszug nach Excel</b><span>camt.053 und MT940 als Tabelle</span></a></li><li><a href="https://arling.sk/parovac-platieb/de/"><b>Zahlungsabgleich</b><span>Kontoauszug gegen Rechnungen</span></a></li><li><a href="https://arling.sk/kontrola-suboru/de/"><b>SEPA-Dateiprüfung</b><span>Adressen und Fehler, bevor die Bank sie sieht</span></a></li><li><a href="https://arling.sk/bankove-nastroje/de/"><b>Banking-Werkzeuge Pro</b><span>Eine Lizenz, vier Werkzeuge</span></a></li></ul></div><div class="site-col"><p>Dokumente und Firma</p><ul><li><a href="https://arling.sk/gdpr-dokumenty/de/"><b>DSGVO-Dokumente</b><span>Für Firma oder Shop in 10 Minuten</span></a></li><li><a href="https://arling.sk/vzory-zmluv/"><b>Vertragsvorlagen<em class="site-sk">SK</em></b><span>Nach slowakischem Recht, kostenlos</span></a></li><li><a href="https://arling.sk/zivotopis/de/"><b>Lebenslauf</b><span>Fertiger Lebenslauf ohne Konto</span></a></li><li><a href="https://arling.sk/feed-doctor/de/"><b>Feed Doctor</b><span>Produktfeed prüfen</span></a></li><li><a href="https://arling.sk/mail-doctor/"><b>Mail Doctor</b><span>SPF, DKIM und DMARC einer Domain</span></a></li></ul></div><div class="site-col"><p>Verlag</p><ul><li><a href="https://arling.sk/shop/"><b>Shop</b><span>Bücher, Rätsel und Geschenke</span></a></li><li><a href="https://arling.sk/classics/"><b>Klassiker für E-Ink</b><span>Bücher für den E-Reader</span></a></li><li><a href="https://arling.sk/morning-quiet/"><b>Morning Quiet</b><span>Tägliche Ausgaben für E-Ink</span></a></li><li><a href="https://arling.sk/games/"><b>Browserspiele</b><span>Ein kostenloses Logikrätsel pro Tag</span></a></li><li><a href="https://arling.sk/puzzle-post/"><b>Puzzle Post</b><span>Rätsel per Post</span></a></li><li><a href="https://arling.sk/puzzle-post/bulletin/"><b>Puzzle Post Bulletin</b><span>Ein Rätsel für Ihren Gemeindebrief, jeden Montag (EN)</span></a></li><li><a href="https://arling.sk/memory-post/"><b>Memory Post</b><span>Erinnerungen auf Papier</span></a></li></ul></div></div><p class="site-dev"><span>Für Entwickler</span><em>Kostenlose Diagnosen für Fehler bei CORS, JWT, OAuth, Supabase und Stripe-Webhooks.</em><a href="https://arling.sk/de/#vyvojari">Alle Entwickler-Tools<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h13M13 6l6 6-6 6"/></svg></a></p><div class="site-col site-firma"><p>Unternehmen</p><ul><li><a href="https://arling.sk/de/#nastroje"><b>Werkzeuge</b></a></li><li><a href="https://arling.sk/de/#piloty"><b>Piloten</b></a></li><li><a href="https://arling.sk/how-we-work/de/"><b>Wie wir arbeiten</b></a></li><li><a href="https://arling.sk/notes/de/"><b>Anleitungen</b></a></li><li><a href="https://arling.sk/kontakt/de/"><b>Kontakt</b></a></li><li><a href="https://arling.sk/ucet/de/"><b>Konto</b></a></li><li><a href="https://arling.sk/brand/en/"><b>Marke</b></a></li><li><a href="https://arling.sk/podmienky/de/"><b>Bedingungen</b></a></li><li><a href="https://arling.sk/privacy/de/"><b>Datenschutz</b></a></li><li><a href="https://arling.sk/impressum/de/"><b>Impressum</b></a></li></ul></div><p class="site-menu-cta"><a class="site-cta" href="https://arling.sk/proof/de/" data-site-cta data-site-label="cta" data-umami-event="shell_cta_menu">Proof kostenlos testen</a></p></div>
     </details>
     <nav id="hlavne-menu" class="site-main-nav" aria-label="Hauptnavigation" data-site-aria="nav"><a href="https://arling.sk/de/#nastroje" data-site-nav="0">Werkzeuge</a><a href="https://arling.sk/de/#piloty" data-site-nav="1">Piloten</a><a href="https://arling.sk/notes/de/" data-site-nav="2">Anleitungen</a><a href="https://arling.sk/how-we-work/de/" data-site-nav="3">Unternehmen</a></nav>
     <a class="site-cta" href="https://arling.sk/proof/de/" data-site-cta data-site-label="cta" data-umami-event="shell_cta">Proof kostenlos testen</a>
@@ -594,7 +612,7 @@
 <footer class="site-footer">
   <div class="wrap foot">
     <div class="site-foot-top"><div><a class="site-brand" href="https://arling.sk/de/" aria-label="ARLing Startseite" data-site-home><svg viewBox="0 0 488 215" width="38" height="15" aria-hidden="true" focusable="false"><path fill="#f4f4f7" fill-rule="evenodd" d="M0.00,213.00L74.00,214.00L181.00,85.00L285.00,214.00L360.00,214.00L206.00,21.00L185.00,4.00L164.00,10.00Z M221.00,0.00L263.00,50.00L395.00,50.00L409.00,55.00L419.00,76.00L401.00,96.00L313.00,98.00L411.00,214.00L487.00,214.00L422.00,139.00L457.00,123.00L482.00,88.00L482.00,48.00L463.00,19.00L417.00,0.00Z"/><path fill="#f2643c" d="M269.00,66.00L269.00,67.00L268.00,68.00L268.00,70.00L267.00,71.00L267.00,76.00L268.00,77.00L268.00,79.00L270.00,81.00L270.00,82.00L271.00,82.00L273.00,84.00L274.00,84.00L277.00,86.00L279.00,86.00L280.00,87.00L287.00,87.00L288.00,86.00L290.00,86.00L291.00,85.00L294.00,84.00L298.00,80.00L298.00,79.00L299.00,78.00L299.00,75.00L300.00,74.00L300.00,72.00L299.00,71.00L299.00,69.00L298.00,68.00L297.00,65.00L295.00,63.00L294.00,63.00L289.00,60.00L278.00,60.00L277.00,61.00L276.00,61.00L275.00,62.00L272.00,63.00Z"/></svg><b>ARLing</b></a><p class="site-foot-firma">ARLing s. r. o., Reg.-Nr. <span class="num">56583486</span>, Bratislava. Eigener Server in der Europäischen Union. Software für Unternehmen, Selbstständige und Privatpersonen.</p></div><a class="site-cta" href="https://arling.sk/proof/de/" data-umami-event="shell_footer_cta">Proof kostenlos testen<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h13M13 6l6 6-6 6"/></svg></a></div>
-    <div class="site-foot-cols"><div><p>Unternehmenssoftware</p><ul><li><a href="https://arling.sk/proof/de/">Proof</a></li><li><a href="https://arling.sk/renewals/de/">Renewals</a></li><li><a href="https://arling.sk/asistent/de/">Asistent</a></li><li><a href="https://arling.sk/technologies/">Stacklog</a></li><li><a href="https://arling.sk/world/">The World in Squares</a></li></ul></div><div><p>Rechnungen und Zahlungen</p><ul><li><a href="https://arling.sk/efaktura/de/">E-Rechnung</a></li><li><a href="https://arling.sk/sepa-pain001-doctor/">pain.001-Prüfung</a></li><li><a href="https://arling.sk/sepa-pain001-generator/">pain.001-Generator</a></li><li><a href="https://arling.sk/camt053-to-excel/">Kontoauszug nach Excel</a></li><li><a href="https://arling.sk/parovac-platieb/de/">Zahlungsabgleich</a></li><li><a href="https://arling.sk/kontrola-suboru/de/">SEPA-Dateiprüfung</a></li><li><a href="https://arling.sk/bankove-nastroje/de/">Banking-Werkzeuge Pro</a></li></ul></div><div><p>Dokumente und Firma</p><ul><li><a href="https://arling.sk/gdpr-dokumenty/de/">DSGVO-Dokumente</a></li><li><a href="https://arling.sk/vzory-zmluv/">Vertragsvorlagen<em class="site-sk">SK</em></a></li><li><a href="https://arling.sk/zivotopis/de/">Lebenslauf</a></li><li><a href="https://arling.sk/feed-doctor/de/">Feed Doctor</a></li><li><a href="https://arling.sk/mail-doctor/">Mail Doctor</a></li></ul></div><div><p>Verlag</p><ul><li><a href="https://arling.sk/shop/">Shop</a></li><li><a href="https://arling.sk/classics/">Klassiker für E-Ink</a></li><li><a href="https://arling.sk/morning-quiet/">Morning Quiet</a></li><li><a href="https://arling.sk/games/">Browserspiele</a></li><li><a href="https://arling.sk/puzzle-post/">Puzzle Post</a></li><li><a href="https://arling.sk/memory-post/">Memory Post</a></li></ul></div><div><p>Unternehmen</p><ul><li><a href="https://arling.sk/how-we-work/de/">Wie wir arbeiten</a></li><li><a href="https://arling.sk/notes/de/">Anleitungen</a></li><li><a href="https://arling.sk/kontakt/de/">Kontakt</a></li><li><a href="https://arling.sk/ucet/de/">Konto</a></li><li><a href="https://arling.sk/brand/en/">Marke</a></li><li><a href="https://arling.sk/podmienky/de/">Bedingungen</a></li><li><a href="https://arling.sk/privacy/de/">Datenschutz</a></li><li><a href="https://arling.sk/impressum/de/">Impressum</a></li></ul></div></div>
+    <div class="site-foot-cols"><div><p>Unternehmenssoftware</p><ul><li><a href="https://arling.sk/proof/de/">Proof</a></li><li><a href="https://arling.sk/renewals/de/">Renewals</a></li><li><a href="https://arling.sk/asistent/de/">Asistent</a></li><li><a href="https://arling.sk/technologies/">Stacklog</a></li><li><a href="https://arling.sk/world/">The World in Squares</a></li></ul></div><div><p>Rechnungen und Zahlungen</p><ul><li><a href="https://arling.sk/efaktura/de/">E-Rechnung</a></li><li><a href="https://arling.sk/sepa-pain001-doctor/">pain.001-Prüfung</a></li><li><a href="https://arling.sk/sepa-pain001-generator/">pain.001-Generator</a></li><li><a href="https://arling.sk/camt053-to-excel/">Kontoauszug nach Excel</a></li><li><a href="https://arling.sk/parovac-platieb/de/">Zahlungsabgleich</a></li><li><a href="https://arling.sk/kontrola-suboru/de/">SEPA-Dateiprüfung</a></li><li><a href="https://arling.sk/bankove-nastroje/de/">Banking-Werkzeuge Pro</a></li></ul></div><div><p>Dokumente und Firma</p><ul><li><a href="https://arling.sk/gdpr-dokumenty/de/">DSGVO-Dokumente</a></li><li><a href="https://arling.sk/vzory-zmluv/">Vertragsvorlagen<em class="site-sk">SK</em></a></li><li><a href="https://arling.sk/zivotopis/de/">Lebenslauf</a></li><li><a href="https://arling.sk/feed-doctor/de/">Feed Doctor</a></li><li><a href="https://arling.sk/mail-doctor/">Mail Doctor</a></li></ul></div><div><p>Verlag</p><ul><li><a href="https://arling.sk/shop/">Shop</a></li><li><a href="https://arling.sk/classics/">Klassiker für E-Ink</a></li><li><a href="https://arling.sk/morning-quiet/">Morning Quiet</a></li><li><a href="https://arling.sk/games/">Browserspiele</a></li><li><a href="https://arling.sk/puzzle-post/">Puzzle Post</a></li><li><a href="https://arling.sk/puzzle-post/bulletin/">Puzzle Post Bulletin</a></li><li><a href="https://arling.sk/memory-post/">Memory Post</a></li></ul></div><div><p>Unternehmen</p><ul><li><a href="https://arling.sk/how-we-work/de/">Wie wir arbeiten</a></li><li><a href="https://arling.sk/notes/de/">Anleitungen</a></li><li><a href="https://arling.sk/kontakt/de/">Kontakt</a></li><li><a href="https://arling.sk/ucet/de/">Konto</a></li><li><a href="https://arling.sk/brand/en/">Marke</a></li><li><a href="https://arling.sk/podmienky/de/">Bedingungen</a></li><li><a href="https://arling.sk/privacy/de/">Datenschutz</a></li><li><a href="https://arling.sk/impressum/de/">Impressum</a></li></ul></div></div>
     <p class="site-dev site-dev-zoznam"><span>Für Entwickler</span><a href="https://arling.sk/cors-doctor/">CORS</a><a href="https://arling.sk/jwt-doctor/">JWT</a><a href="https://arling.sk/cookie-samesite-doctor/">Cookie SameSite</a><a href="https://arling.sk/redirect-loop-doctor/">Redirect loop</a><a href="https://arling.sk/stripe-webhook-doctor/">Stripe webhook</a><a href="https://arling.sk/firebase-auth-domain-doctor/">Firebase auth</a><a href="https://arling.sk/google-oauth-redirect-doctor/">Google OAuth</a><a href="https://arling.sk/supabase-redirect-doctor/">Supabase redirect</a><a href="https://arling.sk/flutter-supabase-doctor/">Flutter + Supabase</a><a href="https://arling.sk/expo-universal-links-doctor/">Expo links</a><a href="https://arling.sk/expo-supabase-auth-doctor/">Expo + Supabase</a><a href="https://arling.sk/api/">Puzzle API</a></p>
     <div class="site-foot-bottom"><p>ARLing s. r. o., Ivanská cesta 32E, 821 04 Bratislava, Slowakei. Handelsregister-Nr. 56583486, USt-IdNr. SK2122352100. <a href="mailto:andrej@arling.sk">andrej@arling.sk</a></p><p><a href="https://arling.sk/impressum/de/">Impressum</a> · <a href="https://arling.sk/llms.txt">llms.txt</a> · <a href="https://arling.sk/sitemap-index.xml">Sitemap</a></p></div>
     <p class="site-foot-legal">Die Werkzeuge werden ohne Gewähr bereitgestellt. Anonyme Besuchszählung über eigenes Umami. <a href="https://arling.sk/privacy/de/">Datenschutz</a> · <a href="https://arling.sk/podmienky/de/">AGB</a> · <a href="https://arling.sk/gdpr/de/">DSGVO</a></p>
@@ -604,7 +622,7 @@
 <!-- Scripts -->
 <script type="module">
   import { diagnose } from '../doctor-pain001.js';
-  import { applyDeterministicFixes } from '../oprava.mjs';
+  import { applyDeterministicFixes, nahladOpravy, NAHLAD_STROP } from '../oprava.mjs';
 
   // Intentionally broken: demonstrates several rules at once on first load:
   // wrong bank's BIC on the debtor account, diacritics in the creditor name
@@ -705,15 +723,25 @@
       opravaRucne: (n) => (n === 1 ? 'Jedna adresa' : n + ' adries') + ' sa nedá rozdeliť jednoznačne, tie ostanú tak, ako sú.',
       opravaSuhlas: 'Súhlasím, že opravený súbor dostanem hneď po zaplatení, a beriem na vedomie, že tým strácam právo na odstúpenie od zmluvy.',
       opravaTlacidlo: 'Zaplatiť 29 € a stiahnuť opravený súbor',
-      opravaDrobne: 'Platba cez Stripe, po nej sa vrátite sem a súbor sa stiahne. Ak sa niečo pokazí, napíšte na andrej@arling.sk. O prijatí súboru rozhoduje vaša banka.',
+      opravaDrobne: 'Oprava platí pre tento jeden súbor, stiahnuť ho môžete do 24 hodín od platby. Platba cez Stripe, po nej sa vrátite sem a súbor sa stiahne.Ak sa niečo pokazí, napíšte na andrej@arling.sk. O prijatí súboru rozhoduje vaša banka.',
       opravaOverujem: 'Overujem platbu…',
       opravaNezaplatene: 'Platbu sa nepodarilo overiť. Ak ste zaplatili, napíšte na andrej@arling.sk a súbor vám opravíme ručne.',
+      opravaInaSuma: 'Táto platba nie je opravou za 29 €. Opravený súbor sa vydáva len po zaplatení presne 29 € v eurách v ostrom režime. Ak ste zaplatili za opravu, napíšte na andrej@arling.sk s číslom objednávky.',
       opravaHotovo: 'Zaplatené. Opravený súbor je pripravený.',
       opravaHotovoText: (co) => 'Opravené: ' + co + '.',
       opravaStiahnut: 'Stiahnuť opravený súbor',
       opravaVlozZnova: 'Vložte ten istý súbor do poľa vľavo a stlačte Diagnostikovať; tlačidlo na stiahnutie sa objaví tu.',
+      opravaInySubor: 'Zaplatená oprava platí pre jeden súbor, ten, pre ktorý ste ju kúpili. Tento súbor je iný, jeho oprava je nový nákup. Ak ste chceli stiahnuť ten istý súbor, vložte ho bez zmien.',
+      opravaVyprsane: 'Platba je overená, ale opravený súbor sa dá stiahnuť 24 hodín od nákupu a tento čas už uplynul. Ak ho potrebujete znova, napíšte na andrej@arling.sk s číslom objednávky.',
       opravaPoTom: 'Chcete, aby súbor prešiel aj človek a napísal správu pre dodávateľa programu?',
       opravaKontrolaOdkaz: 'Kontrola za 149 €',
+      nahladNadpis: (n, spolu, vzor) => (vzor ? 'Náhľad opravy na vzorovom súbore' : 'Náhľad opravy vo vašom súbore') + (spolu > n ? ': ' + n + ' z ' + spolu + ' zmien' : ''),
+      nahladPred: 'Pred',
+      nahladPo: 'Po oprave',
+      nahladDruh: { adresa: 'Adresa', krajina: 'Krajina', iban: 'IBAN', sucet: 'Kontrolné súčty' },
+      nahladZvysok: (n) => n === 0 ? 'Opravený súbor na stiahnutie dostanete po zaplatení.' : (n === 1 ? 'Zvyšnú 1 zmenu' : n < 5 ? 'Zvyšné ' + n + ' zmeny' : 'Zvyšných ' + n + ' zmien') + ' a celý opravený súbor dostanete po zaplatení.',
+      nahladVzor: 'Rovnaký náhľad uvidíte pre svoj súbor, keď ho vložíte a stlačíte Diagnostikovať.',
+      opravaVratenie: 'Ak banka opravený súbor odmietne pre chybu, ktorú oprava menila, pošlite nám jej hlásenie do 14 dní a vrátime vám 29 €.',
       ponukaNadpis: (adr, blok) => adr ? (adr === 1 ? 'Jedna adresa v tomto súbore nie je štruktúrovaná podľa pravidiel EPC.' : adr + ' adries v tomto súbore nie je štruktúrovaných podľa pravidiel EPC.') : (blok === 1 ? 'Jedna blokujúca chyba: banka súbor pravdepodobne odmietne.' : blok + ' blokujúcich chýb: banka súbor pravdepodobne odmietne.'),
       ponukaText: 'Nechcete to opravovať sami? Nahráte súbor, do 24 hodín dostanete opravený súbor a písomnú správu, ktorú prepošlete dodávateľovi účtovného programu. 149 €, o prijatí rozhoduje vaša banka.',
       ponukaTlacidlo: 'Nechať opraviť súbor za 149 €',
@@ -774,15 +802,25 @@
       opravaRucne: (n) => (n === 1 ? 'One address' : n + ' addresses') + ' cannot be split unambiguously and stay as they are.',
       opravaSuhlas: 'I agree to receive the corrected file immediately after payment and acknowledge that I thereby lose my right of withdrawal.',
       opravaTlacidlo: 'Pay 29 € and download the corrected file',
-      opravaDrobne: 'Payment via Stripe; afterwards you return here and the file downloads. If anything goes wrong, write to andrej@arling.sk. Your bank decides acceptance.',
+      opravaDrobne: 'The fix covers this one file, which you can download within 24 hours of payment. Payment via Stripe; afterwards you return here and the file downloads. If anything goes wrong, write to andrej@arling.sk. Your bank decides acceptance.',
       opravaOverujem: 'Verifying the payment…',
       opravaNezaplatene: 'The payment could not be verified. If you did pay, write to andrej@arling.sk and we will fix the file by hand.',
+      opravaInaSuma: 'This payment is not the 29 € fix. The corrected file is released only after a live payment of exactly 29 € in euro. If you did pay for the fix, write to andrej@arling.sk with your order number.',
       opravaHotovo: 'Paid. Your corrected file is ready.',
       opravaHotovoText: (co) => 'Fixed: ' + co + '.',
       opravaStiahnut: 'Download the corrected file',
       opravaVlozZnova: 'Paste the same file into the box on the left and press Diagnose; the download button will appear here.',
+      opravaInySubor: 'The paid fix covers one file, the one you bought it for. This file is a different one, so fixing it is a new purchase. If you meant to download the same file, paste it unchanged.',
+      opravaVyprsane: 'The payment is verified, but the corrected file can be downloaded for 24 hours after purchase and that time has passed. If you need it again, write to andrej@arling.sk with your order number.',
       opravaPoTom: 'Want a person to go through the file and write a report for your software vendor?',
       opravaKontrolaOdkaz: 'Check for 149 €',
+      nahladNadpis: (n, spolu, vzor) => (vzor ? 'Preview of the fix on the sample file' : 'Preview of the fix in your file') + (spolu > n ? ': ' + n + ' of ' + spolu + ' changes' : ''),
+      nahladPred: 'Before',
+      nahladPo: 'After the fix',
+      nahladDruh: { adresa: 'Address', krajina: 'Country', iban: 'IBAN', sucet: 'Control totals' },
+      nahladZvysok: (n) => n === 0 ? 'You get the corrected file to download after payment.' : 'The remaining ' + (n === 1 ? 'change' : n + ' changes') + ' and the whole corrected file come after payment.',
+      nahladVzor: 'You will see the same preview for your own file once you paste it and press Diagnose.',
+      opravaVratenie: 'If your bank rejects the corrected file because of an error the fix changed, send us the message from your bank within 14 days and we will refund the 29 €.',
       ponukaNadpis: (adr, blok) => adr ? (adr === 1 ? 'One address in this file is not structured the way the EPC rules expect.' : adr + ' addresses in this file are not structured the way the EPC rules expect.') : (blok === 1 ? 'One blocking error: the bank will most likely reject the file.' : blok + ' blocking errors: the bank will most likely reject the file.'),
       ponukaText: 'Do not want to fix it yourself? Upload the file and within 24 hours you get the corrected file and a written report you can forward to your software vendor. 149 €, your bank decides acceptance.',
       ponukaTlacidlo: 'Have the file fixed for 149 €',
@@ -843,15 +881,25 @@
       opravaRucne: (n) => (n === 1 ? 'Eine Adresse' : n + ' Adressen') + ' lässt sich nicht eindeutig aufteilen und bleibt unverändert.',
       opravaSuhlas: 'Ich stimme zu, die korrigierte Datei sofort nach der Zahlung zu erhalten, und nehme zur Kenntnis, dass ich damit mein Widerrufsrecht verliere.',
       opravaTlacidlo: '29 € zahlen und korrigierte Datei herunterladen',
-      opravaDrobne: 'Zahlung über Stripe; danach kehren Sie hierher zurück und die Datei wird heruntergeladen. Falls etwas schiefgeht, schreiben Sie an andrej@arling.sk. Über die Annahme entscheidet Ihre Bank.',
+      opravaDrobne: 'Die Korrektur gilt für diese eine Datei, die Sie innerhalb von 24 Stunden nach der Zahlung herunterladen können. Zahlung über Stripe; danach kehren Sie hierher zurück und die Datei wird heruntergeladen. Falls etwas schiefgeht, schreiben Sie an andrej@arling.sk. Über die Annahme entscheidet Ihre Bank.',
       opravaOverujem: 'Zahlung wird geprüft…',
       opravaNezaplatene: 'Die Zahlung konnte nicht bestätigt werden. Falls Sie bezahlt haben, schreiben Sie an andrej@arling.sk, wir korrigieren die Datei von Hand.',
+      opravaInaSuma: 'Diese Zahlung ist nicht die Korrektur für 29 €. Die korrigierte Datei wird nur nach einer Livezahlung von genau 29 € in Euro freigegeben. Falls Sie für die Korrektur bezahlt haben, schreiben Sie an andrej@arling.sk mit Ihrer Bestellnummer.',
       opravaHotovo: 'Bezahlt. Ihre korrigierte Datei ist bereit.',
       opravaHotovoText: (co) => 'Korrigiert: ' + co + '.',
       opravaStiahnut: 'Korrigierte Datei herunterladen',
       opravaVlozZnova: 'Fügen Sie dieselbe Datei links ein und drücken Sie Diagnostizieren; der Download-Button erscheint hier.',
+      opravaInySubor: 'Die bezahlte Korrektur gilt für eine Datei, nämlich die, für die Sie sie gekauft haben. Diese Datei ist eine andere, ihre Korrektur ist ein neuer Kauf. Wenn Sie dieselbe Datei herunterladen wollten, fügen Sie sie unverändert ein.',
+      opravaVyprsane: 'Die Zahlung ist bestätigt, aber die korrigierte Datei kann 24 Stunden nach dem Kauf heruntergeladen werden, und diese Zeit ist abgelaufen. Wenn Sie sie erneut brauchen, schreiben Sie an andrej@arling.sk mit Ihrer Bestellnummer.',
       opravaPoTom: 'Soll ein Mensch die Datei durchgehen und einen Bericht für Ihren Softwareanbieter schreiben?',
       opravaKontrolaOdkaz: 'Prüfung für 149 €',
+      nahladNadpis: (n, spolu, vzor) => (vzor ? 'Vorschau der Korrektur an der Beispieldatei' : 'Vorschau der Korrektur in Ihrer Datei') + (spolu > n ? ': ' + n + ' von ' + spolu + ' Änderungen' : ''),
+      nahladPred: 'Vorher',
+      nahladPo: 'Nach der Korrektur',
+      nahladDruh: { adresa: 'Adresse', krajina: 'Land', iban: 'IBAN', sucet: 'Kontrollsummen' },
+      nahladZvysok: (n) => n === 0 ? 'Die korrigierte Datei zum Herunterladen erhalten Sie nach der Zahlung.' : (n === 1 ? 'Die übrige Änderung' : 'Die übrigen ' + n + ' Änderungen') + ' und die ganze korrigierte Datei erhalten Sie nach der Zahlung.',
+      nahladVzor: 'Dieselbe Vorschau sehen Sie für Ihre eigene Datei, sobald Sie sie einfügen und Diagnostizieren drücken.',
+      opravaVratenie: 'Lehnt Ihre Bank die korrigierte Datei wegen eines Fehlers ab, den die Korrektur geändert hat, senden Sie uns ihre Meldung innerhalb von 14 Tagen und wir erstatten Ihnen die 29 €.',
       ponukaNadpis: (adr, blok) => adr ? (adr === 1 ? 'Eine Adresse in dieser Datei ist nicht so strukturiert, wie es die EPC-Regeln vorsehen.' : adr + ' Adressen in dieser Datei sind nicht so strukturiert, wie es die EPC-Regeln vorsehen.') : (blok === 1 ? 'Ein blockierender Fehler: die Bank lehnt die Datei sehr wahrscheinlich ab.' : blok + ' blockierende Fehler: die Bank lehnt die Datei sehr wahrscheinlich ab.'),
       ponukaText: 'Nicht selbst korrigieren? Laden Sie die Datei hoch, innerhalb von 24 Stunden erhalten Sie die korrigierte Datei und einen schriftlichen Bericht für Ihren Softwareanbieter. Einmalig 149 €, kein Abo, keine weiteren Gebühren, über die Annahme entscheidet Ihre Bank.',
       ponukaTlacidlo: 'Datei für 149 € prüfen lassen',
@@ -1203,11 +1251,122 @@
    * Súbor neopúšťa prehliadač; do sessionStorage sa uloží len na čas platby. */
   const OPRAVA_API = 'https://arling-asistent.arling.workers.dev';
   const OPRAVA_KLUC = 'doctor:oprava';
+  /* Ceny v centoch presne podľa registra: ops/stripe/oprava-29-odkazy.json
+     (oprava 29 €) a ops/stripe/cena-149.mjs (kontrola 149 €). */
+  const CENA_OPRAVY = 2900;
+  const CENA_KONTROLY = 14900;
+  /* Rozhodnutie o jednej odpovedi workera, rovnaké ako na slovenskej stránke.
+     Čistá funkcia, testuje ju products/sepa-pain001-doctor/platba.test.mjs.
+     Predtým tu stačilo „zaplatené a pod 149 €“, takže opravu odomkla aj
+     zaplatená e-faktúra za 2,90 €, GDPR balík a každá testovacia platba
+     (nález N1 auditu z 21. 9. 2026; táto kópia ostala pri oprave 21. 9. bokom).
+     Testovací odkaz na opravu neexistuje, preto livemode musí byť true. */
+  function posudOpravu(st, teraz) {
+    if (!st || typeof st !== 'object' || !st.paid) return 'nezaplatene';
+    const zaklad = typeof st.amount_subtotal === 'number' ? st.amount_subtotal : st.amount_total;
+    if (typeof zaklad === 'number' && zaklad >= CENA_KONTROLY) return 'kontrola';
+    if (zaklad !== CENA_OPRAVY || st.currency !== 'eur' || st.livemode !== true) return 'inaSuma';
+    /* Odkaz na stiahnutie platí 24 hodín od vzniku session (pole created
+       z workera, sekundy od 1970), rovnako ako pri e-faktúre. Do 24. 9. 2026
+       ten istý návratový odkaz vydal opravu kedykoľvek neskôr. Chýbajúci
+       created znamená starší worker: vtedy sa čas nekontroluje, preto sa
+       worker nasadzuje pred touto stránkou. Čas z budúcnosti nič nepredĺži. */
+    const PLATNOST_MS = 24 * 3600 * 1000;
+    const t = typeof teraz === 'number' ? teraz : Date.now();
+    if (typeof st.created === 'number' && Number.isFinite(st.created) && st.created > 0
+      && t - st.created * 1000 > PLATNOST_MS) return 'vyprsane';
+    return 'oprava';
+  }
+  /* Zaplatená oprava patrí jednému súboru (ponuka hovorí „vo vašom súbore“).
+     Do 24. 9. 2026 stačilo raz zaplatiť a stránka vydala opravu pre každý
+     ďalší diagnostikovaný súbor, kým bola otvorená, a po každom otvorení
+     návratového odkazu znova. Teraz sa pri kúpe (alebo pri prvom súbore po
+     návrate, ak sa súbor z úložiska stratil) uloží odtlačok súboru k session
+     a stiahnuť sa dá len súbor s tým istým odtlačkom. Do localStorage ide
+     len odtlačok, nie obsah súboru. Čisté funkcie testuje platba.test.mjs. */
+  function odtlacokXml(xml) {
+    const s = String(xml || '').replace(/\r\n?/g, '\n').trim();
+    let h = 0x811c9dc5;
+    for (let i = 0; i < s.length; i++) { h ^= s.charCodeAt(i); h = Math.imul(h, 0x01000193) >>> 0; }
+    return s.length + ':' + h.toString(16);
+  }
+  function rozhodniOpravu(zaplatene, viazane, odtlacok) {
+    if (!zaplatene) return 'kupit';
+    if (!viazane) return 'viazat';
+    return viazane === odtlacok ? 'stiahnut' : 'inySubor';
+  }
+  const OPRAVA_VIAZANIE = 'doctor:oprava:viazanie';
+  function nacitajViazanie(sid) {
+    try {
+      const m = JSON.parse(localStorage.getItem(OPRAVA_VIAZANIE) || '{}');
+      return m && typeof m[sid] === 'string' ? m[sid] : null;
+    } catch (e) { return null; }
+  }
+  function ulozViazanie(sid, odtlacok) {
+    if (!sid || !odtlacok) return;
+    try {
+      let m = JSON.parse(localStorage.getItem(OPRAVA_VIAZANIE) || '{}');
+      if (!m || typeof m !== 'object' || Array.isArray(m)) m = {};
+      m[sid] = odtlacok;
+      const kluce = Object.keys(m);
+      while (kluce.length > 20) delete m[kluce.shift()];
+      localStorage.setItem(OPRAVA_VIAZANIE, JSON.stringify(m));
+    } catch (e) { /* bez úložiska platí väzba len do zatvorenia stránky */ }
+  }
   const opravaBox = document.getElementById('oprava');
   const opravaLinkNow = () => (opravaBox ? (opravaBox.getAttribute('data-oprava-link') || '') : '');
   let lastCfg = null;
   let opravaZaplatene = false;
   let opravaSession = null;
+  let opravaViazane = null;
+
+  /* F-N4 (24. 9. 2026): veta o vrateni 29 € (opravaVratenie v slovniku) je pripravena
+     vo vsetkych troch jazykoch, ale kym ju Andrej neschvali, stranka ju
+     neukaze. Po schvaleni: true a upravit posledny test v nahlad.test.mjs. */
+  const VRATENIE_ZAPNUTE = false;
+  /* Bezplatny nahlad pred platbou: najviac 3 dvojice „pred a po“, ktore
+     vypocita ten isty applyDeterministicFixes, ktory po platbe vyrobi subor
+     (oprava.mjs, nahladOpravy). Cely opraveny subor (vystup opravy) sa pred platbou
+     nikam nevypisuje, strazi to nahlad.test.mjs. Cista funkcia: texty a esc
+     pridu ako parametre. Strop 3 je tu este raz, keby niekto poslal viac. */
+  function nahladHtml(n, T, vzor, escF) {
+    if (!n || !Array.isArray(n.dvojice) || !n.dvojice.length) return '';
+    const ukazane = n.dvojice.slice(0, 3);
+    const riadky = ukazane.map((d) => '<li class="nahlad-par">'
+      + '<p class="nahlad-kde">' + escF(T.nahladDruh[d.druh] || d.druh) + (d.kde && d.kde !== '?' ? ' <span>' + escF(d.kde) + '</span>' : '') + '</p>'
+      + '<div class="nahlad-stlpce">'
+      + '<div class="nahlad-strana"><span class="nahlad-stitok">' + escF(T.nahladPred) + '</span><pre>' + escF(d.pred) + '</pre></div>'
+      + '<div class="nahlad-strana nahlad-po"><span class="nahlad-stitok">' + escF(T.nahladPo) + '</span><pre>' + escF(d.po) + '</pre></div>'
+      + '</div></li>').join('');
+    const spolu = Math.max(Number(n.spolu) || 0, ukazane.length);
+    return '<div class="nahlad" id="oprava-nahlad">'
+      + '<p class="nahlad-nadpis">' + escF(T.nahladNadpis(ukazane.length, spolu, vzor)) + '</p>'
+      + '<ol class="nahlad-zoznam">' + riadky + '</ol>'
+      + '<p class="nahlad-pozn">' + escF(vzor ? T.nahladVzor : T.nahladZvysok(spolu - ukazane.length)) + '</p>'
+      + '</div>';
+  }
+  /* Umami oprava_nahlad: raz za zobrazeny nahlad, ked aspon polovica nahladu
+     vojde do zorneho pola (nie pri kazdom vykresleni ramceka). */
+  let nahladSledovac = null;
+  function sledujNahlad(el, data) {
+    try { if (nahladSledovac) nahladSledovac.disconnect(); } catch (e) { /* nic */ }
+    nahladSledovac = null;
+    if (!el) return;
+    try {
+      if (!window.IntersectionObserver) { track('oprava_nahlad', data); return; }
+      let videny = false;
+      nahladSledovac = new IntersectionObserver((entries) => {
+        entries.forEach((en) => {
+          if (en.isIntersecting && !videny) {
+            videny = true;
+            track('oprava_nahlad', data);
+            if (nahladSledovac) nahladSledovac.disconnect();
+          }
+        });
+      }, { threshold: 0.5 });
+      nahladSledovac.observe(el);
+    } catch (e) { /* meranie nesmie zhodit nastroj */ }
+  }
 
   /* Ponuka smie pomenovat len pravidlo, ktore diagnoza v tomto subore naozaj
      nahlasila (bod 2 planu zo 17. 9. 2026). Vlavo je oprava z oprava.mjs,
@@ -1246,6 +1405,7 @@
   }
   function ukazOpravu(cfg, vysledok) {
     if (!opravaBox) return;
+    sledujNahlad(null);
     // Ponuka za 29 € az po najdenej chybe: pri cistom subore nie je co
     // opravovat a ponuka za zelenym verdiktom je len reklama. Udalost
     // chyba_najdena posiela renderResult, ktory bezi pred tymto volanim.
@@ -1274,7 +1434,10 @@
     const kodyHtml = '<p class="prip-text">' + esc(UI.opravaKodyNadpis) + '</p><ul class="oprava-kody">'
       + polozky.map((x) => '<li>' + esc(x.text) + '</li>').join('') + '</ul>';
     const co = opravaMoznaTxt(p);
-    if (opravaZaplatene) {
+    const odtlacok = odtlacokXml(cfg.xml);
+    const rozhodnutie = rozhodniOpravu(opravaZaplatene, opravaViazane, odtlacok);
+    if (rozhodnutie === 'viazat') { opravaViazane = odtlacok; ulozViazanie(opravaSession, odtlacok); }
+    if (rozhodnutie === 'viazat' || rozhodnutie === 'stiahnut') {
       opravaBox.innerHTML = '<p class="prip-nadpis">' + esc(UI.opravaHotovo) + '</p>'
         + '<p class="prip-text">' + esc(UI.opravaHotovoText(co)) + (p.rucne ? ' ' + esc(UI.opravaRucne(p.rucne)) : '') + '</p>'
         + '<div class="cta"><button type="button" class="btn btn-solid" id="oprava-stiahnut">' + esc(UI.opravaStiahnut) + '</button></div>'
@@ -1285,15 +1448,21 @@
     }
     const opravaLink = opravaLinkNow();
     if (!opravaLink) { opravaBox.hidden = true; return; }
-    opravaBox.innerHTML = '<p class="prip-nadpis">' + esc(UI.opravaNadpis(moznych)) + '</p>'
+    // Pred platbou: nahlad len z nahladOpravy (najviac 3 dvojice), nikdy cely opraveny subor.
+    const nahlad = nahladOpravy(fx, NAHLAD_STROP);
+    const vzor = String(cfg.xml || '').trim() === SAMPLE_XML.trim();
+    opravaBox.innerHTML = (rozhodnutie === 'inySubor' ? '<p class="prip-text">' + esc(UI.opravaInySubor) + '</p>' : '')
+      + '<p class="prip-nadpis">' + esc(UI.opravaNadpis(moznych)) + '</p>'
       + kodyHtml
+      + nahladHtml(nahlad, UI, vzor, esc)
       + '<p class="prip-text">' + esc(UI.opravaText(co)) + (p.rucne ? ' ' + esc(UI.opravaRucne(p.rucne)) : '') + '</p>'
       + '<label class="oprava-suhlas"><input type="checkbox" id="oprava-suhlas"> <span>' + esc(UI.opravaSuhlas) + '</span></label>'
       + '<div class="cta"><button type="button" class="btn btn-solid" id="oprava-kupit" data-umami-event-kod="' + esc(hlavnyKod) + '" data-umami-event-pocet="' + hlavnyPocet + '" disabled>' + esc(UI.opravaTlacidlo) + '</button></div>'
-      + '<p class="fineprint">' + esc(UI.opravaDrobne) + '</p>';
+      + '<p class="fineprint">' + esc(UI.opravaDrobne) + (VRATENIE_ZAPNUTE ? ' ' + esc(UI.opravaVratenie) : '') + '</p>';
     opravaBox.hidden = false;
     track('oprava_zobrazena', { n: moznych, jazyk: JAZYK });
     track('oprava_ponuka_zobrazena', { kod: hlavnyKod, pocet: hlavnyPocet, n: moznych, produkt: 'sepa', jazyk: JAZYK });
+    sledujNahlad(opravaBox.querySelector('#oprava-nahlad'), { n: Math.min(nahlad.dvojice.length, NAHLAD_STROP), spolu: nahlad.spolu, vzor: vzor, kod: hlavnyKod, produkt: 'sepa', jazyk: JAZYK });
     const chk = opravaBox.querySelector('#oprava-suhlas');
     const btn = opravaBox.querySelector('#oprava-kupit');
     chk.addEventListener('change', () => { btn.disabled = !chk.checked; });
@@ -1316,20 +1485,35 @@
       const r = await fetch(OPRAVA_API + '/v1/kontrola/status?session_id=' + encodeURIComponent(sid), { method: 'GET' });
       st = await r.json();
     } catch (e) { st = null; }
-    if (!st || !st.paid) {
+    const posudok = posudOpravu(st, Date.now());
+    if (posudok === 'nezaplatene') {
       opravaBox.innerHTML = '<p class="prip-text">' + esc(UI.opravaNezaplatene) + '</p>';
       return;
     }
+    if (posudok === 'vyprsane') {
+      // Zaplatené, ale pred viac než 24 hodinami: starý odkaz nič nevydá
+      // a nepočíta sa ani ako nová platba v meraní.
+      opravaBox.innerHTML = '<p class="prip-text">' + esc(UI.opravaVyprsane) + '</p>';
+      track('oprava_vyprsana', { produkt: 'sepa', jazyk: JAZYK });
+      return;
+    }
     track('platba_hotova', { produkt: 'sepa', jazyk: JAZYK, cena: st.amount_total });
-    if (typeof st.amount_total === 'number' && st.amount_total >= 14900) {
+    if (posudok === 'kontrola') {
       // Toto je relácia kontroly za 149 €: patrí na stránku nahrania.
       window.location.href = UI.ponukaUrl.replace(/\/$/, '') + '/nahrat/?session_id=' + encodeURIComponent(sid);
       return;
     }
+    if (posudok !== 'oprava') {
+      opravaBox.innerHTML = '<p class="prip-text">' + esc(UI.opravaInaSuma) + '</p>';
+      return;
+    }
     opravaZaplatene = true;
+    opravaViazane = nacitajViazanie(sid);
     let ulozene = null;
     try { ulozene = JSON.parse(sessionStorage.getItem(OPRAVA_KLUC) || 'null'); } catch (e) { ulozene = null; }
     if (ulozene && typeof ulozene.xml === 'string' && ulozene.xml.length) {
+      // Súbor, pre ktorý sa kupovalo, je jediný, ktorý táto platba opraví.
+      if (!opravaViazane) { opravaViazane = odtlacokXml(ulozene.xml); ulozViazanie(sid, opravaViazane); }
       configToForm({ xml: ulozene.xml, bank: ulozene.bank || 'generic', expectedTxCount: null });
       runDiagnose();
       try { sessionStorage.removeItem(OPRAVA_KLUC); } catch (e) { /* nič */ }
