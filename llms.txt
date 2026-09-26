@@ -28,7 +28,22 @@ Static HTML plus one dependency-free JavaScript file, `doctor-pain001.js`. All c
 
 ## Free check, paid options
 
-The check is free. Two paid options exist: an automatic fix of the file in the browser (addresses split into fields, country codes, IBAN without spaces, recalculated totals) for 29 EUR per file, VAT included, paid by card through Stripe Managed Payments, where Link (Sold through Link, LLC) is the merchant of record and sends the receipt; and a SEPA file check by a person for 149 EUR, ordered through the form at https://arling.sk/kontrola-suboru/en/, invoiced by ARLing s. r. o. only after the corrected file and a written report are delivered, paid by bank transfer, not through Stripe. Details: https://arling.sk/podmienky/en/ (section 7). Neither the fix nor the check guarantees that the bank accepts the file.
+The check is free. Two paid options exist: an automatic fix of the file in the browser for 29 EUR per file, and a SEPA file check by a person for 149 EUR.
+
+## Automatic fix, 29 EUR per file
+
+- What it changes, and nothing else: (a) free-text `AdrLine` addresses split into structured fields (`StrtNm`, `BldgNb`, `PstCd`, `TwnNm`, `Ctry`) per the EPC rules, only when the split is unambiguous; (b) country names turned into ISO codes; (c) spaces removed from IBANs; (d) `NbOfTxs` and `CtrlSum` recalculated. When a change is not unambiguous, the item stays as it is and is listed for you to decide.
+- Offered only after the free diagnosis finds such a problem. Before paying you see a preview of up to 3 changes (before and after) computed on your own file.
+- The fix runs in your browser; the file is never sent to ARLing.
+- Price: 29 EUR, VAT included, one file, downloadable for 24 hours after payment. Paid by card through Stripe Managed Payments, where Link (Sold through Link, LLC) is the merchant of record and sends the receipt.
+- Refund: if your bank rejects the corrected file because of an error the fix changed, send us the message from your bank within 14 days and we will refund the 29 EUR. If the file does not download or is fixed wrongly, write to support@arling.sk and we fix it by hand or refund.
+- Try it: https://arling.sk/sepa-pain001-doctor/en/
+
+## File check by a person, 149 EUR
+
+Ordered through the form at https://arling.sk/kontrola-suboru/en/, invoiced by ARLing s. r. o. only after the corrected file and a written report are delivered, paid by bank transfer, not through Stripe.
+
+Details: https://arling.sk/podmienky/en/ (section 7). Neither the fix nor the check guarantees that the bank accepts the file.
 
 ## Privacy
 
