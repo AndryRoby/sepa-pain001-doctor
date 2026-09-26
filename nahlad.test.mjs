@@ -213,10 +213,10 @@ for (const stranka of STRANKY) {
     }
   });
 
-  test(stranka + ': veta o vrateni 29 EUR je pripravena, ale skryta, kym ju Andrej neschvali', () => {
+  test(stranka + ': veta o vrateni 29 EUR je zapnuta (Fable rozhodol 26. 9. na Andrejovo rozhodni Ty)', () => {
     assert.equal((HTML.match(/UI\.opravaVratenie/g) || []).length, 1, 'veta o vrateni sa pouziva na viac miestach');
     assert.ok(HTML.includes("(VRATENIE_ZAPNUTE ? ' ' + esc(UI.opravaVratenie) : '')"), 'veta o vrateni nie je za konstantou');
-    // Po Andrejovom ano zmenit na true aj tu (ops/strategia/2026-09-24/napady/top-10.md, bod 1).
-    assert.ok(HTML.includes('const VRATENIE_ZAPNUTE = false;'), 'vratenie penazi je zapnute bez schvalenia');
+    // 26. 9. 2026: Andrej zveril rozhodnutie Fable (ops/ai/rozhodnutia.md), vratenie je zapnute.
+    assert.ok(HTML.includes('const VRATENIE_ZAPNUTE = true;'), 'vratenie penazi nie je zapnute');
   });
 }
