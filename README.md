@@ -1,19 +1,28 @@
 # SEPA pain.001 Doctor
 
-Checks a SEPA `pain.001.001.03` XML batch payment file (hromadný príkaz na úhradu) against the published import rules of Tatra banka, Slovenská sporiteľňa (SLSP), VÚB, and ČSOB, and points at the exact element and value that will get it rejected.
+SEPA pain.001 Doctor is a free browser tool for accountants and companies whose bank rejected a SEPA `pain.001.001.03` XML batch payment file (hromadný príkaz na úhradu): it checks the file against the published import rules of Tatra banka, Slovenská sporiteľňa (SLSP), VÚB and ČSOB and points at the exact element and value that will get it rejected. The check is free; if you want the file fixed, the tool can repair addresses, country codes, IBAN spaces and totals in your browser for 29 € per file, or you can order a SEPA file check by a person for 149 €, invoiced only after delivery and paid by bank transfer.
 
-Live: https://arling.sk/sepa-pain001-doctor/
+Live: https://arling.sk/sepa-pain001-doctor/ (Slovak) · https://arling.sk/sepa-pain001-doctor/en/ (English) · https://arling.sk/sepa-pain001-doctor/de/ (German)
 
 All four banks say they accept "pain.001." Each one enforces a different subset of fixed values, length limits, and an execution-date window on top of the same nominal schema, and none of them tell you which rule you broke when the internet-banking import screen just says "chyba." This tool cross-checks your file against what's actually written in each bank's own technical documentation.
 
+## Free check, 29 € fix, 149 € file check
+
+- **Free diagnosis, no limit, no account.** Paste the file, pick the bank, get every problem with its element, value and suggested fix. Nothing is uploaded.
+- **Automatic fix, 29 € per file (VAT included).** When the diagnosis finds problems the tool can repair (unstructured addresses split into fields per the EPC rules for a structured address, country names turned into codes, IBANs without spaces, recalculated control totals), the page shows a preview of the changes and offers the corrected XML for 29 €. The fix runs in your browser and the file is never sent to us. It covers the one file you paid for, downloadable for 24 hours after payment. Before paying you agree to immediate delivery of digital content and acknowledge that you lose the right of withdrawal. If the file does not download after payment or is fixed wrongly, write to support@arling.sk and we fix it by hand or refund (terms, section 7). The fix is paid through Stripe Managed Payments: the merchant of record is Link (Sold through Link, LLC), which sends the receipt and the invoice.
+- **SEPA file check by a person, 149 €, final price with no further fees, once, no subscription.** For errors the automatic fix cannot repair, for example a wrong bank BIC. You order through the form at https://arling.sk/kontrola-suboru/en/, we reply by e-mail with instructions for sending the file, and within 24 hours of receiving it you get the corrected file and a written report for your software vendor. You pay nothing upfront and Stripe is not used: ARLing s. r. o. invoices 149 € only after delivery, payable by bank transfer. If we do not deliver within 24 hours or cannot fix the file, there is no invoice.
+
+Details: terms of use, section 7, https://arling.sk/podmienky/en/. Your bank decides whether it accepts a file; neither the fix nor the check guarantees acceptance.
+
 ## What it checks
 
-`doctor-pain001.js` runs about 55 distinct checks, grouped here by where in the file they apply. Every check maps to one problem `code` in the engine.
+`doctor-pain001.js` knows 65 distinct problem codes (counted in the engine on 26 September 2026), grouped here by where in the file they apply. Every check maps to one problem `code` in the engine.
 
 **File / structure**
 - Empty input, or XML that isn't well-formed (`xml_empty`, `xml_not_well_formed`).
 - Missing `<Document>` or `<CstmrCdtTrfInitn>` root, no `<PmtInf>` block, no `<CdtTrfTxInf>` transaction (`root_missing`, `pmt_inf_missing`, `cdt_trf_tx_inf_missing`).
-- Schema namespace not `urn:iso:std:iso:20022:tech:xsd:pain.001.001.03`: missing, or a newer version like `pain.001.001.09` that these banks' batch import doesn't target (`schema_namespace_missing`, `schema_namespace_unexpected`).
+- Schema namespace missing, or neither `pain.001.001.03` nor `pain.001.001.09` (`schema_namespace_missing`, `schema_namespace_unexpected`).
+- `pain.001.001.09` is a valid message version, so it only gets a low-severity note that Slovak banks' batch import mostly still expects `.03` (`schema_namespace_09_skoro`). A second note, that `.03` should move to `.09`, is built in but switches on only once a cut-off date is set in the engine (`TERMIN_ADRESY`, today `null`), so it does not fire now (`schema_namespace_03_po_termine`).
 
 **Group header (`GrpHdr`)**
 - `MsgId` over 35 characters, or outside the SEPA character set (`msg_id_too_long`, `invalid_sepa_character`).
@@ -50,6 +59,12 @@ All four banks say they accept "pain.001." Each one enforces a different subset 
 - A Slovak creditor IBAN that passes the international MOD-97 checksum but fails the domestic **modulo-11** check on its last 10 digits (`cdtr_iban_sk_modulo11_failed`).
 - `CdtrAgt/FinInstnId/BIC` handling, which genuinely differs by bank: required at VÚB (`cdtr_bic_missing_required`), derivable from a valid SEPA IBAN at Tatra banka, optional since 1 Feb 2016 at ČSOB, malformed (`cdtr_bic_format_invalid`), or not matching the bank implied by a Slovak IBAN's 4-digit bank code (`cdtr_bic_mismatch_iban`).
 
+**Postal addresses (`PstlAdr` of debtor and creditor)**
+- Address written only as free text in `AdrLine`, with no structured fields (`adresa_nestrukturovana`). The SEPA rules still allow it today, so this is a medium-severity recommendation to add at least the town (`TwnNm`) and the country code (`Ctry`); the EPC postponed the end of unstructured addresses on 9 September 2026 and has not set a new date yet. Once a date is set in the engine (`TERMIN_ADRESY`), the severity rises to high.
+- Structured address missing the town or the country code, the minimum of every structured and hybrid address under the EPC rules (`adresa_bez_mesta_alebo_krajiny`).
+- Hybrid address with more than two `AdrLine` rows (`adresa_prilis_vela_riadkov`, low severity).
+- `Ctry` that is not a two-letter ISO 3166-1 code, for example `Slovensko` instead of `SK` (`adresa_zly_kod_krajiny`, high severity).
+
 **Amount**
 - `Amt/InstdAmt` missing, in a currency other than `EUR`, not a valid number, zero or negative, or with more than 2 decimal places (`amount_missing`, `amount_currency_invalid`, `amount_format_invalid`, `amount_non_positive`).
 
@@ -68,7 +83,7 @@ All four banks say they accept "pain.001." Each one enforces a different subset 
 - It is a **format/config checker**, not a live tester: it never talks to a bank, an API, or your actual account, and it doesn't know whether your account has funds or whether the creditor account exists.
 - A clean ("pass") result means no rule from the list above is broken: it is not a guarantee your bank will accept the file. Banks can change their requirements at any time.
 - It does not upload, store, or transmit your XML anywhere. There is no backend to send it to.
-- No account, no login, no payment wall.
+- No account and no login. The diagnosis is free; paid are only the optional automatic fix (29 €) and the separate file check by a person (149 €, invoiced after delivery).
 - SLSP has no full published field-level pain.001 spec the way the other three banks do, so its checks are thinner by necessity: see the FAQ in [`llms-full.txt`](llms-full.txt) for exactly what is and isn't covered.
 
 ## How it works
@@ -147,18 +162,18 @@ python -m http.server 8000
 node tests.mjs
 ```
 
-150 assertions, run against `doctor-pain001.js` directly (no browser, no DOM): as of this writing: **150 passed, 0 failed.**
+Assertions run against `doctor-pain001.js` directly (no browser, no DOM). Last run on 26 September 2026: **171 passed, 0 failed.**
 
 ## Privacy
 
-Everything runs client-side in your browser: there is no backend, no account, and nothing about the XML you paste: no IBANs, no names, no amounts: is ever sent anywhere. Product analytics are handled by a self-hosted Umami instance without cookies, recording only anonymous event counts (page view, "run check" clicked), never file content. The optional email signup for new-tool announcements is opt-in and unrelated to analytics; full details at https://arling.sk/privacy/.
+Everything runs client-side in your browser: there is no backend for the check or the automatic fix, no account, and nothing about the XML you paste (no IBANs, no names, no amounts) is ever sent anywhere. Only if you order the 149 € file check do you send us the file yourself, following the instructions in our e-mail; we use it only for that check and delete it at the latest 30 days after delivery. Product analytics are handled by a self-hosted Umami instance without cookies, recording only anonymous event counts (page view, "run check" clicked), never file content. The optional email signup for new-tool announcements is opt-in and unrelated to analytics; full details at https://arling.sk/privacy/.
 
 ## Sources
 
 Every bank-specific rule above is sourced from that bank's own published documentation, quoted or paraphrased inline in the engine's checks:
 
 - Tatra banka: *Prenosový formát pain.001.001.03 v štruktúre XML*: https://www.tatrabanka.sk/files/sk/personal/ucet-platby/elektronicke-bankovnictvo/internet-banking/davkove-platby/prenosovy_formatpain001.pdf
-- VÚB: *Popis formátu pre SEPA úhrady – SCT*: https://app.vub.sk/source/files/vubweb/sekundarna-navigacia/informacny-servis/sepa-aplikacie/sct_klient_f.pdf
+- VÚB: *Popis formátu pre SEPA úhrady, SCT*: https://app.vub.sk/source/files/vubweb/sekundarna-navigacia/informacny-servis/sepa-aplikacie/sct_klient_f.pdf
 - ČSOB: *BusinessBanking Lite a SEPA* (20.08.2015): https://www.csob.sk/documents/11005/123723/BB_SEPA_01022016.pdf
 - Slovenská sporiteľňa (SLSP): Business24's own published requirement that instant SEPA routing needs `LclInstrm/Cd = INST`; SLSP does not publish a full field-level pain.001 spec the way the three banks above do, so no single PDF is cited here.
 - ISO 20022 `pain.001.001.03` base schema: https://www.iso20022.org/
@@ -168,7 +183,7 @@ Full citations, section by section, are in the header comment of [`doctor-pain00
 
 ## Report a problem
 
-Found a Tatra banka / SLSP / VÚB / ČSOB pain.001 rejection this tool doesn't catch, or a check that flags something that's actually fine? Open an issue: https://github.com/AndryRoby/sepa-pain001-doctor/issues, or write to andrej@arling.sk. Include which bank, the bank's exact (redacted) error, and the relevant part of your XML with IBANs, names, and amounts replaced by placeholders: issues are public.
+Found a Tatra banka / SLSP / VÚB / ČSOB pain.001 rejection this tool doesn't catch, or a check that flags something that's actually fine? Open an issue: https://github.com/AndryRoby/sepa-pain001-doctor/issues, or write to support@arling.sk. Include which bank, the bank's exact (redacted) error, and the relevant part of your XML with IBANs, names, and amounts replaced by placeholders: issues are public.
 
 ## License
 
@@ -176,7 +191,7 @@ All rights reserved: see [`LICENSE-NOTICE.md`](LICENSE-NOTICE.md). Reading the c
 
 ---
 
-ARLing s. r. o., Bratislava, Slovakia. andrej@arling.sk
+ARLing s. r. o., Bratislava, Slovakia. support@arling.sk
 
 More free tools: https://arling.sk/
 
@@ -190,4 +205,4 @@ Sibling tools:
 
 ## Slovensky (skrátene)
 
-SEPA pain.001 Doctor je bezplatný nástroj, ktorý skontroluje váš XML súbor s hromadným príkazom na úhradu (`pain.001.001.03`) oproti verejne publikovaným požiadavkám Tatra banky, Slovenskej sporiteľne, VÚB a ČSOB: a povie presne, ktorý element a hodnota spôsobí zamietnutie pri importe. Beží celé v prehliadači, nič sa nikam neposiela, nie je potrebný účet. Vyskúšať: https://arling.sk/sepa-pain001-doctor/. Nástroj nie je banka a nič neoveruje voči vášmu skutočnému účtu: čistý výsledok nie je zárukou, že banka platbu prijme. Chybu alebo chýbajúci prípad nahláste cez GitHub issues alebo na andrej@arling.sk.
+SEPA pain.001 Doctor je bezplatný nástroj, ktorý skontroluje váš XML súbor s hromadným príkazom na úhradu (`pain.001.001.03`) oproti verejne publikovaným požiadavkám Tatra banky, Slovenskej sporiteľne, VÚB a ČSOB: a povie presne, ktorý element a hodnota spôsobí zamietnutie pri importe. Beží celé v prehliadači, nič sa nikam neposiela, nie je potrebný účet. Vyskúšať: https://arling.sk/sepa-pain001-doctor/. Nástroj nie je banka a nič neoveruje voči vášmu skutočnému účtu: čistý výsledok nie je zárukou, že banka platbu prijme. Kontrola je zadarmo; automatická oprava súboru v prehliadači stojí 29 € za súbor a kontrola súboru človekom 149 € (objednávka formulárom, faktúra až po dodaní, platba prevodom). Chybu alebo chýbajúci prípad nahláste cez GitHub issues alebo na support@arling.sk.

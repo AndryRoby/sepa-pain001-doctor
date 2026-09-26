@@ -8,9 +8,9 @@ Apache, GPL, etc.).
 You are welcome to:
 
 - Use the hosted tool at https://arling.sk/sepa-pain001-doctor/
-  freely, for any purpose, personal or commercial, at no cost.
+  freely, for any purpose, personal or commercial, the check at no cost; the optional automatic file fix (29 €) is paid.
 - Read the source of `index.html` / `doctor-pain001.js` to understand
-  or verify what it does client-side (it's static files — view source
+  or verify what it does client-side (it's static files: view source
   is the whole codebase).
 
 You are **not** granted rights to:
@@ -22,8 +22,8 @@ You are **not** granted rights to:
 
 If you want to do something with the code beyond using the hosted tool
 as intended (e.g. embed a derivative internally, contribute a fix,
-translate it, or anything not covered above), just ask —
-andrej@arling.sk. Reasonable requests (bug fixes, accessibility
+translate it, or anything not covered above), just ask :
+support@arling.sk. Reasonable requests (bug fixes, accessibility
 improvements, adding a missing bank rule) are generally welcome; this
 notice exists to prevent silent repackaging, not to block
 collaboration.
