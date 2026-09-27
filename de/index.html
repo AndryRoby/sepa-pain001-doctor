@@ -409,11 +409,11 @@
         <a class="btn btn-line" href="https://github.com/AndryRoby/sepa-pain001-doctor" target="_blank" rel="noopener" data-umami-event="github_source">Quellcode auf GitHub</a>
       </div>
       <ul class="facts proof r d5">
-        <li><b>4</b> Banken: Tatra banka, SLSP, VÚB, ČSOB</li>
+        <li>Schema <b>ISO 20022</b> und EPC-Regeln, für jede Bank</li>
         <li class="lineend"><b>160+</b> automatisierte Tests</li>
         <li class="brk" aria-hidden="true"></li>
-        <li><b>0 €</b>, ohne Konto</li>
-        <li>läuft in Ihrem Browser</li>
+        <li><b>0 €</b> für die Prüfung, ohne Konto</li>
+        <li><b>29 €</b> für die automatisch korrigierte Datei</li>
       </ul>
     </div>
 
@@ -445,16 +445,16 @@
 
             <div id="form-pane">
               <div class="form-section">
-                <div class="form-section-title">Nastavenia</div>
+                <div class="form-section-title">Einstellungen</div>
                 <div class="field-grid">
                   <div class="field">
                     <label for="f-bank">Bank (Zielimport)</label>
                     <select id="f-bank">
-                      <option value="tatrabanka">Tatra banka</option>
-                      <option value="slsp">Slovenská sporiteľňa (SLSP)</option>
-                      <option value="vub">VÚB</option>
-                      <option value="csob">ČSOB</option>
-                      <option value="generic">andere, nicht aufgeführte Bank</option>
+                      <option value="generic" selected>meine Bank (allgemeine EPC-Regeln)</option>
+                      <option value="tatrabanka">Tatra banka (Slowakei)</option>
+                      <option value="slsp">Slovenská sporiteľňa (Slowakei)</option>
+                      <option value="vub">VÚB (Slowakei)</option>
+                      <option value="csob">ČSOB (Slowakei)</option>
                     </select>
                   </div>
                   <div class="field">
