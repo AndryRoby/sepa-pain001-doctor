@@ -44,7 +44,7 @@ Details: terms of use, section 7, https://arling.sk/podmienky/en/. Your bank dec
 - Different across `PmtInf` blocks in the same file at Tatra banka, which requires one shared date (`exec_date_differs_across_pmtinf`).
 
 **Batch size**
-- Over 500 transactions in one `PmtInf` block at Tatra banka: its own documented cap: or a lower-severity advisory for other banks (`pmt_inf_tx_count_exceeded`, `pmt_inf_tx_count_exceeded_generic`).
+- Over 500 transactions in the whole file at Tatra banka ("Max. 500 transakcií v súbore", counted across all `PmtInf` blocks, `file_tx_count_exceeded`), or a lower-severity advisory for other banks when one `PmtInf` block has over 500 (`pmt_inf_tx_count_exceeded_generic`).
 - Over 5,000 transactions total, or a file over ~1 MB (`too_many_transactions_generic`, `file_too_large`).
 - An optional expected-transaction-count you supply not matching what the file actually contains, in case an export was cut short or duplicated (`expected_tx_count_mismatch`).
 

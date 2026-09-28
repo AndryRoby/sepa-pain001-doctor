@@ -336,17 +336,70 @@ function run(spec, bank, expectedTxCount, dnes) {
   has('PmtMtd != TRF: reports pmt_mtd_invalid', r.problems, 'pmt_mtd_invalid');
   eq('PmtMtd fix is TRF', fixOf(r.problems, 'pmt_mtd_invalid'), 'TRF');
 }
-{
+// Z-46: Tatra banka píše "Max. 500 transakcií v súbore" (PDF strana 3), teda
+// limit za celý súbor. Syntetický IBAN príjemcu: VÚB 0200, účet z núl a 27
+// (modulo 11 prejde), kontrolné číslice vypočítané.
+function syntetickyIban(krajina, bban) {
+  const cisla = (bban + krajina + '00').replace(/[A-Z]/g, (c) => String(c.charCodeAt(0) - 55));
+  let zvysok = 0;
+  for (const c of cisla) zvysok = (zvysok * 10 + Number(c)) % 97;
+  return krajina + String(98 - zvysok).padStart(2, '0') + bban;
+}
+const SYNT_IBAN_VUB = syntetickyIban('SK', '0200' + '000000' + '0000000027');
+function syntTx(count, od) {
+  const out = [];
+  for (let k = 0; k < count; k++) {
+    out.push({ endToEndId: 'E2E-' + ((od || 0) + k), amount: '1.00', ccy: 'EUR', cdtrNm: 'Prijemca', cdtrIban: SYNT_IBAN_VUB, cdtrBic: 'SUBASKBX' });
+  }
+  return out;
+}
+function limitSpec(bloky) {
   const spec = clone(PASS_SPEC);
-  spec.pmtInf[0].tx = manyTx(501);
-  spec.nbOfTxs = 501;
-  spec.ctrlSum = '501.00';
-  const r = run(spec, 'tatrabanka');
-  has('501 tx at Tatra banka: reports pmt_inf_tx_count_exceeded', r.problems, 'pmt_inf_tx_count_exceeded');
-  eq('501 tx: severity high', severityOf(r.problems, 'pmt_inf_tx_count_exceeded'), 'high');
-  const r2 = run(clone(spec), 'vub');
-  lacks('501 tx at another bank: no hard pmt_inf_tx_count_exceeded', r2.problems, 'pmt_inf_tx_count_exceeded');
+  const vzor = spec.pmtInf[0];
+  let od = 0;
+  spec.pmtInf = bloky.map((n, i) => {
+    const b = clone(vzor);
+    b.pmtInfId = 'PMT-' + (i + 1);
+    b.tx = syntTx(n, od);
+    od += n;
+    return b;
+  });
+  spec.nbOfTxs = od;
+  spec.ctrlSum = od + '.00';
+  return spec;
+}
+const kodyZ = (r) => r.problems.map((p) => p.code);
+{
+  eq('synthetic creditor IBAN is computed', SYNT_IBAN_VUB.length, 24);
+  const r = run(limitSpec([300, 300]), 'tatrabanka');
+  has('2 blocks x 300 at Tatra banka: reports file_tx_count_exceeded', r.problems, 'file_tx_count_exceeded');
+  eq('2 x 300: severity high', severityOf(r.problems, 'file_tx_count_exceeded'), 'high');
+  eq('2 x 300: status fail', r.status, 'fail');
+  ok('2 x 300: message names 600 and the per-file limit', /600/.test(r.problems.find((p) => p.code === 'file_tx_count_exceeded').message) && /súbore/.test(r.problems.find((p) => p.code === 'file_tx_count_exceeded').message));
+  const rEn = diagnose({ xml: buildPain001(limitSpec([300, 300])), bank: 'tatrabanka', lang: 'en', dnes: DNES_PRED });
+  ok('2 x 300: English message says per file', /500 transactions in one file/.test(rEn.problems.find((p) => p.code === 'file_tx_count_exceeded').message));
+  const rDe = diagnose({ xml: buildPain001(limitSpec([300, 300])), bank: 'tatrabanka', lang: 'de', dnes: DNES_PRED });
+  ok('2 x 300: German message says per file', /500 Transaktionen in einer Datei/.test(rDe.problems.find((p) => p.code === 'file_tx_count_exceeded').message));
+  lacks('2 x 300 at VÚB: no Tatra limit (VÚB PDF has none)', run(limitSpec([300, 300]), 'vub').problems, 'file_tx_count_exceeded');
+  lacks('2 x 300 at VÚB: no block advisory either', run(limitSpec([300, 300]), 'vub').problems, 'pmt_inf_tx_count_exceeded_generic');
+}
+{
+  const r = run(limitSpec([500]), 'tatrabanka');
+  lacks('1 block x 500 at Tatra banka: no file_tx_count_exceeded', r.problems, 'file_tx_count_exceeded');
+  eq('1 x 500: status pass', r.status, 'pass');
+  eq('1 x 500: zero problems', r.problems.length, 0);
+  const r2 = run(limitSpec([250, 250]), 'tatrabanka');
+  eq('2 x 250 at Tatra banka: exactly 500 in file is ok', kodyZ(r2).includes('file_tx_count_exceeded'), false);
+}
+{
+  const r = run(limitSpec([501]), 'tatrabanka');
+  has('501 tx at Tatra banka: reports file_tx_count_exceeded', r.problems, 'file_tx_count_exceeded');
+  eq('501 tx: severity high', severityOf(r.problems, 'file_tx_count_exceeded'), 'high');
+  eq('501 tx: reported once, not per block too', kodyZ(r).filter((k) => k.indexOf('tx_count_exceeded') >= 0).length, 1);
+  const r2 = run(limitSpec([501]), 'vub');
+  lacks('501 tx at another bank: no hard file_tx_count_exceeded', r2.problems, 'file_tx_count_exceeded');
   has('501 tx at another bank: informational pmt_inf_tx_count_exceeded_generic', r2.problems, 'pmt_inf_tx_count_exceeded_generic');
+  ok('generic advisory cites the per-file Tatra limit', /v jednom súbore/.test(r2.problems.find((p) => p.code === 'pmt_inf_tx_count_exceeded_generic').message));
 }
 {
   const spec = clone(PASS_SPEC);
