@@ -2,7 +2,7 @@
 
 > Free, client-side checker that finds why a SEPA pain.001 XML batch payment file (hromadný príkaz na úhradu) gets rejected by Tatra banka, Slovenská sporiteľňa (SLSP), VÚB, or ČSOB internet banking, and gives the exact bank rule it violates: instead of a bare "chyba" with no detail.
 
-Paste your `pain.001.001.03` XML, pick the target bank, and it parses the file and cross-checks it against that specific bank's own published import requirements: every rule below is sourced from the bank's own technical documentation, not a generic ISO 20022 reading. No account, no backend, nothing you paste leaves your browser.
+Paste your `pain.001.001.03` XML, pick the target bank, and it parses the file and cross-checks it against that specific bank's own published import requirements: every rule below is sourced from the bank's own technical documentation, not a generic ISO 20022 reading. No account, no backend, nothing you paste leaves your browser. One exception: if you choose to have the result emailed, only your email address and the finding codes with counts leave the browser, never the file.
 
 ## Why one "pain.001" isn't enough
 
@@ -35,7 +35,7 @@ Slovak and Czech accountants, ERP/e-shop developers, and business owners whose a
 
 ## How it works
 
-Static HTML plus one dependency-free JavaScript file, `doctor-pain001.js`. The page parses the XML you paste and runs the checks above entirely client-side. There is no backend, no upload, and no request that carries your payment data anywhere: read `index.html` and `doctor-pain001.js` directly to verify.
+Static HTML plus one dependency-free JavaScript file, `doctor-pain001.js`. The page parses the XML you paste and runs the checks above entirely client-side. There is no backend, no upload, and no request that carries your payment data anywhere: read `index.html` and `doctor-pain001.js` directly to verify. One exception: if you choose to have the result emailed, only your email address and the finding codes with counts leave the browser, never the file.
 
 ## Free check, paid options
 

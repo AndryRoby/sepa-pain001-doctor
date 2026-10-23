@@ -476,6 +476,7 @@ body.noc.posunute header{background:rgba(10,9,8,.72);border-bottom-color:var(--l
   :root:has(header.site-header){--hlavicka:calc(61px + env(safe-area-inset-top,0px))}
   :root:has(header.site-header .site-page-links){--hlavicka:calc(98px + env(safe-area-inset-top,0px))}}
 body.noc main{padding-top:var(--hlavicka)}
+body.noc main>.wrap>article{padding-top:clamp(32px,4vw,48px)}
 body.noc section{padding-top:clamp(56px,8vw,112px);padding-bottom:clamp(56px,8vw,112px)}
 @media (hover:none){
   .btn-line:hover{background:transparent;color:var(--ink)}

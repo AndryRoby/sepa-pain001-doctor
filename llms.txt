@@ -2,7 +2,7 @@
 
 > Free, client-side checker that finds why a SEPA pain.001 XML batch payment file (hromadný príkaz na úhradu) gets rejected by Tatra banka, Slovenská sporiteľňa (SLSP), VÚB, or ČSOB internet banking, and gives the exact bank rule it violates.
 
-Paste your `pain.001.001.03` XML and pick the target bank, and it cross-checks the file against that bank's own published import requirements: no account, no backend, nothing you paste leaves your browser.
+Paste your `pain.001.001.03` XML and pick the target bank, and it cross-checks the file against that bank's own published import requirements: no account, no backend for the check, nothing from the file you paste leaves your browser.
 
 ## What it checks
 
@@ -24,7 +24,7 @@ Slovak/Czech accountants, ERP and e-shop developers, and business owners whose a
 
 ## How it works
 
-Static HTML plus one dependency-free JavaScript file, `doctor-pain001.js`. All checks run in your browser against the XML you paste; the tool has no backend and makes no request that carries your payment data anywhere.
+Static HTML plus one dependency-free JavaScript file, `doctor-pain001.js`. All checks run in your browser against the XML you paste; the check has no backend and makes no request that carries your payment data anywhere. If you choose to have the result e-mailed to you (optional, confirmed by a link in a first e-mail), only your address and the finding codes with their counts are sent, never the file, IBANs, names or amounts.
 
 ## Free check, paid options
 
@@ -47,7 +47,7 @@ Details: https://arling.sk/podmienky/en/ (section 7). Neither the fix nor the ch
 
 ## Privacy
 
-No account, no login, no cookies for the tool itself, no server-side processing of your file. The only analytics are anonymous usage counts (event name + count, never IBANs/names/amounts) sent to a self-hosted Umami instance.
+No account, no login, no cookies for the tool itself, no server-side processing of your file. The only analytics are anonymous usage counts (event name + count, never IBANs/names/amounts) sent to a self-hosted Umami instance. Sending the result by e-mail is voluntary: we store your address and the finding codes with counts only until the result e-mail is sent (an unconfirmed request is deleted after 7 days), then the address is deleted (details: https://arling.sk/privacy/en/#vysledok-emailom).
 
 ## Links
 

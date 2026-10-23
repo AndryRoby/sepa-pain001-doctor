@@ -82,7 +82,7 @@ Details: terms of use, section 7, https://arling.sk/podmienky/en/. Your bank dec
 
 - It is a **format/config checker**, not a live tester: it never talks to a bank, an API, or your actual account, and it doesn't know whether your account has funds or whether the creditor account exists.
 - A clean ("pass") result means no rule from the list above is broken: it is not a guarantee your bank will accept the file. Banks can change their requirements at any time.
-- It does not upload, store, or transmit your XML anywhere. There is no backend to send it to.
+- It does not upload, store, or transmit your XML anywhere. There is no backend for the check. If you choose to have the result e-mailed to you, only your address and the finding codes with their counts are sent, never the file.
 - No account and no login. The diagnosis is free; paid are only the optional automatic fix (29 €) and the separate file check by a person (149 €, invoiced after delivery).
 - SLSP has no full published field-level pain.001 spec the way the other three banks do, so its checks are thinner by necessity: see the FAQ in [`llms-full.txt`](llms-full.txt) for exactly what is and isn't covered.
 
@@ -166,7 +166,7 @@ Assertions run against `doctor-pain001.js` directly (no browser, no DOM). Last r
 
 ## Privacy
 
-Everything runs client-side in your browser: there is no backend for the check or the automatic fix, no account, and nothing about the XML you paste (no IBANs, no names, no amounts) is ever sent anywhere. Only if you order the 149 € file check do you send us the file yourself, following the instructions in our e-mail; we use it only for that check and delete it at the latest 30 days after delivery. Product analytics are handled by a self-hosted Umami instance without cookies, recording only anonymous event counts (page view, "run check" clicked), never file content. The optional email signup for new-tool announcements is opt-in and unrelated to analytics; full details at https://arling.sk/privacy/.
+Everything runs client-side in your browser: there is no backend for the check or the automatic fix, no account, and nothing about the XML you paste (no IBANs, no names, no amounts) is ever sent anywhere. Only if you order the 149 € file check do you send us the file yourself, following the instructions in our e-mail; we use it only for that check and delete it at the latest 30 days after delivery. Product analytics are handled by a self-hosted Umami instance without cookies, recording only anonymous event counts (page view, "run check" clicked), never file content. The optional email signup for new-tool announcements is opt-in and unrelated to analytics. Under a real result you can also have that result e-mailed to you: it is voluntary and confirmed by a link in a first e-mail, and only your address and the finding codes with their counts (status, bank, number of payments and addresses) leave the browser, never the XML, IBANs, names or amounts; an unconfirmed request is deleted after 7 days and the address is deleted once the result is sent. Full details at https://arling.sk/privacy/en/#vysledok-emailom.
 
 ## Sources
 
