@@ -135,6 +135,10 @@ const SPRAVY = {
     symbolDlhy: (tx, druh, v, n, max) => tx + ': EndToEndId: ' + druh + '="' + v + '" má ' + n + ' číslic, maximum je ' + max + '.',
     symbolNecislo: (tx, druh, v) => tx + ': EndToEndId: ' + druh + '="' + v + '" obsahuje nečíselné znaky. VS/ŠS/KS sú vždy len číslice.',
     e2eDuplicita: (tx, v, kde) => tx + ': EndToEndId "' + v + '" sa v súbore opakuje (prvýkrát v ' + kde + '). Duplicitné EndToEndId sťažujú párovanie platieb a niektoré banky ich odmietajú.',
+    lomkaZacina: 'začína lomkou',
+    lomkaDve: 'obsahuje dve lomky za sebou',
+    lomkaKonci: 'končí lomkou',
+    lomkaId: (kde, v, co, fix) => kde + ' "' + v + '" ' + co + '. Pravidlo EPC pre referencie a identifikátory (SEPA Credit Transfer Customer-to-PSP Implementation Guidelines, časť 1.4): obsah nesmie začínať ani končiť znakom "/" a nesmie obsahovať "//". Banka môže platbu alebo celý súbor odmietnuť.' + (fix ? ' Návrh: "' + fix + '". Ak túto hodnotu používate na párovanie, zmeňte ju rovnako aj v účtovníctve.' : ''),
     sumaChyba: (tx) => tx + ': Amt/InstdAmt chýba. Suma platby je povinná.',
     sumaMena: (tx, ccy) => tx + ': Amt/InstdAmt má menu "' + ccy + '", pre SEPA úhradu musí byť "EUR".',
     sumaFormat: (tx, v) => tx + ': Amt/InstdAmt "' + v + '" nemá platný formát čísla (očakáva sa napr. "450.00", bodka ako desatinný oddeľovač).',
@@ -243,6 +247,10 @@ const SPRAVY = {
     symbolDlhy: (tx, druh, v, n, max) => tx + ': EndToEndId: ' + druh + '="' + v + '" has ' + n + ' digits, the maximum is ' + max + '.',
     symbolNecislo: (tx, druh, v) => tx + ': EndToEndId: ' + druh + '="' + v + '" contains non-numeric characters. VS/ŠS/KS are always digits only.',
     e2eDuplicita: (tx, v, kde) => tx + ': EndToEndId "' + v + '" repeats in the file (first seen in ' + kde + '). Duplicate EndToEndId values make payment matching harder and some banks reject them.',
+    lomkaZacina: 'starts with a slash',
+    lomkaDve: 'contains two consecutive slashes',
+    lomkaKonci: 'ends with a slash',
+    lomkaId: (kde, v, co, fix) => kde + ' "' + v + '" ' + co + '. EPC rule for references and identifiers (SEPA Credit Transfer Customer-to-PSP Implementation Guidelines, section 1.4): content must not start or end with "/" and must not contain "//". The bank may reject the payment or the whole file.' + (fix ? ' Suggested value: "' + fix + '". If you use this value for reconciliation, change it the same way in your accounting system.' : ''),
     sumaChyba: (tx) => tx + ': Amt/InstdAmt is missing. The payment amount is mandatory.',
     sumaMena: (tx, ccy) => tx + ': Amt/InstdAmt has currency "' + ccy + '", for a SEPA credit transfer it must be "EUR".',
     sumaFormat: (tx, v) => tx + ': Amt/InstdAmt "' + v + '" is not a valid number format (expected for example "450.00", with a dot as the decimal separator).',
@@ -351,6 +359,10 @@ const SPRAVY = {
     symbolDlhy: (tx, druh, v, n, max) => tx + ': EndToEndId: ' + druh + '="' + v + '" hat ' + n + ' Ziffern, das Maximum ist ' + max + '.',
     symbolNecislo: (tx, druh, v) => tx + ': EndToEndId: ' + druh + '="' + v + '" enthält nicht-numerische Zeichen. VS/ŠS/KS bestehen immer nur aus Ziffern.',
     e2eDuplicita: (tx, v, kde) => tx + ': EndToEndId "' + v + '" wiederholt sich in der Datei (erstmals in ' + kde + '). Doppelte EndToEndId erschweren den Zahlungsabgleich und werden von manchen Banken zurückgewiesen.',
+    lomkaZacina: 'beginnt mit einem Schrägstrich',
+    lomkaDve: 'enthält zwei aufeinanderfolgende Schrägstriche',
+    lomkaKonci: 'endet mit einem Schrägstrich',
+    lomkaId: (kde, v, co, fix) => kde + ' "' + v + '" ' + co + '. EPC-Regel für Referenzen und Identifikatoren (SEPA Credit Transfer Customer-to-PSP Implementation Guidelines, Abschnitt 1.4): Der Inhalt darf nicht mit "/" beginnen oder enden und darf kein "//" enthalten. Die Bank kann die Zahlung oder die ganze Datei zurückweisen.' + (fix ? ' Vorschlag: "' + fix + '". Wenn Sie diesen Wert für den Abgleich verwenden, ändern Sie ihn genauso in der Buchhaltung.' : ''),
     sumaChyba: (tx) => tx + ': Amt/InstdAmt fehlt. Der Zahlungsbetrag ist Pflicht.',
     sumaMena: (tx, ccy) => tx + ': Amt/InstdAmt hat die Währung "' + ccy + '", für eine SEPA-Überweisung muss es "EUR" sein.',
     sumaFormat: (tx, v) => tx + ': Amt/InstdAmt "' + v + '" hat kein gültiges Zahlenformat (erwartet wird zum Beispiel "450.00", mit Punkt als Dezimaltrennzeichen).',
@@ -1173,9 +1185,11 @@ export function diagnose(input) {
       if (msgId && !SEPA_CHARSET_RE.test(msgId)) {
         addProblem({ code: 'invalid_sepa_character', severity: 'low', message: T.msgIdZnaky, path: 'CstmrCdtTrfInitn/GrpHdr/MsgId', value: msgId, fix: transliterate(msgId) });
       }
+      reportSlashRule(msgId, 'CstmrCdtTrfInitn/GrpHdr/MsgId', 'GrpHdr/MsgId');
     } else {
       checklist.push(T.chkMsgId);
     }
+    reportPartySlashRule(firstChild(grpHdr, 'InitgPty'), 'CstmrCdtTrfInitn/GrpHdr/InitgPty', 'GrpHdr/InitgPty');
 
     const creDtTmEl = firstChild(grpHdr, 'CreDtTm');
     if (creDtTmEl) {
@@ -1265,12 +1279,96 @@ export function diagnose(input) {
     }
   }
 
+  // ── lomky v referenciách a identifikátoroch (pravidlo EPC) ──────────────
+  // Zdroj, čítané 19. 11. 2026: EPC132-08 "SEPA Credit Transfer Scheme
+  // Customer-to-PSP Implementation Guidelines", 2025 Version 1.0 (vydané
+  // 28. 11. 2024, účinné od 5. 10. 2025), časť 1.4 Character Set, strana 9:
+  //   "References, identifications and identifiers must respect the
+  //    following [9]: Content is restricted to the Latin character set as
+  //    defined above; Content must not start or end with a '/'; Content must
+  //    not contain '//'s"
+  //   https://www.europeanpaymentscouncil.eu/sites/default/files/kb/file/2025-10/EPC132-08%20SCT%20C2PSP%20IG%202025%20V1.0.pdf
+  // Na ktoré prvky sa pravidlo vzťahuje, vymenúva odkaz [9], EPC230-15
+  // "Clarification Paper on the Use of Slashes in References, Identifications
+  // and Identifiers": v2.0 (16. 2. 2023) pre pain.001.001.09, v1.0
+  // (4. 10. 2015) pre pain.001.001.03, s rovnakým výsledkom:
+  //   ÁNO: GrpHdr/MsgId, PmtInf/PmtInfId, PmtId/InstrId, PmtId/EndToEndId
+  //   ÁNO, ak je použité Othr: Id/OrgId/Othr/Id a Id/PrvtId/Othr/Id strán
+  //        InitgPty, Dbtr, UltmtDbtr (PmtInf aj transakcia), Cdtr, UltmtCdtr
+  //   NIE: DbtrAgt/FinInstnId/Othr/Id ("Only 'NOTPROVIDED' is allowed")
+  //   NIE: RmtInf/Strd/CdtrRefInf/Ref ("NO, because it is part of the
+  //        remittance information"); Ustrd v zozname vôbec nie je.
+  //   https://www.europeanpaymentscouncil.eu/sites/default/files/kb/file/2023-02/EPC230-15%20v2.0%20Clarification%20Paper%20on%20the%20Use%20of%20Slashes%20in%20References%20Identifications%20and%20Identifiers.pdf
+  // Závažnosť stredná (medium), nie vysoká: zdroj EPC hovorí "must not", ale
+  // či konkrétna slovenská banka takú hodnotu pri importe naozaj odmietne,
+  // overené nemáme. Rovnako sú v tomto súbore kalibrované ostatné pravidlá
+  // EPC bez dokladu od banky (znaková sada mimo ČSOB, adresy pred termínom).
+  // Vysoká závažnosť by nález poslala do viet "banka súbor pravdepodobne
+  // odmietne", a to tvrdiť nevieme. Hláška preto hovorí "môže odmietnuť".
+  //
+  // Výnimka (slovenskaKonvencia): symboly /VS.../SS.../KS... v EndToEndId
+  // začínajú lomkou zámerne, je to národná konvencia, ktorú slovenské banky
+  // samy predpisujú (ČSOB "BusinessBanking Lite a SEPA", pozri hlavičku
+  // súboru). Jednu úvodnú lomku pri nej nehlásime; "//" a lomku na konci
+  // áno. Výnimka sa určuje aj pri viacerých úvodných lomkách ("//VS123"),
+  // aby oprava lomku konvencie nezahodila ("/VS123", nie "VS123").
+  //
+  // maxDlzka: ak je hodnota zároveň pridlhá, návrh sa skráti na povolenú
+  // dĺžku, aby nástroj nenavrhoval hodnotu, ktorú by sám znova odmietol.
+  function opravaLomiek(value, slovenskaKonvencia, maxDlzka) {
+    const konvencia = !!slovenskaKonvencia && /^\/+(VS|SS|KS)/i.test(value);
+    let fix = value.replace(/\/{2,}/g, '/');
+    if (!konvencia) fix = fix.replace(/^\//, '');
+    if (maxDlzka && fix.length > maxDlzka) fix = fix.slice(0, maxDlzka);
+    fix = fix.replace(/\/$/, '');
+    return { konvencia, fix };
+  }
+
+  function reportSlashRule(value, elPath, kde, slovenskaKonvencia, maxDlzka) {
+    if (!value || value.indexOf('/') === -1) return;
+    const { konvencia, fix: navrh } = opravaLomiek(value, slovenskaKonvencia, maxDlzka);
+    const dve = value.indexOf('//') !== -1;
+    const zacina = value.charAt(0) === '/' && !konvencia;
+    const konci = value.length > 1 && value.charAt(value.length - 1) === '/';
+    if (!zacina && !konci && !dve) return;
+    const co = [];
+    if (zacina) co.push(T.lomkaZacina);
+    if (dve) co.push(T.lomkaDve);
+    if (konci) co.push(T.lomkaKonci);
+    const fix = navrh === value ? '' : navrh;
+    addProblem({
+      code: 'identifier_slash_rule',
+      severity: 'medium',
+      message: T.lomkaId(kde, value, co.join(', '), fix),
+      path: elPath,
+      value,
+      fix: fix || undefined,
+    });
+  }
+
+  // Othr/Id pod Id/OrgId a Id/PrvtId jednej strany (Dbtr, Cdtr, ...).
+  function reportPartySlashRule(party, partyPath, kdePrefix) {
+    const idEl = firstChild(party, 'Id');
+    if (!idEl) return;
+    for (const druh of ['OrgId', 'PrvtId']) {
+      allChildren(firstChild(idEl, druh), 'Othr').forEach((othr, k, vsetky) => {
+        const rel = `Id/${druh}/Othr${vsetky.length > 1 ? `[${k + 1}]` : ''}/Id`;
+        reportSlashRule(textOf(firstChild(othr, 'Id')), `${partyPath}/${rel}`, `${kdePrefix}/${rel}`);
+      });
+    }
+  }
+
   // ── walk each PmtInf block ───────────────────────────────────────────────
   let prevExecDate = null;
 
   pmtInfList.forEach((pmtInf, pmtIdx) => {
     const pmtPath = `CstmrCdtTrfInitn/PmtInf[${pmtIdx + 1}]`;
     const txList = allChildren(pmtInf, 'CdtTrfTxInf');
+
+    reportSlashRule(textOf(firstChild(pmtInf, 'PmtInfId')), `${pmtPath}/PmtInfId`, `${pmtPath}: PmtInfId`);
+    for (const strana of ['Dbtr', 'UltmtDbtr']) {
+      reportPartySlashRule(firstChild(pmtInf, strana), `${pmtPath}/${strana}`, `${pmtPath}: ${strana}`);
+    }
 
     // Tatra banka: limit za celý súbor (file_tx_count_exceeded vyššie). Pri
     // iných bankách limit zo zdroja nepoznáme (VÚB a ČSOB PDF ho neuvádzajú),
@@ -1397,12 +1495,20 @@ export function diagnose(input) {
       const pmtId = firstChild(tx, 'PmtId');
       const endToEndEl = pmtId ? firstChild(pmtId, 'EndToEndId') : null;
       const endToEndId = endToEndEl ? textOf(endToEndEl) : '';
+      reportSlashRule(textOf(firstChild(pmtId, 'InstrId')), `${txPath}/PmtId/InstrId`, `${txPath}: PmtId/InstrId`);
+      for (const strana of ['UltmtDbtr', 'Cdtr', 'UltmtCdtr']) {
+        reportPartySlashRule(firstChild(tx, strana), `${txPath}/${strana}`, `${txPath}: ${strana}`);
+      }
       if (!endToEndId) {
         addProblem({ code: 'end_to_end_id_missing', severity: 'high', message: T.e2eChyba(txPath), path: `${txPath}/PmtId/EndToEndId` });
       } else {
         if (endToEndId.length > 35) {
-          addProblem({ code: 'end_to_end_id_too_long', severity: 'high', message: T.e2eDlhy(txPath, endToEndId.length), path: `${txPath}/PmtId/EndToEndId`, value: endToEndId, fix: endToEndId.slice(0, 35) });
+          // Ak hodnota zároveň porušuje pravidlo o lomkách, oba nálezy navrhnú
+          // tú istú hodnotu: bez zakázaných lomiek a najviac 35 znakov.
+          const skratene = opravaLomiek(endToEndId, true, 35).fix || endToEndId.slice(0, 35);
+          addProblem({ code: 'end_to_end_id_too_long', severity: 'high', message: T.e2eDlhy(txPath, endToEndId.length), path: `${txPath}/PmtId/EndToEndId`, value: endToEndId, fix: skratene });
         }
+        reportSlashRule(endToEndId, `${txPath}/PmtId/EndToEndId`, `${txPath}: PmtId/EndToEndId`, true, 35);
         const refs = analyzeReferenceSymbols(endToEndId);
         if (refs) {
           if (!refs.orderOk) {

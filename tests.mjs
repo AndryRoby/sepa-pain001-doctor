@@ -982,6 +982,249 @@ eq('TERMIN_ADRESY je null, kým EPC neurčí nový termín', TERMIN_ADRESY, null
     JSON.stringify(rz.problems).indexOf('FinInstnId/BICFI') !== -1);
 }
 
+// ───────── Lomky v referenciách a identifikátoroch (pravidlo EPC) ─────────
+//
+// Podnet: otázka na podporu, 19. 11. 2026, EndToEndId "0000000099//2026-11-12/BO-1".
+// Zdroj: EPC132-08 SCT Customer-to-PSP Implementation Guidelines 2025 V1.0,
+// časť 1.4 Character Set: "Content must not start or end with a '/'" a
+// "Content must not contain '//'s". Ktorých prvkov sa to týka, určuje
+// EPC230-15 (v2.0 pre pain.001.001.09, v1.0 pre pain.001.001.03): MsgId,
+// PmtInfId, InstrId, EndToEndId a Othr/Id strán; NIE CdtrRefInf/Ref,
+// NIE DbtrAgt/FinInstnId/Othr/Id a nie voľný text Ustrd.
+{
+  const KOD = 'identifier_slash_rule';
+  const nalezy = (r) => r.problems.filter((p) => p.code === KOD);
+  const na09 = (x) => x
+    .replace('pain.001.001.03', 'pain.001.001.09')
+    .replace(/<ReqdExctnDt>([^<]+)<\/ReqdExctnDt>/g, '<ReqdExctnDt><Dt>$1</Dt></ReqdExctnDt>')
+    .replace(/<BIC>/g, '<BICFI>').replace(/<\/BIC>/g, '</BICFI>');
+  const PRIKLAD = '0000000099//2026-11-12/BO-1';
+  const OPRAVA = '0000000099/2026-11-12/BO-1';
+
+  // Presný príklad zo správy, .03 aj .09.
+  const spec = clone(PASS_SPEC);
+  spec.pmtInf[0].tx[0].endToEndId = PRIKLAD;
+  const x03 = buildPain001(spec);
+  for (const [verzia, xml] of [['.03', x03], ['.09', na09(x03)]]) {
+    const r = diagnose({ xml, bank: 'tatrabanka', dnes: DNES_PRED });
+    const n = nalezy(r);
+    eq(`lomky ${verzia}: príklad zo správy má práve jeden nález`, n.length, 1);
+    eq(`lomky ${verzia}: závažnosť stredná (EPC: must not, odmietnutie bankou neoverené)`, n[0] && n[0].severity, 'medium');
+    eq(`lomky ${verzia}: nález nesie presnú hodnotu`, n[0] && n[0].value, PRIKLAD);
+    eq(`lomky ${verzia}: návrh opravy na skopírovanie`, n[0] && n[0].fix, OPRAVA);
+    ok(`lomky ${verzia}: cesta mieri na EndToEndId`, !!n[0] && /CdtTrfTxInf\[1\]\/PmtId\/EndToEndId$/.test(n[0].path));
+    ok(`lomky ${verzia}: hláška cituje hodnotu aj opravu`, !!n[0] && n[0].message.includes(PRIKLAD) && n[0].message.includes(OPRAVA));
+    eq(`lomky ${verzia}: stav warn, nie fail`, r.status, 'warn');
+    eq(`lomky ${verzia}: žiadna blokujúca (high) chyba`, r.problems.filter((p) => p.severity === 'high').length, 0);
+    ok(`lomky ${verzia}: zhrnutie netvrdí, že banka súbor odmietne`, !/odmietne/.test(r.summary));
+    ok(`lomky ${verzia}: oprava je v zozname fixes`, r.fixes.some((f) => f.value === OPRAVA));
+  }
+
+  // Tri jazyky: hláška existuje, líši sa podľa jazyka a nemá pomlčky.
+  {
+    const vJazyku = (lang) => nalezy(diagnose({ xml: x03, bank: 'tatrabanka', dnes: DNES_PRED, lang }))[0];
+    const sk = vJazyku('sk');
+    const en = vJazyku('en');
+    const de = vJazyku('de');
+    for (const [lang, n] of [['sk', sk], ['en', en], ['de', de]]) {
+      ok(`lomky ${lang}: hláška spomína EPC`, !!n && /EPC/.test(n.message));
+      ok(`lomky ${lang}: bez pomlčiek em a en`, !!n && !/[–—]/.test(n.message));
+    }
+    ok('lomky: tri rôzne jazykové verzie', !!sk && !!en && !!de && sk.message !== en.message && en.message !== de.message && sk.message !== de.message);
+    ok('lomky en: anglický text', !!en && /must not/.test(en.message));
+    ok('lomky de: nemecký text', !!de && /darf/.test(de.message));
+  }
+
+  // Začiatok a koniec lomkou.
+  {
+    const s = clone(PASS_SPEC);
+    s.pmtInf[0].tx[0].endToEndId = '/FA2026-0912';
+    const n = nalezy(run(s, 'tatrabanka'));
+    eq('lomky: EndToEndId začína lomkou, jeden nález', n.length, 1);
+    eq('lomky: začiatok lomkou, oprava bez nej', n[0] && n[0].fix, 'FA2026-0912');
+  }
+  {
+    const s = clone(PASS_SPEC);
+    s.pmtInf[0].tx[0].endToEndId = 'FA2026-0912/';
+    const n = nalezy(run(s, 'tatrabanka'));
+    eq('lomky: EndToEndId končí lomkou, jeden nález', n.length, 1);
+    eq('lomky: koniec lomkou, oprava bez nej', n[0] && n[0].fix, 'FA2026-0912');
+  }
+  {
+    const s = clone(PASS_SPEC);
+    s.pmtInf[0].tx[0].endToEndId = '/A///B/';
+    const n = nalezy(run(s, 'tatrabanka'));
+    eq('lomky: všetky tri porušenia naraz dajú jeden nález na prvok', n.length, 1);
+    eq('lomky: všetky tri porušenia, oprava', n[0] && n[0].fix, 'A/B');
+  }
+  {
+    const s = clone(PASS_SPEC);
+    s.pmtInf[0].tx[0].endToEndId = '//';
+    const n = nalezy(run(s, 'tatrabanka'));
+    eq('lomky: hodnota len z lomiek sa hlási', n.length, 1);
+    eq('lomky: hodnota len z lomiek nemá vymyslenú opravu', n[0] && n[0].fix, '');
+  }
+
+  // Platný identifikátor s jednou lomkou uprostred: bez nálezu.
+  {
+    const s = clone(PASS_SPEC);
+    s.pmtInf[0].tx[0].endToEndId = '0000000099/2026-11-12/BO-1';
+    s.msgId = 'MSG/2026/0001';
+    s.pmtInf[0].pmtInfId = 'PMT/0001';
+    const r = run(s, 'tatrabanka');
+    eq('lomky: jednotlivé lomky uprostred sú v poriadku', nalezy(r).length, 0);
+    eq('lomky: platný súbor ostáva pass', r.status, 'pass');
+  }
+
+  // Slovenská konvencia /VS/SS/KS v EndToEndId začína lomkou zámerne
+  // (ČSOB "BusinessBanking Lite a SEPA", pozri hlavičku doctor-pain001.js).
+  // Úvodnú lomku pri nej nehlásime, dve lomky za sebou a lomku na konci áno.
+  {
+    eq('lomky: /VS123/SS456/KS0308 v EndToEndId bez nálezu', nalezy(run(PASS_SPEC, 'tatrabanka')).length, 0);
+    const s = clone(PASS_SPEC);
+    s.pmtInf[0].tx[0].endToEndId = '/VS123//SS456/KS0308';
+    const n = nalezy(run(s, 'tatrabanka'));
+    eq('lomky: /VS123//SS456 hlási dve lomky za sebou', n.length, 1);
+    eq('lomky: oprava symbolov zachová úvodnú lomku konvencie', n[0] && n[0].fix, '/VS123/SS456/KS0308');
+    const s2 = clone(PASS_SPEC);
+    s2.pmtInf[0].tx[0].endToEndId = '/VS123/';
+    const n2 = nalezy(run(s2, 'tatrabanka'));
+    eq('lomky: /VS123/ hlási lomku na konci', n2.length, 1);
+    eq('lomky: /VS123/ oprava', n2[0] && n2[0].fix, '/VS123');
+  }
+
+  // Ustrd nie je identifikátor: žiadny nález, ani pri "//" a lomke na konci.
+  {
+    const s = clone(PASS_SPEC);
+    s.pmtInf[0].tx[0].ustrd = '/VS123/SS456/KS0308';
+    const r = run(s, 'tatrabanka');
+    eq('lomky: Ustrd /VS123/SS456/KS0308 bez nálezu', nalezy(r).length, 0);
+    eq('lomky: Ustrd /VS123/SS456/KS0308 ostáva pass', r.status, 'pass');
+    s.pmtInf[0].tx[0].ustrd = '/Faktura//2026/';
+    eq('lomky: Ustrd s "//" a lomkou na konci bez nálezu', nalezy(run(s, 'tatrabanka')).length, 0);
+  }
+
+  // Ostatné prvky zo zoznamu EPC230-15 a prvky, ktoré tam výslovne NIE sú.
+  {
+    const xml = x03
+      .replace(`<EndToEndId>${PRIKLAD}</EndToEndId>`, '<InstrId>I//1</InstrId><EndToEndId>E2E-1</EndToEndId>')
+      .replace('<MsgId>MSG-0001</MsgId>', '<MsgId>/MSG-0001</MsgId>')
+      .replace('<PmtInfId>PMT-0001</PmtInfId>', '<PmtInfId>PMT-0001/</PmtInfId>')
+      .replace('<GrpHdr>', '<GrpHdr><InitgPty><Id><OrgId><Othr><Id>/ICO1</Id></Othr></OrgId></Id></InitgPty>')
+      .replace('<Dbtr><Nm>Firma s.r.o.</Nm>', '<Dbtr><Nm>Firma s.r.o.</Nm><Id><OrgId><Othr><Id>12//34</Id></Othr></OrgId></Id>')
+      .replace('<Cdtr><Nm>Jozef Novak</Nm>', '<Cdtr><Nm>Jozef Novak</Nm><Id><PrvtId><Othr><Id>RC1/</Id></Othr></PrvtId></Id>')
+      .replace('</Cdtr>', '</Cdtr><UltmtCdtr><Id><OrgId><Othr><Id>ok/1</Id></Othr></OrgId></Id></UltmtCdtr>')
+      // Výslovne mimo pravidla podľa EPC230-15:
+      .replace('<RmtInf>', '<RmtInf><Strd><CdtrRefInf><Ref>/RF18//5390/</Ref></CdtrRefInf></Strd>')
+      .replace('<FinInstnId><BIC>TATRSKBX</BIC>', '<FinInstnId><BIC>TATRSKBX</BIC><Othr><Id>/X//Y/</Id></Othr>');
+    ok('lomky: úprava fixture sa naozaj zapísala',
+      ['<InstrId>I//1</InstrId>', '/RF18//5390/', '/X//Y/', '/ICO1', '12//34', 'RC1/', '/MSG-0001', 'PMT-0001/', 'ok/1'].every((t) => xml.includes(t)));
+    const n = nalezy(diagnose({ xml, bank: 'tatrabanka', dnes: DNES_PRED }));
+    const cesty = n.map((p) => p.path);
+    eq('lomky: šesť dotknutých prvkov, šesť nálezov', n.length, 6);
+    ok('lomky: MsgId', cesty.some((c) => /GrpHdr\/MsgId$/.test(c)));
+    ok('lomky: PmtInfId', cesty.some((c) => /PmtInf\[1\]\/PmtInfId$/.test(c)));
+    ok('lomky: InstrId', cesty.some((c) => /PmtId\/InstrId$/.test(c)));
+    ok('lomky: InitgPty/Id/OrgId/Othr/Id', cesty.some((c) => /InitgPty\/Id\/OrgId\/Othr\/Id$/.test(c)));
+    ok('lomky: Dbtr/Id/OrgId/Othr/Id', cesty.some((c) => /PmtInf\[1\]\/Dbtr\/Id\/OrgId\/Othr\/Id$/.test(c)));
+    ok('lomky: Cdtr/Id/PrvtId/Othr/Id', cesty.some((c) => /Cdtr\/Id\/PrvtId\/Othr\/Id$/.test(c)));
+    ok('lomky: CdtrRefInf/Ref sa nehlási (súčasť remittance information)', !cesty.some((c) => /Ref$/.test(c)));
+    ok('lomky: DbtrAgt/FinInstnId/Othr/Id sa nehlási', !cesty.some((c) => /FinInstnId/.test(c)));
+    ok('lomky: platné Othr/Id s jednou lomkou sa nehlási', !cesty.some((c) => /UltmtCdtr/.test(c)));
+  }
+
+  // UltmtDbtr (PmtInf aj transakcia), UltmtCdtr, druhé Othr a výnimka /VS,
+  // ktorá platí len pre EndToEndId.
+  {
+    const cisty = buildPain001(PASS_SPEC);
+    const xml = cisty
+      .replace('<MsgId>MSG-0001</MsgId>', '<MsgId>/VS1</MsgId>')
+      .replace('<PmtInfId>PMT-0001</PmtInfId>', '<PmtInfId>/SS2</PmtInfId>')
+      .replace('<EndToEndId>', '<InstrId>/KS3</InstrId><EndToEndId>')
+      .replace('<DbtrAcct>', '<UltmtDbtr><Id><OrgId><Othr><Id>/UD-PMT</Id></Othr></OrgId></Id></UltmtDbtr><DbtrAcct>')
+      .replace('<Amt>', '<UltmtDbtr><Id><PrvtId><Othr><Id>UD//TX</Id></Othr></PrvtId></Id></UltmtDbtr><Amt>')
+      .replace('<Cdtr><Nm>Jozef Novak</Nm>', '<Cdtr><Nm>Jozef Novak</Nm><Id><OrgId><Othr><Id>ICO-1</Id></Othr><Othr><Id>DIC2/</Id></Othr></OrgId></Id>')
+      .replace('</Cdtr>', '</Cdtr><UltmtCdtr><Id><OrgId><Othr><Id>/VS9</Id><SchmeNm><Prtry>A//B</Prtry></SchmeNm><Issr>X//Y</Issr></Othr></OrgId></Id></UltmtCdtr>');
+    ok('lomky: úprava druhej fixture sa naozaj zapísala',
+      ['<MsgId>/VS1<', '<PmtInfId>/SS2<', '<InstrId>/KS3<', '/UD-PMT', 'UD//TX', 'DIC2/', '<Id>/VS9<', 'A//B', 'X//Y'].every((t) => xml.includes(t)));
+    const n = nalezy(diagnose({ xml, bank: 'tatrabanka', dnes: DNES_PRED }));
+    const podla = (re) => n.filter((p) => re.test(p.path));
+    eq('lomky: sedem miest, sedem nálezov', n.length, 7);
+    eq('lomky: MsgId /VS1 sa hlási, výnimka /VS platí len pre EndToEndId', (podla(/GrpHdr\/MsgId$/)[0] || {}).fix, 'VS1');
+    eq('lomky: PmtInfId /SS2 sa hlási', (podla(/PmtInf\[1\]\/PmtInfId$/)[0] || {}).fix, 'SS2');
+    eq('lomky: InstrId /KS3 sa hlási', (podla(/PmtId\/InstrId$/)[0] || {}).fix, 'KS3');
+    eq('lomky: UltmtDbtr na úrovni PmtInf', (podla(/PmtInf\[1\]\/UltmtDbtr\/Id\/OrgId\/Othr\/Id$/)[0] || {}).fix, 'UD-PMT');
+    eq('lomky: UltmtDbtr na úrovni transakcie', (podla(/CdtTrfTxInf\[1\]\/UltmtDbtr\/Id\/PrvtId\/Othr\/Id$/)[0] || {}).fix, 'UD/TX');
+    eq('lomky: UltmtCdtr, výnimka /VS sa naň nevzťahuje', (podla(/CdtTrfTxInf\[1\]\/UltmtCdtr\/Id\/OrgId\/Othr\/Id$/)[0] || {}).fix, 'VS9');
+    eq('lomky: druhé Othr má v ceste Othr[2]', (podla(/Cdtr\/Id\/OrgId\/Othr\[2\]\/Id$/)[0] || {}).fix, 'DIC2');
+    ok('lomky: prvé Othr bez lomky sa nehlási', podla(/Othr\[1\]/).length === 0);
+    ok('lomky: SchmeNm/Prtry a Issr sa nehlásia', !n.some((p) => p.value === 'A//B' || p.value === 'X//Y'));
+    ok('lomky: všetky nálezy sú medium', n.every((p) => p.severity === 'medium'));
+  }
+
+  // Dve lomky pred symbolom: oprava musí nechať jednu lomku konvencie.
+  {
+    const s = clone(PASS_SPEC);
+    s.pmtInf[0].tx[0].endToEndId = '//VS123/SS456/KS0308';
+    const n = nalezy(run(s, 'tatrabanka'));
+    eq('lomky: //VS123/SS456/KS0308 jeden nález', n.length, 1);
+    eq('lomky: //VS oprava zachová lomku konvencie', n[0] && n[0].fix, '/VS123/SS456/KS0308');
+    ok('lomky: //VS hláška hovorí o dvoch lomkách, nie o začiatku lomkou',
+      !!n[0] && n[0].message.includes('obsahuje dve lomky za sebou') && !n[0].message.includes('začína lomkou'));
+    const s2 = clone(PASS_SPEC);
+    s2.pmtInf[0].tx[0].endToEndId = n[0] ? n[0].fix : '';
+    const r2 = run(s2, 'tatrabanka');
+    eq('lomky: navrhnutá hodnota /VS123/SS456/KS0308 už nález nemá', nalezy(r2).length, 0);
+    eq('lomky: súbor s navrhnutou hodnotou je pass', r2.status, 'pass');
+    const s3 = clone(PASS_SPEC);
+    s3.pmtInf[0].tx[0].endToEndId = '///vs123/ss456/ks0308';
+    eq('lomky: malé písmená a tri lomky, oprava zachová jednu', (nalezy(run(s3, 'tatrabanka'))[0] || {}).fix, '/vs123/ss456/ks0308');
+  }
+
+  // Pridlhé EndToEndId s "//": oba nálezy navrhnú tú istú, platnú hodnotu.
+  {
+    const s = clone(PASS_SPEC);
+    const dlhe = 'FAKTURA-2026-000123//ODBERATEL-0045/STREDISKO-7';
+    s.pmtInf[0].tx[0].endToEndId = dlhe;
+    const r = run(s, 'tatrabanka');
+    const lom = nalezy(r)[0];
+    const dlz = r.problems.find((p) => p.code === 'end_to_end_id_too_long');
+    ok('lomky + dĺžka: fixture je dlhšia ako 35 znakov', dlhe.length > 35);
+    ok('lomky + dĺžka: oba nálezy existujú', !!lom && !!dlz);
+    eq('lomky + dĺžka: oba návrhy sú rovnaké', lom && lom.fix, dlz && dlz.fix);
+    ok('lomky + dĺžka: návrh má najviac 35 znakov', !!lom && lom.fix.length <= 35 && lom.fix.length > 0);
+    ok('lomky + dĺžka: návrh neporušuje pravidlo o lomkách', !!lom && !/\/\/|^\/|\/$/.test(lom.fix));
+    const s2 = clone(PASS_SPEC);
+    s2.pmtInf[0].tx[0].endToEndId = lom ? lom.fix : '';
+    const r2 = run(s2, 'tatrabanka');
+    ok('lomky + dĺžka: navrhnutá hodnota prejde oboma kontrolami',
+      nalezy(r2).length === 0 && !r2.problems.some((p) => p.code === 'end_to_end_id_too_long'));
+    // Pridlhé bez lomiek: návrh ostáva prvých 35 znakov ako doteraz.
+    const s3 = clone(PASS_SPEC);
+    s3.pmtInf[0].tx[0].endToEndId = 'A'.repeat(40);
+    eq('dĺžka bez lomiek: návrh je prvých 35 znakov',
+      (run(s3, 'tatrabanka').problems.find((p) => p.code === 'end_to_end_id_too_long') || {}).fix, 'A'.repeat(35));
+  }
+
+  // Viac transakcií naraz: každá chybná má vlastný nález s vlastnou cestou.
+  {
+    const s = clone(PASS_SPEC);
+    const zaklad = s.pmtInf[0].tx[0];
+    const idcka = ['A//1', 'B/2', '/C3', 'D4/', '/VS5/SS/KS', 'E-6'];
+    s.pmtInf[0].tx = idcka.map((id) => Object.assign(clone(zaklad), { endToEndId: id, amount: '1.00' }));
+    s.nbOfTxs = idcka.length;
+    s.ctrlSum = '6.00';
+    for (const [verzia, xml] of [['.03', buildPain001(s)], ['.09', na09(buildPain001(s))]]) {
+      const n = nalezy(diagnose({ xml, bank: 'tatrabanka', dnes: DNES_PRED }));
+      eq(`lomky ${verzia}: zo šiestich transakcií tri chybné`, n.length, 3);
+      eq(`lomky ${verzia}: hodnoty v poradí súboru`, n.map((p) => p.value).join(' '), 'A//1 /C3 D4/');
+      eq(`lomky ${verzia}: opravy v poradí súboru`, n.map((p) => p.fix).join(' '), 'A/1 C3 D4');
+      eq(`lomky ${verzia}: cesty menujú správne transakcie`,
+        n.map((p) => (p.path.match(/CdtTrfTxInf\[(\d+)\]/) || [])[1]).join(','), '1,3,4');
+    }
+  }
+}
+
 console.log(`\n${pass} passed, ${fail} failed`);
 if (fail > 0) {
   console.log('\nFailures:');

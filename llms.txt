@@ -15,6 +15,7 @@ Paste your `pain.001.001.03` XML and pick the target bank, and it cross-checks t
 - Diacritics anywhere in the XML: ČSOB documents this as an outright import blocker, with its allowed character set.
 - `Nm` (name) fields over 70 characters; `RmtInf/Ustrd` over 140 characters or more than one instance.
 - VS/špecifický symbol/KS packed into the end-to-end reference as `/VS.../SS.../KS...` in the wrong order or format.
+- Slashes in identifiers (`MsgId`, `PmtInfId`, `InstrId`, `EndToEndId` and `Othr/Id` of the parties): per the EPC rule (SCT Customer-to-PSP Implementation Guidelines, section 1.4) they must not start or end with `/` nor contain `//`; reported as a medium-severity warning, because we have not verified that a Slovak bank rejects such a value. The Slovak `/VS...` prefix in `EndToEndId` is accepted; `CdtrRefInf/Ref` is explicitly excluded by EPC230-15 and `Ustrd` is not in its list.
 - Slovak creditor IBAN failing the domestic modulo-11 BBAN check on top of the standard MOD-97 IBAN checksum.
 - Missing `<LclInstrm><Cd>INST</Cd>` for a batch meant to run as an instant payment at SLSP.
 

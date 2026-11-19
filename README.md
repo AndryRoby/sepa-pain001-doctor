@@ -16,7 +16,7 @@ Details: terms of use, section 7, https://arling.sk/podmienky/en/. Your bank dec
 
 ## What it checks
 
-`doctor-pain001.js` knows 65 distinct problem codes (counted in the engine on 26 September 2026), grouped here by where in the file they apply. Every check maps to one problem `code` in the engine.
+`doctor-pain001.js` knows 66 distinct problem codes (counted in the engine on 19 November 2026), grouped here by where in the file they apply. Every check maps to one problem `code` in the engine.
 
 **File / structure**
 - Empty input, or XML that isn't well-formed (`xml_empty`, `xml_not_well_formed`).
@@ -70,6 +70,7 @@ Details: terms of use, section 7, https://arling.sk/podmienky/en/. Your bank dec
 
 **Payment reference (`EndToEndId`, VS/ŠS/KS)**
 - `PmtId/EndToEndId` missing or over 35 characters (`end_to_end_id_missing`, `end_to_end_id_too_long`), or duplicated across transactions in the file (`duplicate_end_to_end_id`).
+- An identifier that starts or ends with `/` or contains `//` (`identifier_slash_rule`, medium severity, with a corrected value to copy; the EPC text says "must not", but we have not verified that a Slovak bank rejects such a value on import, so it is not counted as a blocking error). Applies to `MsgId`, `PmtInfId`, `InstrId`, `EndToEndId` and `Id/OrgId/Othr/Id`, `Id/PrvtId/Othr/Id` of the parties, in both `pain.001.001.03` and `.09`, per the EPC SCT Customer-to-PSP Implementation Guidelines (EPC132-08, section 1.4) and the EPC clarification paper EPC230-15. Not applied to `RmtInf/Ustrd`, `CdtrRefInf/Ref` or `DbtrAgt/FinInstnId/Othr/Id`; the leading slash of the Slovak `/VS.../SS.../KS...` convention in `EndToEndId` is accepted.
 - Slovak variabilný/špecifický/konštantný symbol packed as `/VS.../SS.../KS...` in the wrong order, too long for their field (VS/SS max 10 digits, KS max 4), or containing non-numeric characters (`reference_symbol_order`, `reference_symbol_too_long`, `reference_symbol_non_numeric`): the transfer itself still goes through; only automatic reconciliation on the counterparty's side breaks.
 
 **Remittance info**
