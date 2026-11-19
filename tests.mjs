@@ -1,6 +1,7 @@
 // tests.mjs — plain Node test runner for doctor-pain001.js (no external dependencies).
 // Run with: node tests.mjs
 
+import { readFileSync } from 'node:fs';
 import { diagnose, TERMIN_ADRESY, expectedValues } from './doctor-pain001.js';
 
 let pass = 0;
@@ -196,7 +197,8 @@ const PASS_SPEC = {
 // expected message version and the severity of address findings, so every
 // test pins the date instead of reading the clock. Since 24. 9. 2026
 // TERMIN_ADRESY is null: the EPC postponed the 15. 11. 2026 end of the
-// unstructured address on 9. 9. 2026 and sets a new date in October 2026.
+// unstructured address on 9. 9. 2026; on 29. 10. 2026 the PSMB decided not to
+// set a new date yet and will decide by February 2027.
 // The pinned dates stay, so the suite is ready once a new date is set.
 function run(spec, bank, expectedTxCount, dnes) {
   return diagnose({
@@ -249,23 +251,28 @@ function run(spec, bank, expectedTxCount, dnes) {
 {
   const spec = clone(PASS_SPEC);
   spec.namespace = 'urn:iso:std:iso:20022:tech:xsd:pain.001.001.09';
-  // .09 is a valid message version, not an error. It only gets a "your bank
-  // may still want .03" note.
-  const r = run(spec, 'tatrabanka');
+  // .09 is a valid message version, not an error. Since 19. 11. 2026 only an
+  // unknown ("generic") bank gets a low note; the four Slovak banks publish
+  // .09 import descriptions, so for them there is no note at all (see the
+  // block "verzia .09" at the end of this file).
+  const r = run(spec, 'generic');
   lacks('pain.001.001.09 pred termínom: nie je to chyba', r.problems, 'schema_namespace_unexpected');
-  has('pain.001.001.09 pred termínom: len poznámka', r.problems, 'schema_namespace_09_skoro');
+  has('pain.001.001.09 pred termínom, iná banka: len poznámka', r.problems, 'schema_namespace_09_skoro');
   eq('pain.001.001.09 pred termínom: nízka závažnosť', severityOf(r.problems, 'schema_namespace_09_skoro'), 'low');
   ok('pain.001.001.09: poznámka nesľubuje dátum prechodu',
     JSON.stringify(r.problems).indexOf('15. 11. 2026') === -1);
+  lacks('pain.001.001.09, Tatra banka: bez poznámky', run(spec, 'tatrabanka').problems, 'schema_namespace_09_skoro');
 
   // Zmena 24. 9. 2026: pôvodne test čakal, že po 15. 11. 2026 poznámka zmizne
   // a očakávaná verzia sa prepne na .09. EPC 9. 9. 2026 termín odložila
   // (TERMIN_ADRESY je null), preto sa 20. 11. 2026 nemení nič.
-  const rPo = run(spec, 'tatrabanka', null, DNES_PO);
+  const rPo = run(spec, 'generic', null, DNES_PO);
   has('pain.001.001.09 po 15. 11. 2026: bez termínu EPC stále len poznámka', rPo.problems, 'schema_namespace_09_skoro');
   lacks('pain.001.001.09 po 15. 11. 2026: bez chyby', rPo.problems, 'schema_namespace_unexpected');
-  eq('pain.001.001.09 po 15. 11. 2026: očakávaný menný priestor ostáva .03',
-    rPo.expected.schemaNamespace, 'urn:iso:std:iso:20022:tech:xsd:pain.001.001.03');
+  // Oprava 19. 11. 2026 (brána sepa-09, N1): pri súbore .09 sa očakáva .09,
+  // nie .03; štyri banky uvádzajú obe verzie.
+  eq('pain.001.001.09 po 15. 11. 2026: očakávaný menný priestor je verzia súboru (.09)',
+    rPo.expected.schemaNamespace, 'urn:iso:std:iso:20022:tech:xsd:pain.001.001.09');
 }
 {
   // .03 is fine today. Keby EPC určila nový termín, po ňom by prišlo
@@ -833,10 +840,13 @@ const kodyZ = (r) => r.problems.map((p) => p.code);
 // Toto je jediná kontrola, ktorá by časom menila závažnosť, preto sa testuje
 // na oboch stranách pôvodného termínu 15. 11. 2026. Dátum sa vždy podáva
 // zvonka (cfg.dnes), nikdy sa nečíta systémový čas.
-// Zmena 24. 9. 2026: EPC 9. 9. 2026 koniec voľnej adresy odložila a nový
-// termín určí v októbri 2026, preto je TERMIN_ADRESY null a voľná adresa je
-// aj po 15. 11. 2026 upozornenie (medium), nie blokujúca chyba (high).
-// Zdroj: https://www.europeanpaymentscouncil.eu/news-insights/news/epc-delays-address-format-migration-timeline
+// Zmena 24. 9. 2026: EPC 9. 9. 2026 koniec voľnej adresy odložila, preto je
+// TERMIN_ADRESY null a voľná adresa je aj po 15. 11. 2026 upozornenie
+// (medium), nie blokujúca chyba (high). Oprava 19. 11. 2026: PSMB 29. 10. 2026
+// nový termín neurčil a vráti sa k nemu do februára 2027 (predtým tu stálo
+// „v októbri 2026“).
+// Zdroje: https://www.europeanpaymentscouncil.eu/news-insights/news/epc-delays-address-format-migration-timeline
+// https://www.europeanpaymentscouncil.eu/news-insights/news/epc-defers-setting-new-end-date-unstructured-address-format-until-february-2027
 function adrXml(dbtrAdr, cdtrAdr) {
   return `<Document xmlns="urn:iso:std:iso:20022:tech:xsd:pain.001.001.03"><CstmrCdtTrfInitn>`
     + `<GrpHdr><MsgId>M1</MsgId><CreDtTm>2026-09-06T10:00:00</CreDtTm><NbOfTxs>1</NbOfTxs><CtrlSum>10.00</CtrlSum><InitgPty><Nm>Test</Nm></InitgPty></GrpHdr>`
@@ -1222,6 +1232,323 @@ eq('TERMIN_ADRESY je null, kým EPC neurčí nový termín', TERMIN_ADRESY, null
       eq(`lomky ${verzia}: cesty menujú správne transakcie`,
         n.map((p) => (p.path.match(/CdtTrfTxInf\[(\d+)\]/) || [])[1]).join(','), '1,3,4');
     }
+  }
+}
+
+// ───────── Zmeny 19. 11. 2026 (zadanie sepa-09): termín adries ─────────
+// EPC 30. 10. 2026: PSMB 29. 10. 2026 nový termín konca neštruktúrovanej
+// adresy neurčil, vráti sa k nemu do februára 2027. Veta „nový termín určí v októbri
+// 2026“ bola nepravdivá v motore aj na stránkach.
+// https://www.europeanpaymentscouncil.eu/news-insights/news/epc-defers-setting-new-end-date-unstructured-address-format-until-february-2027
+{
+  const volna = '<PstlAdr><AdrLine>Hlavna 1</AdrLine><AdrLine>81101 Bratislava</AdrLine></PstlAdr>';
+  const ocakavane = {
+    sk: { nove: 'do februára 2027', stare: /v októbri 2026/ },
+    en: { nove: 'by February 2027', stare: /in October 2026/ },
+    de: { nove: 'bis Februar 2027', stare: /im Oktober 2026/ },
+  };
+  for (const lang of ['sk', 'en', 'de']) {
+    const n = diagnose({ xml: adrXml(volna, ''), bank: 'tatrabanka', dnes: DNES_PO, lang })
+      .problems.find((p) => p.code === 'adresa_nestrukturovana');
+    ok(`termín adries ${lang}: nález voľnej adresy existuje`, !!n);
+    ok(`termín adries ${lang}: hláška hovorí o rozhodnutí do februára 2027`, !!n && n.message.includes(ocakavane[lang].nove), n && n.message);
+    ok(`termín adries ${lang}: hláška nesľubuje termín v októbri 2026`, !!n && !ocakavane[lang].stare.test(n.message));
+    ok(`termín adries ${lang}: hláška menuje rozhodnutie z 29. 10. 2026`, !!n && /29\. 10\. 2026|29 October 2026|29\. Oktober 2026/.test(n.message));
+    ok(`termín adries ${lang}: bez pomlčiek em a en`, !!n && !/[–—]/.test(n.message));
+  }
+  for (const [stranka, stare, nove] of [
+    ['index.html', /v októbri 2026/, /februára 2027/],
+    ['en/index.html', /in October 2026/, /February 2027/],
+    ['de/index.html', /im Oktober 2026/, /Februar 2027/],
+  ]) {
+    const html = readFileSync(new URL('./' + stranka, import.meta.url), 'utf8');
+    // Každá stránka nesie v skripte slovníky všetkých troch jazykov.
+    const STARE = /v októbri 2026|in October 2026|im Oktober 2026/;
+    ok(`termín adries ${stranka}: stránka nesľubuje nový termín v októbri 2026`, !STARE.test(html), (html.match(/.{0,80}(v októbri|in October|im Oktober) 2026.{0,40}/) || [])[0]);
+    ok(`termín adries ${stranka}: stránka hovorí o rozhodnutí do februára 2027`, nove.test(html));
+    ok(`termín adries ${stranka}: stránka bez starej vety`, !stare.test(html));
+  }
+}
+
+// ───────── Zmeny 19. 11. 2026 (zadanie sepa-09): verzia .09 podľa banky ─────────
+// Pôvodne motor pri každom súbore .09 radil „pošlite ten istý súbor vo verzii
+// .03“ a kontrolný zoznam žiadal „presne pain.001.001.03, nie novšiu verziu“.
+// Zdroje štyroch bánk čítané 19. 11. 2026 (ops/sepa-doctor/ZMENY-2026-11-19-verzia09.md
+// v koreňovom repe) uvádzajú pre import .09 (VÚB a ČSOB aj .03 výslovne,
+// SLSP zverejňuje obe špecifikácie, Tatra banka vzory .09 a popis .03).
+{
+  const na09 = (x) => x
+    .replace('pain.001.001.03', 'pain.001.001.09')
+    .replace(/<ReqdExctnDt>([^<]+)<\/ReqdExctnDt>/g, '<ReqdExctnDt><Dt>$1</Dt></ReqdExctnDt>')
+    .replace(/<BIC>/g, '<BICFI>').replace(/<\/BIC>/g, '</BICFI>');
+  const BIC = { tatrabanka: 'TATRSKBX', slsp: 'GIBASKBX', vub: 'SUBASKBX', csob: 'CEKOSKBX' };
+  const subor03 = (banka) => buildPain001(PASS_SPEC).replace(/TATRSKBX/g, BIC[banka] || 'TATRSKBX');
+  const ZLA_RADA = /vo verzii \.03|as \.03|als \.03|presne pain\.001\.001\.03|exactly pain\.001\.001\.03|genau pain\.001\.001\.03|bežne očakávajú|normally expect|üblicherweise/;
+  const texty = (r) => r.problems.map((p) => p.message).concat(r.checklist, [r.summary]).join('\n');
+
+  // Štyri banky: súbor .09 nemá poznámku o verzii a žiadny text neradí .03.
+  for (const banka of ['tatrabanka', 'slsp', 'vub', 'csob']) {
+    const x09 = na09(subor03(banka));
+    ok(`verzia .09 ${banka}: fixture je naozaj .09`, x09.includes('pain.001.001.09') && x09.includes('<BICFI>'));
+    for (const lang of ['sk', 'en', 'de']) {
+      const r = diagnose({ xml: x09, bank: banka, dnes: DNES_PRED, lang });
+      lacks(`verzia .09 ${banka} ${lang}: bez poznámky schema_namespace_09_skoro`, r.problems, 'schema_namespace_09_skoro');
+      ok(`verzia .09 ${banka} ${lang}: žiadny text neradí návrat na .03`, !ZLA_RADA.test(texty(r)), (texty(r).match(new RegExp('.{0,60}(' + ZLA_RADA.source + ').{0,40}')) || [])[0]);
+      ok(`verzia .09 ${banka} ${lang}: texty bez pomlčiek em a en`, !/[–—]/.test(r.checklist.join(' ')));
+    }
+    // Súbor .09 má presne tie isté nálezy ako ten istý súbor .03 (pri SLSP
+    // ostáva jej vlastná poznámka slsp_instant_flag_absent, ktorá s verziou
+    // nesúvisí), teda verzia sama nič nepridáva.
+    const r = diagnose({ xml: x09, bank: banka, dnes: DNES_PRED });
+    const r03 = diagnose({ xml: subor03(banka), bank: banka, dnes: DNES_PRED });
+    eq(`verzia .09 ${banka}: rovnaké nálezy ako pri .03`, r.problems.map((p) => p.code).join(','), r03.problems.map((p) => p.code).join(','));
+    eq(`verzia .09 ${banka}: rovnaký stav ako pri .03`, r.status, r03.status);
+    if (banka !== 'slsp') eq(`verzia .09 ${banka}: čistý súbor .09 je pass`, r.status, 'pass');
+  }
+
+  // Kontrolný zoznam hovorí presne podľa vybranej banky, v troch jazykoch.
+  const ZNAK = {
+    tatrabanka: { sk: ['12. 11. 2026', 'vo verzii .09', 'anglické znenie čítané 19. 11. 2026'], en: ['12 November 2026', 'export the file as .09'], de: ['12. November 2026', 'exportieren Sie sie als .09'] },
+    slsp: { sk: ['Business24', 'pain.001.001.03 aj pain.001.001.09', 'koniec .03 neuvádza'], en: ['Business24', 'no end date for .03'], de: ['Business24', 'kein Ende für .03'] },
+    vub: { sk: ['„Povolené sú xsd schémy pain.001.001.03 a pain.001.001.09.“', 'MultiCash'], en: ['Povolené sú xsd schémy pain.001.001.03 a pain.001.001.09.', 'MultiCash'], de: ['Povolené sú xsd schémy pain.001.001.03 a pain.001.001.09.', 'MultiCash'] },
+    csob: { sk: ['naďalej podporovať', 'odporúča .09'], en: ['keep supporting .03', 'recommends .09'], de: ['weiter unterstützt', 'empfiehlt ČSOB .09'] },
+    generic: { sk: ['dokumentácii svojej banky'], en: ["your bank's documentation"], de: ['Dokumentation Ihrer Bank'] },
+  };
+  const verziaRiadok = (banka, lang, xml) => diagnose({ xml: xml || subor03(banka), bank: banka, dnes: DNES_PRED, lang })
+    .checklist.find((c) => /^(Verzia súboru|File version|Dateiversion):/.test(c));
+  for (const banka of Object.keys(ZNAK)) {
+    for (const lang of ['sk', 'en', 'de']) {
+      const c = verziaRiadok(banka, lang);
+      ok(`chkVerzia ${banka} ${lang}: riadok o verzii existuje`, !!c);
+      for (const z of ZNAK[banka][lang]) ok(`chkVerzia ${banka} ${lang}: obsahuje „${z}“`, !!c && c.includes(z), c);
+      ok(`chkVerzia ${banka} ${lang}: nežiada presne .03`, !!c && !ZLA_RADA.test(c));
+      ok(`chkVerzia ${banka} ${lang}: bez pomlčiek em a en`, !!c && !/[–—]/.test(c));
+      eq(`chkVerzia ${banka} ${lang}: rovnaký riadok pri .03 aj .09`, verziaRiadok(banka, lang, na09(subor03(banka))), c);
+    }
+  }
+  ok('chkVerzia: päť rôznych textov pre päť volieb banky',
+    new Set(Object.keys(ZNAK).map((b) => verziaRiadok(b, 'sk'))).size === 5);
+  ok('chkVerzia: SK, EN a DE sa líšia', new Set(['sk', 'en', 'de'].map((l) => verziaRiadok('vub', l))).size === 3);
+
+  // Obmedzenia Tatra banky pre .09 len pri Tatra banke a súbore .09.
+  const tatra09 = (banka, xml, lang) => diagnose({ xml, bank: banka, dnes: DNES_PRED, lang }).checklist
+    .some((c) => c.includes('2.118') && c.includes('Strd'));
+  ok('chkTatra09: Tatra banka a .09 má riadok o obmedzeniach', tatra09('tatrabanka', na09(subor03('tatrabanka'))));
+  ok('chkTatra09: aj v EN a DE', tatra09('tatrabanka', na09(subor03('tatrabanka')), 'en') && tatra09('tatrabanka', na09(subor03('tatrabanka')), 'de'));
+  ok('chkTatra09: Tatra banka a .03 riadok nemá', !tatra09('tatrabanka', subor03('tatrabanka')));
+  ok('chkTatra09: SLSP a .09 riadok nemá', !tatra09('slsp', na09(subor03('slsp'))));
+  ok('chkTatra09: iná banka a .09 riadok nemá', !tatra09('generic', na09(subor03('tatrabanka'))));
+
+  // Iná banka: nízka poznámka ostáva, ale bez rady o .03, v troch jazykoch.
+  for (const lang of ['sk', 'en', 'de']) {
+    const r = diagnose({ xml: na09(subor03('tatrabanka')), bank: 'generic', dnes: DNES_PRED, lang });
+    const n = r.problems.find((p) => p.code === 'schema_namespace_09_skoro');
+    ok(`verzia .09 iná banka ${lang}: poznámka ostáva`, !!n);
+    eq(`verzia .09 iná banka ${lang}: nízka závažnosť`, n && n.severity, 'low');
+    ok(`verzia .09 iná banka ${lang}: poznámka neradí .03`, !!n && !ZLA_RADA.test(n.message) && !/\.03/.test(n.message), n && n.message);
+    ok(`verzia .09 iná banka ${lang}: menuje štyri banky`, !!n && ['Tatra banka', 'Slovenská sporiteľňa', 'VÚB', 'ČSOB'].every((b) => n.message.includes(b)));
+    ok(`verzia .09 iná banka ${lang}: bez pomlčiek em a en`, !!n && !/[–—]/.test(n.message));
+  }
+
+  // Neznámy menný priestor: text o bankách spomína .03 aj .09.
+  for (const [lang, slovo] of [['sk', 'pain.001.001.03 alebo .09'], ['en', 'pain.001.001.03 or .09'], ['de', 'pain.001.001.03 oder .09']]) {
+    const x = buildPain001(PASS_SPEC).replace('pain.001.001.03', 'urn:priklad:pain');
+    const n = diagnose({ xml: x, bank: 'tatrabanka', dnes: DNES_PRED, lang }).problems.find((p) => p.code === 'schema_namespace_unexpected');
+    ok(`neznámy menný priestor ${lang}: banky uvádzajú .03 alebo .09`, !!n && n.message.includes(slovo), n && n.message);
+  }
+}
+
+// ───────── Zmeny 19. 11. 2026: odporúčania brány lomiek (pokus 2) ─────────
+{
+  const KOD = 'identifier_slash_rule';
+  const lom = (r) => r.problems.find((p) => p.code === KOD);
+  const sE2E = (id) => { const s = clone(PASS_SPEC); s.pmtInf[0].tx[0].endToEndId = id; return buildPain001(s); };
+  const diag = (xml, lang) => diagnose({ xml, bank: 'tatrabanka', dnes: DNES_PRED, lang });
+
+  // (1) Konvencia /VS s "//": veta, že úvodná lomka je slovenská konvencia.
+  {
+    const konv = { sk: 'slovenská konvencia', en: 'Slovak convention', de: 'slowakische Konvention' };
+    for (const lang of ['sk', 'en', 'de']) {
+      const n = lom(diag(sE2E('/VS123//SS456/KS0308'), lang));
+      ok(`lomky konvencia ${lang}: veta o slovenskej konvencii`, !!n && n.message.includes(konv[lang]), n && n.message);
+      ok(`lomky konvencia ${lang}: bez pomlčiek`, !!n && !/[–—]/.test(n.message));
+      const bez = lom(diag(sE2E('0000000099//2026-11-12/BO-1'), lang));
+      ok(`lomky konvencia ${lang}: bez symbolov veta o konvencii nie je`, !!bez && !bez.message.includes(konv[lang]));
+      const msg = lom(diag(buildPain001(PASS_SPEC).replace('<MsgId>MSG-0001</MsgId>', '<MsgId>/VS1</MsgId>'), lang));
+      ok(`lomky konvencia ${lang}: MsgId /VS1 vetu o konvencii nemá (výnimka len pre EndToEndId)`, !!msg && !msg.message.includes(konv[lang]));
+    }
+  }
+
+  // (2) MsgId nad 35 znakov s "//": oba návrhy rovnaké, platné, do 35 znakov.
+  {
+    const dlhy = 'AAAAAAAAAAAAAAAAAAAA//BBBBBBBBBBBBBBBBBBBB';
+    const xml = buildPain001(PASS_SPEC).replace('<MsgId>MSG-0001</MsgId>', `<MsgId>${dlhy}</MsgId>`);
+    ok('MsgId + lomky: fixture sa zapísala a je dlhšia ako 35', xml.includes(dlhy) && dlhy.length > 35);
+    const r = diag(xml);
+    const l = lom(r);
+    const d = r.problems.find((p) => p.code === 'msg_id_too_long');
+    ok('MsgId + lomky: oba nálezy existujú', !!l && !!d);
+    eq('MsgId + lomky: oba návrhy sú rovnaké', l && l.fix, d && d.fix);
+    ok('MsgId + lomky: návrh má 1 až 35 znakov', !!l && l.fix.length <= 35 && l.fix.length > 0, l && l.fix);
+    ok('MsgId + lomky: návrh neporušuje pravidlo o lomkách', !!l && !/\/\/|^\/|\/$/.test(l.fix));
+    const r2 = diag(buildPain001(PASS_SPEC).replace('<MsgId>MSG-0001</MsgId>', `<MsgId>${l ? l.fix : ''}</MsgId>`));
+    ok('MsgId + lomky: navrhnutá hodnota prejde oboma kontrolami',
+      !lom(r2) && !r2.problems.some((p) => p.code === 'msg_id_too_long'));
+    const r3 = diag(buildPain001(PASS_SPEC).replace('<MsgId>MSG-0001</MsgId>', `<MsgId>${'M'.repeat(40)}</MsgId>`));
+    eq('MsgId pridlhý bez lomiek: návrh ostáva prvých 35 znakov',
+      (r3.problems.find((p) => p.code === 'msg_id_too_long') || {}).fix, 'M'.repeat(35));
+  }
+
+  // (3) /SS456//VS123/KS0308: návrh lomiek dá rovno kanonické poradie.
+  {
+    const r = diag(sE2E('/SS456//VS123/KS0308'));
+    const l = lom(r);
+    const p = r.problems.find((x) => x.code === 'reference_symbol_order');
+    eq('lomky + poradie: návrh lomiek je kanonický', l && l.fix, '/VS123/SS456/KS0308');
+    eq('lomky + poradie: rovnaký návrh ako reference_symbol_order', l && l.fix, p && p.fix);
+    const r2 = diag(sE2E(l ? l.fix : ''));
+    ok('lomky + poradie: navrhnutá hodnota nemá nález lomiek ani poradia',
+      !lom(r2) && !r2.problems.some((x) => x.code === 'reference_symbol_order'));
+    eq('lomky + poradie: správne poradie s "//" ostáva len zlúčené', (lom(diag(sE2E('/VS1//SS2/KS3'))) || {}).fix, '/VS1/SS2/KS3');
+  }
+
+  // (4) Zoznam porušení sa spája slovom a / and / und.
+  {
+    const tri = {
+      sk: 'začína lomkou, obsahuje dve lomky za sebou a končí lomkou',
+      en: 'starts with a slash, contains two consecutive slashes and ends with a slash',
+      de: 'beginnt mit einem Schrägstrich, enthält zwei aufeinanderfolgende Schrägstriche und endet mit einem Schrägstrich',
+    };
+    const dve = {
+      sk: 'obsahuje dve lomky za sebou a končí lomkou',
+      en: 'contains two consecutive slashes and ends with a slash',
+      de: 'enthält zwei aufeinanderfolgende Schrägstriche und endet mit einem Schrägstrich',
+    };
+    for (const lang of ['sk', 'en', 'de']) {
+      const n3 = lom(diag(sE2E('/A///B/'), lang));
+      ok(`lomky spojka ${lang}: tri porušenia`, !!n3 && n3.message.includes(tri[lang]), n3 && n3.message);
+      const n2 = lom(diag(sE2E('FA//1/'), lang));
+      ok(`lomky spojka ${lang}: dve porušenia bez čiarky`, !!n2 && n2.message.includes(dve[lang]), n2 && n2.message);
+      ok(`lomky spojka ${lang}: dve porušenia nemajú čiarku pred spojkou`, !!n2 && !/, (a|and|und) /.test(n2.message.split('. ')[0]));
+    }
+  }
+
+  // (5) Návrh je aj v EN a DE hláške.
+  {
+    const OPRAVA = '0000000099/2026-11-12/BO-1';
+    const slovo = { en: 'Suggested value: "', de: 'Vorschlag: "' };
+    for (const lang of ['en', 'de']) {
+      const n = lom(diag(sE2E('0000000099//2026-11-12/BO-1'), lang));
+      ok(`lomky ${lang}: hláška nesie návrh`, !!n && n.message.includes(slovo[lang] + OPRAVA + '"'), n && n.message);
+      eq(`lomky ${lang}: pole fix nesie návrh`, n && n.fix, OPRAVA);
+    }
+  }
+}
+
+// ───────── Oprava po bráne sepa-09, pokus 1 (19. 11. 2026) ─────────
+// Zápis brány: ops/ai/kontrola/2026-11-19-sepa-doctor-09.md v koreňovom repe.
+{
+  const NS03 = 'urn:iso:std:iso:20022:tech:xsd:pain.001.001.03';
+  const NS09 = 'urn:iso:std:iso:20022:tech:xsd:pain.001.001.09';
+  const na09 = (x) => x
+    .replace('pain.001.001.03', 'pain.001.001.09')
+    .replace(/<ReqdExctnDt>([^<]+)<\/ReqdExctnDt>/g, '<ReqdExctnDt><Dt>$1</Dt></ReqdExctnDt>')
+    .replace(/<BIC>/g, '<BICFI>').replace(/<\/BIC>/g, '</BICFI>');
+  const x03 = buildPain001(PASS_SPEC);
+  const x09 = na09(x03);
+  const d = (xml, bank, lang) => diagnose({ xml, bank: bank || 'tatrabanka', dnes: DNES_PRED, lang });
+
+  // N1: riadok „očakávaný menný priestor“ ukazuje verziu súboru, pri .09 nie .03.
+  for (const banka of ['tatrabanka', 'slsp', 'vub', 'csob', 'generic']) {
+    eq(`N1 ${banka}: pri .09 sa očakáva .09`, d(x09, banka).expected.schemaNamespace, NS09);
+    eq(`N1 ${banka}: pri .03 sa očakáva .03`, d(x03, banka).expected.schemaNamespace, NS03);
+  }
+  ok('N1: pred vložením súboru (expectedValues) obe verzie',
+    expectedValues({ bank: 'tatrabanka' }).schemaNamespace.includes(NS03) && expectedValues({ bank: 'tatrabanka' }).schemaNamespace.includes(NS09));
+  eq('N1: expectedValues zoznam verzií', (expectedValues({ bank: 'vub' }).schemaNamespaces || []).join(' '), NS03 + ' ' + NS09);
+  ok('N1: prázdny vstup neukazuje len .03', d('').expected.schemaNamespace !== NS03);
+
+  // N3: chýbajúci xmlns: návrh podľa štruktúry súboru, text bez „štyri banky spracúvajú .03“.
+  {
+    const bez09 = x09.replace(` xmlns="${NS09}"`, '');
+    const bez03 = x03.replace(` xmlns="${NS03}"`, '');
+    ok('N3: fixtúry bez xmlns', !bez09.includes('xmlns=') && !bez03.includes('xmlns='));
+    const n09 = d(bez09).problems.find((p) => p.code === 'schema_namespace_missing');
+    const n03 = d(bez03).problems.find((p) => p.code === 'schema_namespace_missing');
+    eq('N3: súbor so štruktúrou .09 bez xmlns dostane návrh .09', n09 && n09.fix, `xmlns="${NS09}"`);
+    eq('N3: súbor so štruktúrou .03 bez xmlns dostane návrh .03', n03 && n03.fix, `xmlns="${NS03}"`);
+    eq('N3: očakávaný menný priestor sedí s návrhom', d(bez09).expected.schemaNamespace, NS09);
+    const neznamy = d(x09.replace(NS09, 'urn:priklad:x')).problems.find((p) => p.code === 'schema_namespace_unexpected');
+    eq('N3: neznámy xmlns pri štruktúre .09 dostane návrh .09', neznamy && neznamy.fix, `xmlns="${NS09}"`);
+    for (const lang of ['sk', 'en', 'de']) {
+      const n = d(bez09, 'tatrabanka', lang).problems.find((p) => p.code === 'schema_namespace_missing');
+      ok(`N3 ${lang}: text netvrdí, že štyri banky spracúvajú .03`, !!n && !/štyri banky spracúvajú|four banks process|vier Banken verarbeiten/.test(n.message), n && n.message);
+      ok(`N3 ${lang}: text spomína .03 aj .09`, !!n && n.message.includes('pain.001.001.03') && n.message.includes('.09'));
+      ok(`N3 ${lang}: text nesie návrh`, !!n && n.message.includes(NS09));
+    }
+  }
+
+  // N4: VÚB .09 len povoľuje, nezverejňuje k nej popis ani vzory.
+  for (const [lang, presne] of [['sk', 'VÚB a ČSOB výslovne ako povolenú'], ['en', 'VÚB and ČSOB explicitly as allowed'], ['de', 'VÚB und ČSOB ausdrücklich als erlaubt']]) {
+    const n = d(x09, 'generic', lang).problems.find((p) => p.code === 'schema_namespace_09_skoro');
+    ok(`N4 ${lang}: poznámka rozlišuje VÚB a ČSOB (povolené) od SLSP a Tatra banky (popis, vzory)`, !!n && n.message.includes(presne), n && n.message);
+    ok(`N4 ${lang}: netvrdí, že všetky štyri zverejňujú popis alebo vzory`, !!n && !/zverejňujú popis alebo vzory|publish an import description or samples|veröffentlichen dafür/.test(n.message));
+  }
+  const citaj = (f) => readFileSync(new URL('./' + f, import.meta.url), 'utf8');
+  ok('N4: README netvrdí, že všetky štyri zverejňujú popis alebo vzory .09', !/all four publish import descriptions or samples/.test(citaj('README.md')));
+  ok('N4: llms.txt netvrdí, že všetky štyri zverejňujú popis alebo vzory .09', !/publish import descriptions or samples for `\.09`/.test(citaj('llms.txt')));
+  ok('N4: llms-full.txt netvrdí „no longer gives that date“', !/no longer gives that date/.test(citaj('llms-full.txt')));
+
+  // N2: FAQ o Tatra banke (viditeľná odpoveď aj JSON-LD) netvrdí presný menný priestor .03.
+  for (const [stranka, stare, nove] of [
+    ['index.html', 'presný menný priestor pain.001.001.03', 'vzory pre pain.001.001.09'],
+    ['en/index.html', 'exact namespace pain.001.001.03', 'samples for pain.001.001.09'],
+    ['de/index.html', 'exakte Namensraum pain.001.001.03', 'Muster für pain.001.001.09'],
+  ]) {
+    const html = citaj(stranka);
+    ok(`N2 ${stranka}: FAQ o Tatra banke bez „presný menný priestor .03“`, !html.includes(stare));
+    eq(`N2 ${stranka}: FAQ o Tatra banke spomína .09 v odpovedi aj v JSON-LD`, html.split(nove).length - 1, 2);
+    ok(`N2 ${stranka}: JSON-LD ostáva platný JSON`, [...html.matchAll(/<script type="application\/ld\+json">([\s\S]*?)<\/script>/g)].every((m) => { try { JSON.parse(m[1]); return true; } catch { return false; } }));
+  }
+
+  // O1: kanonické poradie len pri hodnote zloženej iba zo symbolov; obsah sa nestratí.
+  {
+    const sE2E = (id) => { const s = clone(PASS_SPEC); s.pmtInf[0].tx[0].endToEndId = id; return buildPain001(s); };
+    const lom = (id) => (d(sE2E(id)).problems.find((p) => p.code === 'identifier_slash_rule') || {}).fix;
+    eq('O1: /SS1//VS2/KS3/FA2026-001 zachová číslo faktúry', lom('/SS1//VS2/KS3/FA2026-001'), '/SS1/VS2/KS3/FA2026-001');
+    eq('O1: /SS456//VS123/KS0308 (len symboly) dá kanonické poradie', lom('/SS456//VS123/KS0308'), '/VS123/SS456/KS0308');
+    eq('O1: /SS1//VS2/ (len symboly, lomka na konci) dá kanonické poradie', lom('/SS1//VS2/'), '/VS2/SS1/KS');
+  }
+
+  // O2: dlhý MsgId začínajúci /VS (výnimka konvencie pre MsgId neplatí).
+  {
+    const dlhy = '/VS1' + 'A'.repeat(40);
+    const r = d(x03.replace('<MsgId>MSG-0001</MsgId>', `<MsgId>${dlhy}</MsgId>`));
+    const l = r.problems.find((p) => p.code === 'identifier_slash_rule');
+    const m = r.problems.find((p) => p.code === 'msg_id_too_long');
+    eq('O2: oba návrhy pre dlhý MsgId /VS… sú rovnaké', l && l.fix, m && m.fix);
+    ok('O2: návrh bez úvodnej lomky a do 35 znakov', !!l && !l.fix.startsWith('/') && l.fix.length <= 35, l && l.fix);
+  }
+
+  // O3 sa vedome nerobí: fixes sa s nálezmi s návrhom párujú podľa indexu
+  // (lievik.test.mjs, strop 3 hodnôt). Test stráži, aby to tak ostalo.
+  {
+    const s = clone(PASS_SPEC); s.pmtInf[0].tx[0].endToEndId = '/SS456//VS123/KS0308';
+    const r = d(buildPain001(s));
+    const sNavrhom = r.problems.filter((p) => p.fix);
+    eq('O3: fixes majú rovnaký počet ako nálezy s návrhom', r.fixes.length, sNavrhom.length);
+    ok('O3: fixes[i] je návrh i-teho nálezu', r.fixes.every((f, i) => f.value === sNavrhom[i].fix && f.where === sNavrhom[i].path));
+  }
+
+  // O4: ČSOB a .03 s podmienkou banky o adresách.
+  for (const [lang, podm] of [['sk', 'ak adresy nepoužívate alebo ich zapisujete štruktúrovane'], ['en', 'leave addresses out or write them in structured form'], ['de', 'keine Adressen verwenden oder sie strukturiert schreiben']]) {
+    ok(`O4 ${lang}: ČSOB .03 s podmienkou o adresách`, d(x03.replace(/TATRSKBX/g, 'CEKOSKBX'), 'csob', lang).checklist.some((c) => c.includes(podm)));
+  }
+
+  // O5: termín adries podľa znenia EPC („will reconvene … to decide“), nie „rozhodne“.
+  for (const f of ['doctor-pain001.js', 'index.html', 'en/index.html', 'de/index.html']) {
+    const t = citaj(f);
+    ok(`O5 ${f}: bez „rozhodne o ňom / will decide on one / darüber entscheidet er“`, !/rozhodne o ňom do februára|will decide on one by February|darüber entscheidet er bis Februar/.test(t));
   }
 }
 

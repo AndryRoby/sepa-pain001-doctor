@@ -6,7 +6,7 @@ Paste your `pain.001.001.03` XML and pick the target bank, and it cross-checks t
 
 ## What it checks
 
-- Schema/namespace: `pain.001.001.03` (`urn:iso:std:iso:20022:tech:xsd:pain.001.001.03`): the version all four Slovak banks process.
+- Schema/namespace: `pain.001.001.03` (`urn:iso:std:iso:20022:tech:xsd:pain.001.001.03`) or `pain.001.001.09`. As of 19 November 2026 all four Slovak banks list `.09` in their import documentation: VÚB and ČSOB explicitly allow both `.03` and `.09`, SLSP publishes both specifications, and Tatra banka still links a `.03` description (an April 2026 version of its Slovak page announced `.03` imports only until 12 November 2026). The checklist says what the chosen bank publishes.
 - Fixed values: `PmtMtd = TRF`, `InstrPrty = NORM`, `SvcLvl/Cd = SEPA`, `ChrgBr = SLEV`.
 - `ReqdExctnDt` window: not in the past, and within each bank's own limit: Tatra banka max +31 days, VÚB max +30 days.
 - Transaction count: Tatra banka caps a file at 500 transactions.
