@@ -198,7 +198,7 @@ const PASS_SPEC = {
 // test pins the date instead of reading the clock. Since 24. 9. 2026
 // TERMIN_ADRESY is null: the EPC postponed the 15. 11. 2026 end of the
 // unstructured address on 9. 9. 2026; on 29. 10. 2026 the PSMB decided not to
-// set a new date yet and will decide by February 2027.
+// set a new date yet and will meet again by February 2027 to decide on one.
 // The pinned dates stay, so the suite is ready once a new date is set.
 function run(spec, bank, expectedTxCount, dnes) {
   return diagnose({
@@ -1323,7 +1323,11 @@ eq('TERMIN_ADRESY je null, kým EPC neurčí nový termín', TERMIN_ADRESY, null
       for (const z of ZNAK[banka][lang]) ok(`chkVerzia ${banka} ${lang}: obsahuje „${z}“`, !!c && c.includes(z), c);
       ok(`chkVerzia ${banka} ${lang}: nežiada presne .03`, !!c && !ZLA_RADA.test(c));
       ok(`chkVerzia ${banka} ${lang}: bez pomlčiek em a en`, !!c && !/[–—]/.test(c));
-      eq(`chkVerzia ${banka} ${lang}: rovnaký riadok pri .03 aj .09`, verziaRiadok(banka, lang, na09(subor03(banka))), c);
+      // Tatra banka: rada „ak import .03 neprejde, exportujte .09“ len pri súbore .03
+      // (brána sepa-09, pokus 2, bod 4); inak rovnaký riadok pri .03 aj .09.
+      const c09 = verziaRiadok(banka, lang, na09(subor03(banka)));
+      if (banka === 'tatrabanka') ok(`chkVerzia ${banka} ${lang}: pri .09 ten istý riadok bez rady o .03`, !!c09 && c09 !== c && c.startsWith(c09 + ' '), c09);
+      else eq(`chkVerzia ${banka} ${lang}: rovnaký riadok pri .03 aj .09`, c09, c);
     }
   }
   ok('chkVerzia: päť rôznych textov pre päť volieb banky',
@@ -1405,7 +1409,9 @@ eq('TERMIN_ADRESY je null, kým EPC neurčí nový termín', TERMIN_ADRESY, null
     const l = lom(r);
     const p = r.problems.find((x) => x.code === 'reference_symbol_order');
     eq('lomky + poradie: návrh lomiek je kanonický', l && l.fix, '/VS123/SS456/KS0308');
-    eq('lomky + poradie: rovnaký návrh ako reference_symbol_order', l && l.fix, p && p.fix);
+    // Brána sepa-09, pokus 2, bod 2: reference_symbol_order rovnaký návrh nezopakuje.
+    ok('lomky + poradie: nález poradia ostáva', !!p);
+    eq('lomky + poradie: reference_symbol_order rovnaký návrh nezopakuje', p && p.fix, '');
     const r2 = diag(sE2E(l ? l.fix : ''));
     ok('lomky + poradie: navrhnutá hodnota nemá nález lomiek ani poradia',
       !lom(r2) && !r2.problems.some((x) => x.code === 'reference_symbol_order'));
@@ -1515,7 +1521,8 @@ eq('TERMIN_ADRESY je null, kým EPC neurčí nový termín', TERMIN_ADRESY, null
   {
     const sE2E = (id) => { const s = clone(PASS_SPEC); s.pmtInf[0].tx[0].endToEndId = id; return buildPain001(s); };
     const lom = (id) => (d(sE2E(id)).problems.find((p) => p.code === 'identifier_slash_rule') || {}).fix;
-    eq('O1: /SS1//VS2/KS3/FA2026-001 zachová číslo faktúry', lom('/SS1//VS2/KS3/FA2026-001'), '/SS1/VS2/KS3/FA2026-001');
+    // Od 19. 11. 2026 (brána sepa-09, pokus 2, bod 1) aj kanonické poradie.
+    eq('O1: /SS1//VS2/KS3/FA2026-001 zachová číslo faktúry', lom('/SS1//VS2/KS3/FA2026-001'), '/VS2/SS1/KS3/FA2026-001');
     eq('O1: /SS456//VS123/KS0308 (len symboly) dá kanonické poradie', lom('/SS456//VS123/KS0308'), '/VS123/SS456/KS0308');
     eq('O1: /SS1//VS2/ (len symboly, lomka na konci) dá kanonické poradie', lom('/SS1//VS2/'), '/VS2/SS1/KS');
   }
@@ -1549,6 +1556,211 @@ eq('TERMIN_ADRESY je null, kým EPC neurčí nový termín', TERMIN_ADRESY, null
   for (const f of ['doctor-pain001.js', 'index.html', 'en/index.html', 'de/index.html']) {
     const t = citaj(f);
     ok(`O5 ${f}: bez „rozhodne o ňom / will decide on one / darüber entscheidet er“`, !/rozhodne o ňom do februára|will decide on one by February|darüber entscheidet er bis Februar/.test(t));
+  }
+}
+
+// ───────── Odporúčania brány sepa-09, pokus 2 (body 1 až 6) a O8 (19. 11. 2026) ─────────
+// Zadanie: ops/druhy-ucet/gmail/zadanie-sepa-hub.md, bod 4; záznam
+// ops/druhy-ucet/gmail/sepa-hub/vysledok-O8.md v koreňovom repe.
+{
+  const NS03 = 'urn:iso:std:iso:20022:tech:xsd:pain.001.001.03';
+  const NS09 = 'urn:iso:std:iso:20022:tech:xsd:pain.001.001.09';
+  const na09 = (x) => x
+    .replace('pain.001.001.03', 'pain.001.001.09')
+    .replace(/<ReqdExctnDt>([^<]+)<\/ReqdExctnDt>/g, '<ReqdExctnDt><Dt>$1</Dt></ReqdExctnDt>')
+    .replace(/<BIC>/g, '<BICFI>').replace(/<\/BIC>/g, '</BICFI>');
+  const d = (xml, bank, lang) => diagnose({ xml, bank: bank || 'tatrabanka', dnes: DNES_PRED, lang });
+  const sE2E = (id) => { const s = clone(PASS_SPEC); s.pmtInf[0].tx[0].endToEndId = id; return buildPain001(s); };
+  const najdi = (r, kod) => r.problems.find((p) => p.code === kod);
+  const ZAKAZ_ISTOTY = /odmietne|zamietne|will be rejected|rejects it|wird zurückgewiesen|weist .* zurück/;
+
+  // Bod 1: kanonické poradie nechá text za symbolmi; návrh po dosadení je čistý.
+  {
+    const v = '/SS1//VS2/KS3/FA2026-001';
+    const r = d(sE2E(v));
+    const l = najdi(r, 'identifier_slash_rule');
+    eq('bod 1: návrh lomiek dá kanonické poradie a zachová číslo faktúry', l && l.fix, '/VS2/SS1/KS3/FA2026-001');
+    const r2 = d(sE2E(l ? l.fix : v));
+    ok('bod 1: dosadený návrh nemá nález lomiek ani poradia',
+      !najdi(r2, 'identifier_slash_rule') && !najdi(r2, 'reference_symbol_order'),
+      r2.problems.map((p) => p.code).join(','));
+    eq('bod 1: reference_symbol_order bez lomiek tiež zachová číslo faktúry',
+      fixOf(d(sE2E('/SS1/VS2/KS3/FA2026-001')).problems, 'reference_symbol_order'), '/VS2/SS1/KS3/FA2026-001');
+    ok('bod 1: text pred symbolmi sa nestratí', (fixOf(d(sE2E('FA1/SS2/VS1')).problems, 'reference_symbol_order') || '').includes('FA1'));
+    // Pridlhá hodnota: návrh poradia aj návrh skrátenia sú rovnaké a do 35 znakov.
+    const dlhy = '/SS1/VS2/KS3/' + 'X'.repeat(25);
+    const rd = d(sE2E(dlhy));
+    // Brána sepa-hub pokus 1, O2: rovnaký návrh nesie len end_to_end_id_too_long,
+    // poradie druhú rovnakú kartu opravy nedá (addProblem zapíše chýbajúci návrh ako '').
+    const poradie = fixOf(rd.problems, 'reference_symbol_order');
+    const skratenie = fixOf(rd.problems, 'end_to_end_id_too_long');
+    ok('bod 1: pridlhá hodnota, návrh skrátenia má najviac 35 znakov a kanonické poradie', !!skratenie && skratenie.length <= 35 && skratenie.startsWith('/VS2/SS1/KS3'), skratenie);
+    eq('bod 1: pridlhá hodnota, poradie nenesie druhý rovnaký návrh', poradie, '');
+  }
+
+  // Bod 2: jedna karta opravy, keď oba nálezy navrhujú tú istú hodnotu.
+  for (const v of ['/SS456//VS123/KS0308', '/SS1//VS2/KS3/FA2026-001']) {
+    const r = d(sE2E(v));
+    const navrh = (najdi(r, 'identifier_slash_rule') || {}).fix;
+    eq(`bod 2 ${v}: návrh je vo fixes práve raz`, r.fixes.filter((f) => f.value === navrh).length, 1);
+    ok(`bod 2 ${v}: nález poradia ostáva`, !!najdi(r, 'reference_symbol_order'));
+    const sNavrhom = r.problems.filter((p) => p.fix);
+    ok(`bod 2 ${v}: fixes[i] je stále návrh i-teho nálezu s návrhom`,
+      r.fixes.length === sNavrhom.length && r.fixes.every((f, i) => f.value === sNavrhom[i].fix && f.where === sNavrhom[i].path));
+  }
+
+  // Bod 3: mutácie, ktoré v bráne prežili (strážne testy).
+  {
+    const x03 = buildPain001(PASS_SPEC);
+    const bezNs = x03.replace(` xmlns="${NS03}"`, '');
+    const lenBicfi = bezNs.replace(/<BIC>/g, '<BICFI>').replace(/<\/BIC>/g, '</BICFI>');
+    const lenDt = bezNs.replace(/<ReqdExctnDt>([^<]+)<\/ReqdExctnDt>/g, '<ReqdExctnDt><Dt>$1</Dt></ReqdExctnDt>');
+    ok('bod 3: fixtúry bez xmlns, jedna len s BICFI, druhá len s ReqdExctnDt/Dt',
+      !lenBicfi.includes('xmlns=') && lenBicfi.includes('<BICFI>') && !lenBicfi.includes('<Dt>')
+      && !lenDt.includes('xmlns=') && lenDt.includes('<Dt>') && !lenDt.includes('<BICFI>'));
+    eq('bod 3: bez xmlns, len BICFI: návrh .09', fixOf(d(lenBicfi).problems, 'schema_namespace_missing'), `xmlns="${NS09}"`);
+    eq('bod 3: bez xmlns, len ReqdExctnDt/Dt: návrh .09', fixOf(d(lenDt).problems, 'schema_namespace_missing'), `xmlns="${NS09}"`);
+    eq('bod 3: /ss1//vs2 (malé písmená) dá /VS2/SS1/KS', fixOf(d(sE2E('/ss1//vs2')).problems, 'identifier_slash_rule'), '/VS2/SS1/KS');
+  }
+
+  // Bod 4: Tatra banka, rada o exporte .09 len pri súbore .03; prvok 2.118 s názvom.
+  {
+    const RADA = { sk: 'Ak vám import .03 neprejde', en: 'If a .03 import fails', de: 'Scheitert der Import einer Datei im Format .03' };
+    const x03 = buildPain001(PASS_SPEC);
+    for (const lang of ['sk', 'en', 'de']) {
+      const riadok = (xml) => d(xml, 'tatrabanka', lang).checklist.find((c) => /^(Verzia súboru|File version|Dateiversion):/.test(c)) || '';
+      ok(`bod 4 ${lang}: pri súbore .09 bez rady o neúspešnom importe .03`, !riadok(na09(x03)).includes(RADA[lang]), riadok(na09(x03)));
+      ok(`bod 4 ${lang}: pri súbore .03 rada ostáva`, riadok(x03).includes(RADA[lang]));
+      const t09 = d(na09(x03), 'tatrabanka', lang).checklist.find((c) => c.includes('2.118')) || '';
+      ok(`bod 4 ${lang}: prvok 2.118 je pomenovaný (Cdtr/PstlAdr)`, t09.includes('2.118, Cdtr/PstlAdr'), t09);
+      ok(`bod 4 ${lang}: riadok netvrdí, že obmedzenia nástroj nekontroluje`, !/zatiaľ nekontroluje|does not check yet|noch nicht prüft/.test(t09));
+    }
+  }
+
+  // Bod 5: pred prečítaním súboru obe verzie spojené slovom podľa jazyka, nie „ | “.
+  for (const [lang, slovo] of [['sk', ' alebo '], ['en', ' or '], ['de', ' oder ']]) {
+    eq(`bod 5 ${lang}: prázdny vstup, očakávaný menný priestor`, d('', 'tatrabanka', lang).expected.schemaNamespace, NS03 + slovo + NS09);
+    eq(`bod 5 ${lang}: expectedValues`, expectedValues({ bank: 'vub', lang }).schemaNamespace, NS03 + slovo + NS09);
+    ok(`bod 5 ${lang}: bez oddeľovača „ | “`, !d('', 'tatrabanka', lang).expected.schemaNamespace.includes(' | '));
+  }
+  eq('bod 5: expectedValues bez jazyka po slovensky', expectedValues({ bank: 'vub' }).schemaNamespace, NS03 + ' alebo ' + NS09);
+
+  // Bod 6: llms-full.txt opisuje kanonické poradie aj pri texte za symbolmi.
+  {
+    const citaj = (f) => readFileSync(new URL('./' + f, import.meta.url), 'utf8');
+    const t = citaj('llms-full.txt');
+    ok('bod 6: llms-full.txt hovorí, kedy návrh lomiek dá kanonické poradie a čo s textom za symbolmi',
+      t.includes('When the value holds more than the symbols, the other text is kept after them') && t.includes('`/VS2/SS1/KS3/FA2026-001`'));
+    ok('README.md opisuje text za symbolmi pri návrhu poradia', citaj('README.md').includes('keeps any other text after them'));
+    for (const kod of ['tatra_09_pmt_inf_count', 'tatra_09_batch_booking', 'tatra_09_hybrid_address', 'tatra_09_structured_remittance']) {
+      ok(`README.md a llms-full.txt: nový kód ${kod} je v README`, citaj('README.md').includes('`' + kod + '`'));
+    }
+  }
+
+  // O8: obmedzenia Tatra banky pre .09 (stránka dávkových platieb Internet bankingu TB,
+  // EN 19. 11. 2026): 2.0 najviac 1 PmtInf, 2.3 bez batch booking, 2.118 bez
+  // hybridnej adresy príjemcu, 2.166 bez Strd. Len Tatra banka a súbor .09.
+  {
+    const s2 = clone(PASS_SPEC);
+    s2.pmtInf.push(clone(PASS_SPEC.pmtInf[0]));
+    s2.pmtInf[1].pmtInfId = 'PMT-0002';
+    s2.pmtInf[1].tx[0].endToEndId = '/VS124/SS456/KS0308';
+    s2.nbOfTxs = 2; s2.ctrlSum = '900.00';
+    const dvaBloky03 = buildPain001(s2);
+    const dvaBloky09 = na09(dvaBloky03);
+    const x03 = buildPain001(PASS_SPEC);
+    const x09 = na09(x03);
+    const batch = (x) => x.replace('<PmtMtd>TRF</PmtMtd>', '<PmtMtd>TRF</PmtMtd><BtchBookg>true</BtchBookg>');
+    const HYB = '<PstlAdr><StrtNm>Hlavna</StrtNm><TwnNm>Bratislava</TwnNm><Ctry>SK</Ctry><AdrLine>Hlavna 1</AdrLine></PstlAdr>';
+    const STR = '<PstlAdr><StrtNm>Hlavna</StrtNm><BldgNb>1</BldgNb><TwnNm>Bratislava</TwnNm><Ctry>SK</Ctry></PstlAdr>';
+    const sAdresou = (x, adr, kde) => x.replace(`<${kde || 'Cdtr'}><Nm>${kde === 'Dbtr' ? 'Firma s.r.o.' : 'Jozef Novak'}</Nm>`, `<${kde || 'Cdtr'}><Nm>${kde === 'Dbtr' ? 'Firma s.r.o.' : 'Jozef Novak'}</Nm>${adr}`);
+    const strd = (x) => x.replace('<RmtInf><Ustrd>Faktura c. 2026-0912</Ustrd></RmtInf>', '<RmtInf><Strd><CdtrRefInf><Ref>RF18539007547034</Ref></CdtrRefInf></Strd></RmtInf>');
+    ok('O8: fixtúry sa zapísali', dvaBloky09.split('<PmtInf>').length === 3 && batch(x09).includes('<BtchBookg>true')
+      && sAdresou(x09, HYB).includes('<AdrLine>') && sAdresou(x09, HYB, 'Dbtr').includes('Firma s.r.o.</Nm><PstlAdr>') && strd(x09).includes('<Strd>'));
+
+    const PRIPADY = [
+      ['tatra_09_pmt_inf_count', dvaBloky09, dvaBloky03],
+      ['tatra_09_batch_booking', batch(x09), batch(x03)],
+      ['tatra_09_hybrid_address', sAdresou(x09, HYB), sAdresou(x03, HYB)],
+      ['tatra_09_structured_remittance', strd(x09), strd(x03)],
+    ];
+    for (const [kod, s09, s03] of PRIPADY) {
+      const r = d(s09);
+      has(`O8 ${kod}: Tatra banka a .09 nález má`, r.problems, kod);
+      eq(`O8 ${kod}: stredná závažnosť (banka odmietnutie neuvádza)`, severityOf(r.problems, kod), 'medium');
+      lacks(`O8 ${kod}: Tatra banka a .03 nález nemá`, d(s03).problems, kod);
+      for (const banka of ['slsp', 'vub', 'csob', 'generic']) lacks(`O8 ${kod}: ${banka} a .09 nález nemá`, d(s09, banka).problems, kod);
+      for (const lang of ['sk', 'en', 'de']) {
+        const n = najdi(d(s09, 'tatrabanka', lang), kod);
+        ok(`O8 ${kod} ${lang}: hláška nepíše istotu odmietnutia`, !!n && !ZAKAZ_ISTOTY.test(n.message), n && n.message);
+        ok(`O8 ${kod} ${lang}: hláška hovorí, že banka následok neuvádza`, !!n && /neuvádza|does not say|sagt sie nicht/.test(n.message), n && n.message);
+        ok(`O8 ${kod} ${lang}: bez pomlčiek em a en`, !!n && !/[–—]/.test(n.message));
+      }
+    }
+    ok('O8 PmtInf: hláška cituje „Maximum 1 element“', ((najdi(d(dvaBloky09), 'tatra_09_pmt_inf_count') || {}).message || '').includes('„Maximum 1 element“'));
+    eq('O8 BtchBookg: návrh "false"', fixOf(d(batch(x09)).problems, 'tatra_09_batch_booking'), 'false');
+    lacks('O8 BtchBookg false: bez nálezu', d(x09.replace('<PmtMtd>TRF</PmtMtd>', '<PmtMtd>TRF</PmtMtd><BtchBookg>false</BtchBookg>')).problems, 'tatra_09_batch_booking');
+    lacks('O8 adresa: plne štruktúrovaná adresa príjemcu bez nálezu', d(sAdresou(x09, STR)).problems, 'tatra_09_hybrid_address');
+    lacks('O8 adresa: hybridná adresa platiteľa (2.23 v EN znení 19. 11. 2026 nie je) bez nálezu', d(sAdresou(x09, HYB, 'Dbtr')).problems, 'tatra_09_hybrid_address');
+    // Brána sepa-hub pokus 1, O1: Ctry + AdrLine bez TwnNm nie je hybridná adresa
+    // (EPC: hybridná adresa má TwnNm a Ctry), hlási sa len chýbajúce mesto.
+    {
+      const CTRY_ADR = '<PstlAdr><Ctry>SK</Ctry><AdrLine>Hlavna 1, Bratislava</AdrLine></PstlAdr>';
+      const r = d(sAdresou(x09, CTRY_ADR));
+      ok('O1: fixtúra Ctry + AdrLine sa zapísala', sAdresou(x09, CTRY_ADR).includes('<Ctry>SK</Ctry><AdrLine>'));
+      lacks('O1: Ctry + AdrLine bez TwnNm nie je hybridná adresa', r.problems, 'tatra_09_hybrid_address');
+      has('O1: Ctry + AdrLine bez TwnNm hlási chýbajúce mesto', r.problems, 'adresa_bez_mesta_alebo_krajiny');
+    }
+    // Brána sepa-hub pokus 1, O2: dlhý EndToEndId so symbolmi v zlom poradí a
+    // textom za nimi. Návrh skrátenia nesmie končiť zvyškom „/F“ a poradie
+    // nesmie ukázať druhú rovnakú kartu opravy.
+    {
+      const s = clone(PASS_SPEC);
+      s.pmtInf[0].tx[0].endToEndId = '/SS1234567890/VS1234567890/KS0308/FAKTURA2026';
+      const r = d(buildPain001(s), 'vub');
+      eq('O2: end_to_end_id_too_long navrhne symboly bez useknutého textu', fixOf(r.problems, 'end_to_end_id_too_long'), '/VS1234567890/SS1234567890/KS0308');
+      has('O2: reference_symbol_order nález ostáva', r.problems, 'reference_symbol_order');
+      eq('O2: reference_symbol_order bez druhej rovnakej karty opravy', fixOf(r.problems, 'reference_symbol_order'), '');
+      const t = clone(PASS_SPEC);
+      t.pmtInf[0].tx[0].endToEndId = '/VS12345/SS1/KS0308/FA/2026-000123456789';
+      eq('O2: text za symbolmi s lomkou sa reže po celý úsek', fixOf(d(buildPain001(t), 'vub').problems, 'end_to_end_id_too_long'), '/VS12345/SS1/KS0308/FA');
+      const u = clone(PASS_SPEC);
+      u.pmtInf[0].tx[0].endToEndId = 'FAKTURA-2026-0001-DODAVATEL-ABCDEFGHIJ';
+      eq('O2: hodnota bez symbolov sa skracuje ako doteraz', fixOf(d(buildPain001(u), 'vub').problems, 'end_to_end_id_too_long'), 'FAKTURA-2026-0001-DODAVATEL-ABCDEFG');
+    }
+    // Brána sepa-hub pokus 1, O3: nečíselná hodnota symbolu v zlom poradí ostáva
+    // pri svojom symbole, nepresunie sa za KS ako text.
+    {
+      const s = clone(PASS_SPEC);
+      s.pmtInf[0].tx[0].endToEndId = '/SS1/VSABC';
+      eq('O3: /SS1/VSABC dá návrh /VSABC/SS1/KS', fixOf(d(buildPain001(s), 'vub').problems, 'reference_symbol_order'), '/VSABC/SS1/KS');
+      const t = clone(PASS_SPEC);
+      t.pmtInf[0].tx[0].endToEndId = '/SS1/VS2/KS0308FA';
+      eq('O3: hodnota začínajúca číslicami sa delí ako doteraz', fixOf(d(buildPain001(t), 'vub').problems, 'reference_symbol_order'), '/VS2/SS1/KS0308/FA');
+    }
+    {
+      const s = clone(PASS_SPEC);
+      s.pmtInf[0].tx.push(clone(PASS_SPEC.pmtInf[0].tx[0]));
+      s.pmtInf[0].tx[1].endToEndId = '/VS124/SS456/KS0308';
+      s.nbOfTxs = 2; s.ctrlSum = '900.00';
+      const x = na09(buildPain001(s)).split('<Cdtr><Nm>Jozef Novak</Nm>').join('<Cdtr><Nm>Jozef Novak</Nm>' + HYB);
+      const r = d(x);
+      eq('O8 adresa: dve hybridné adresy príjemcu, jeden nález', r.problems.filter((p) => p.code === 'tatra_09_hybrid_address').length, 1);
+      ok('O8 adresa: hláška uvádza počet 2', ((najdi(r, 'tatra_09_hybrid_address') || {}).message || '').includes('Hybridných adries príjemcu v súbore: 2.'));
+    }
+    // initg_pty_name_pattern je z popisu .03; vzor .09 Tatra banky má <Nm>InitgPty</Nm>.
+    {
+      const s = clone(PASS_SPEC); s.initgPtyNm = 'InitgPty';
+      lacks('O8 InitgPty: Tatra banka a .09 vzor z popisu .03 nehlási', d(na09(buildPain001(s))).problems, 'initg_pty_name_pattern');
+      has('O8 InitgPty: Tatra banka a .03 vzor hlási ďalej', d(buildPain001(s)).problems, 'initg_pty_name_pattern');
+    }
+    // Vzor Tatra banky „Pain.001.09 Example with mandatory parameters“ (stiahnutý
+    // 19. 11. 2026, ib_minimum_params_pain_001_09.xml, Last-Modified 1. 4. 2026).
+    {
+      const vzor = '<Document xmlns="urn:iso:std:iso:20022:tech:xsd:pain.001.001.09"><CstmrCdtTrfInitn><GrpHdr><MsgId>Message identification 007</MsgId><CreDtTm>2010-11-11T09:30:47.000Z</CreDtTm><NbOfTxs>1</NbOfTxs><CtrlSum>4.02</CtrlSum><InitgPty/></GrpHdr><PmtInf><PmtInfId>Payment-Information-ID-4711</PmtInfId><PmtMtd>TRF</PmtMtd><BtchBookg>false</BtchBookg><NbOfTxs>1</NbOfTxs><CtrlSum>4.02</CtrlSum><PmtTpInf><SvcLvl><Cd>SEPA</Cd></SvcLvl><LclInstrm><Cd>INST</Cd></LclInstrm></PmtTpInf><ReqdExctnDt><Dt>2026-03-11</Dt></ReqdExctnDt><Dbtr><Nm>Debtor Name</Nm></Dbtr><DbtrAcct><Id><IBAN>SK8011000000002900000013</IBAN></Id></DbtrAcct><DbtrAgt><FinInstnId><BICFI>TATRSKBX</BICFI></FinInstnId></DbtrAgt><CdtTrfTxInf><PmtId><EndToEndId>END-TO-END</EndToEndId></PmtId><Amt><InstdAmt Ccy="EUR">4.02</InstdAmt></Amt><Cdtr><Nm>Credtior Name</Nm></Cdtr><CdtrAcct><Id><IBAN>SK0511000000002900000005</IBAN></Id></CdtrAcct></CdtTrfTxInf></PmtInf></CstmrCdtTrfInitn></Document>';
+      const r = diagnose({ xml: vzor, bank: 'tatrabanka', dnes: '2026-03-10' });
+      ok('O8: vzor .09 Tatra banky s povinnými parametrami nemá nález tatra_09_*', !r.problems.some((p) => p.code.startsWith('tatra_09_')), r.problems.map((p) => p.code).join(','));
+    }
   }
 }
 

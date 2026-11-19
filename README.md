@@ -29,7 +29,7 @@ Details: terms of use, section 7, https://arling.sk/podmienky/en/. Your bank dec
 - `CreDtTm` not a valid ISO date/time (`cre_dt_tm_invalid_format`).
 - `NbOfTxs` not equal to the actual number of `CdtTrfTxInf` elements in the file (`nb_of_txs_mismatch`): one of the most common reasons an otherwise-fine file gets rejected.
 - `CtrlSum` not equal to the actual sum of `InstdAmt` across all transactions (`ctrl_sum_mismatch`).
-- `InitgPty/Nm` not matching Tatra banka's documented pattern, when filled in (`initg_pty_name_pattern`).
+- `InitgPty/Nm` not matching Tatra banka's documented pattern, when filled in (`initg_pty_name_pattern`). The pattern comes from Tatra banka's `pain.001.001.03` description, so it is not applied to a `.09` file (the bank does not list it for `.09`, and its own `.09` sample with all supported parameters uses `<Nm>InitgPty</Nm>`).
 
 **Fixed values (`PmtInf` and `CdtTrfTxInf`)**
 - `PmtMtd` must be `TRF` (`pmt_mtd_invalid`).
@@ -45,6 +45,7 @@ Details: terms of use, section 7, https://arling.sk/podmienky/en/. Your bank dec
 
 **Batch size**
 - Over 500 transactions in the whole file at Tatra banka ("Max. 500 transakcií v súbore", counted across all `PmtInf` blocks, `file_tx_count_exceeded`), or a lower-severity advisory for other banks when one `PmtInf` block has over 500 (`pmt_inf_tx_count_exceeded_generic`).
+- Tatra banka and a `pain.001.001.09` file only: the restrictions in Tatra banka's table "Differences and other restrictions for Pain.001.09 compared to SEPA definitions" (Internet bankingTB batch files page, read on 19 November 2026), with element numbers as in the EPC SCT Customer-to-PSP Implementation Guidelines the bank links to: more than one `PmtInf` block (element 2.0, "Maximum 1 element", `tatra_09_pmt_inf_count`), `BtchBookg` set to `true` (element 2.3, "Batch booking is not supported", `tatra_09_batch_booking`), a hybrid creditor address, that is `AdrLine` together with structured fields in `Cdtr/PstlAdr` (element 2.118, "Use of hybrid address is not supported", `tatra_09_hybrid_address`), and `RmtInf/Strd` (element 2.166, "RemittanceInformation/Structured is not supported", `tatra_09_structured_remittance`). All four are medium severity: the bank lists the restriction but does not say what it does with a file that breaks it.
 - Over 5,000 transactions total, or a file over ~1 MB (`too_many_transactions_generic`, `file_too_large`).
 - An optional expected-transaction-count you supply not matching what the file actually contains, in case an export was cut short or duplicated (`expected_tx_count_mismatch`).
 
@@ -71,7 +72,7 @@ Details: terms of use, section 7, https://arling.sk/podmienky/en/. Your bank dec
 **Payment reference (`EndToEndId`, VS/ŠS/KS)**
 - `PmtId/EndToEndId` missing or over 35 characters (`end_to_end_id_missing`, `end_to_end_id_too_long`), or duplicated across transactions in the file (`duplicate_end_to_end_id`).
 - An identifier that starts or ends with `/` or contains `//` (`identifier_slash_rule`, medium severity, with a corrected value to copy; the EPC text says "must not", but we have not verified that a Slovak bank rejects such a value on import, so it is not counted as a blocking error). Applies to `MsgId`, `PmtInfId`, `InstrId`, `EndToEndId` and `Id/OrgId/Othr/Id`, `Id/PrvtId/Othr/Id` of the parties, in both `pain.001.001.03` and `.09`, per the EPC SCT Customer-to-PSP Implementation Guidelines (EPC132-08, section 1.4) and the EPC clarification paper EPC230-15. Not applied to `RmtInf/Ustrd`, `CdtrRefInf/Ref` or `DbtrAgt/FinInstnId/Othr/Id`; the leading slash of the Slovak `/VS.../SS.../KS...` convention in `EndToEndId` is accepted.
-- Slovak variabilný/špecifický/konštantný symbol packed as `/VS.../SS.../KS...` in the wrong order, too long for their field (VS/SS max 10 digits, KS max 4), or containing non-numeric characters (`reference_symbol_order`, `reference_symbol_too_long`, `reference_symbol_non_numeric`): the transfer itself still goes through; only automatic reconciliation on the counterparty's side breaks.
+- Slovak variabilný/špecifický/konštantný symbol packed as `/VS.../SS.../KS...` in the wrong order, too long for their field (VS/SS max 10 digits, KS max 4), or containing non-numeric characters (`reference_symbol_order`, `reference_symbol_too_long`, `reference_symbol_non_numeric`): the transfer itself still goes through; only automatic reconciliation on the counterparty's side breaks. The suggested value puts the symbols in the canonical order and keeps any other text after them (`/SS1/VS2/KS3/FA2026-001` becomes `/VS2/SS1/KS3/FA2026-001`); when `identifier_slash_rule` already suggests the same value for the same `EndToEndId`, the order finding carries no second, identical suggestion.
 
 **Remittance info**
 - More than one `RmtInf/Ustrd` element, or one over 140 characters, or containing diacritics/invalid characters (`rmt_inf_multiple_ustrd`, `rmt_inf_too_long`, `diacritics_in_field`).

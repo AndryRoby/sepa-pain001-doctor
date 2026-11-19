@@ -174,13 +174,19 @@ const SPRAVY = {
     chkBicCsob: (tx) => 'ČSOB robí CdtrAgt/BIC od 1.2.2016 nepovinným pre SEPA platby (' + tx + '): chýbajúci BIC tu nie je chyba.',
     chkPoUprave: 'Po každej úprave XML spustite kontrolu znova: banka validuje súbor nanovo pri každom importe.',
     chkVerzia: {
-      tatrabanka: 'Verzia súboru: Tatra banka na stránke dávkových platieb Internet bankingu TB uvádza vzory pain.001.001.09 a stále aj popis pain.001.001.03. Slovenské znenie tej stránky z apríla 2026 ohlasovalo import .03 len do 12. 11. 2026; anglické znenie čítané 19. 11. 2026 tento termín neuvádza. Ak vám import .03 neprejde, exportujte súbor vo verzii .09.',
+      tatrabanka: 'Verzia súboru: Tatra banka na stránke dávkových platieb Internet bankingu TB uvádza vzory pain.001.001.09 a stále aj popis pain.001.001.03. Slovenské znenie tej stránky z apríla 2026 ohlasovalo import .03 len do 12. 11. 2026; anglické znenie čítané 19. 11. 2026 tento termín neuvádza.',
       slsp: 'Verzia súboru: Slovenská sporiteľňa na stránke Business24 zverejňuje popis štruktúr pre import úhrad v pain.001.001.03 aj pain.001.001.09 (oba aktualizované 14. 9. 2026) a koniec .03 neuvádza. Ktorú verziu váš účtovný softvér generuje, overte v jeho nastavení exportu.',
       vub: 'Verzia súboru: VÚB v návode Internet bankingu „Formáty importných súborov“ píše: „Povolené sú xsd schémy pain.001.001.03 a pain.001.001.09.“ Pre MultiCash, H2H a InBiz verziu .09 verejne neuvádza; pri nich si ju overte v banke.',
       csob: 'Verzia súboru: ČSOB pri SEPA platbách podporuje import pain.001.001.03 aj pain.001.001.09 (BusinessBanking aj MultiCash) a píše, že .03 bude naďalej podporovať, ak adresy nepoužívate alebo ich zapisujete štruktúrovane. Pri štruktúrovaných adresách odporúča .09.',
       generic: 'Verzia súboru: overte v dokumentácii svojej banky, či import hromadného príkazu prijíma pain.001.001.03, pain.001.001.09 alebo obe.',
     },
-    chkTatra09: 'Tatra banka pri pain.001.001.09 v Internet bankingu TB uvádza obmedzenia, ktoré tento nástroj zatiaľ nekontroluje: pri PaymentInformation najviac 1 prvok, batch booking nie je podporovaný, hybridná adresa pri prvku 2.118 nie je podporovaná a štruktúrovaná RmtInf (Strd) nie je podporovaná.',
+    chkVerziaTatra03: 'Ak vám import .03 neprejde, exportujte súbor vo verzii .09.',
+    chkTatra09: 'Tatra banka pri pain.001.001.09 v Internet bankingu TB uvádza obmedzenia, ktoré tento nástroj v súbore kontroluje: pri PaymentInformation najviac 1 prvok, batch booking nie je podporovaný, hybridná adresa príjemcu (prvok 2.118, Cdtr/PstlAdr) nie je podporovaná a štruktúrovaná RmtInf (Strd) nie je podporovaná. Čo banka urobí so súborom, ktorý ich porušuje, neuvádza.',
+    obeVerzie: (ns03, ns09) => ns03 + ' alebo ' + ns09,
+    tatra09PmtInf: (n) => 'Počet blokov PmtInf v súbore: ' + n + '. Tatra banka pri pain.001.001.09 v Internet bankingu TB uvádza pri PaymentInformation (prvok 2.0) „Maximum 1 element“, teda najviac jeden blok. Čo banka urobí so súborom s viacerými blokmi, neuvádza. Platby dajte do jedného bloku PmtInf; platby s iným dátumom splatnosti pošlite v samostatnom súbore.',
+    tatra09BtchBookg: (i, v) => 'PmtInf[' + i + ']/BtchBookg je "' + v + '". Tatra banka pri pain.001.001.09 v Internet bankingu TB uvádza, že batch booking (prvok 2.3) nie je podporovaný; jej vzor .09 má hodnotu "false". Čo banka s hodnotou "' + v + '" urobí, neuvádza. Nastavte "false".',
+    tatra09Hybrid: (tx, n) => tx + ': adresa príjemcu (Cdtr/PstlAdr) je hybridná, má <AdrLine> spolu so štruktúrovanými poľami. Tatra banka pri pain.001.001.09 v Internet bankingu TB uvádza, že pri prvku 2.118 (adresa príjemcu) použitie hybridnej adresy nie je podporované. Čo banka s takou adresou urobí, neuvádza. Zapíšte adresu plne štruktúrovane: ulicu do <StrtNm>, číslo do <BldgNb>, PSČ do <PstCd> a <AdrLine> vynechajte.' + (n > 1 ? ' Hybridných adries príjemcu v súbore: ' + n + '.' : ''),
+    tatra09Strd: (tx, n) => tx + ': RmtInf obsahuje štruktúrovanú časť <Strd>. Tatra banka pri pain.001.001.09 v Internet bankingu TB uvádza, že RemittanceInformation/Structured (prvok 2.166) nie je podporovaný. Čo banka s ňou urobí, neuvádza. Referenciu (napríklad číslo faktúry) zapíšte do <Ustrd>.' + (n > 1 ? ' Transakcií so <Strd> v súbore: ' + n + '.' : ''),
     chkBezBanky: 'Bez vybranej konkrétnej banky sa neoverujú BIC banky, limit počtu transakcií ani okno dátumu splatnosti: vyberte banku pre presnejšiu diagnózu.',
 
     zhrnutiePass: (banka) => 'Žiadne problémy sa nenašli. Súbor vyzerá formátovo v poriadku pre ' + banka + '.',
@@ -294,13 +300,19 @@ const SPRAVY = {
     chkBicCsob: (tx) => 'ČSOB has made CdtrAgt/BIC optional for SEPA payments since 1 February 2016 (' + tx + '): a missing BIC is not an error here.',
     chkPoUprave: 'Run the check again after every edit to the XML: the bank validates the file afresh on each import.',
     chkVerzia: {
-      tatrabanka: 'File version: on its Internet bankingTB batch files page Tatra banka provides pain.001.001.09 samples and still a pain.001.001.03 description. The Slovak version of that page from April 2026 announced that .03 imports would only be possible until 12 November 2026; the English version read on 19 November 2026 does not give that date. If a .03 import fails, export the file as .09.',
+      tatrabanka: 'File version: on its Internet bankingTB batch files page Tatra banka provides pain.001.001.09 samples and still a pain.001.001.03 description. The Slovak version of that page from April 2026 announced that .03 imports would only be possible until 12 November 2026; the English version read on 19 November 2026 does not give that date.',
       slsp: 'File version: on its Business24 page Slovenská sporiteľňa publishes import structure descriptions for both pain.001.001.03 and pain.001.001.09 (both updated on 14 September 2026) and gives no end date for .03. Check in your accounting software\'s export settings which version it generates.',
       vub: 'File version: VÚB\'s Internet banking guide "Formáty importných súborov" says: "Povolené sú xsd schémy pain.001.001.03 a pain.001.001.09." (both schemas are allowed). For MultiCash, H2H and InBiz it does not publicly state .09; check with the bank for those.',
       csob: 'File version: for SEPA payments ČSOB supports importing both pain.001.001.03 and pain.001.001.09 (BusinessBanking and MultiCash) and says it will keep supporting .03 as long as you either leave addresses out or write them in structured form. For structured addresses it recommends .09.',
       generic: 'File version: check your bank\'s documentation to see whether its batch import accepts pain.001.001.03, pain.001.001.09 or both.',
     },
-    chkTatra09: 'For pain.001.001.09 in Internet bankingTB, Tatra banka lists restrictions this tool does not check yet: at most 1 PaymentInformation element, batch booking is not supported, a hybrid address in element 2.118 is not supported, and structured RmtInf (Strd) is not supported.',
+    chkVerziaTatra03: 'If a .03 import fails, export the file as .09.',
+    chkTatra09: 'For pain.001.001.09 in Internet bankingTB, Tatra banka lists restrictions that this tool checks in the file: at most 1 PaymentInformation element, batch booking is not supported, a hybrid creditor address (element 2.118, Cdtr/PstlAdr) is not supported, and structured RmtInf (Strd) is not supported. The bank does not say what it does with a file that breaks them.',
+    obeVerzie: (ns03, ns09) => ns03 + ' or ' + ns09,
+    tatra09PmtInf: (n) => 'Number of PmtInf blocks in the file: ' + n + '. For pain.001.001.09 in Internet bankingTB, Tatra banka states "Maximum 1 element" for PaymentInformation (element 2.0), i.e. at most one block. It does not say what it does with a file that has more blocks. Put the payments into one PmtInf block; send payments with a different execution date in a separate file.',
+    tatra09BtchBookg: (i, v) => 'PmtInf[' + i + ']/BtchBookg is "' + v + '". For pain.001.001.09 in Internet bankingTB, Tatra banka states that batch booking (element 2.3) is not supported; its .09 sample has the value "false". It does not say what it does with the value "' + v + '". Set it to "false".',
+    tatra09Hybrid: (tx, n) => tx + ': the creditor address (Cdtr/PstlAdr) is hybrid, it has <AdrLine> together with structured fields. For pain.001.001.09 in Internet bankingTB, Tatra banka states that a hybrid address is not supported in element 2.118 (creditor address). It does not say what it does with such an address. Write the address fully structured: the street in <StrtNm>, the number in <BldgNb>, the postcode in <PstCd>, and leave out <AdrLine>.' + (n > 1 ? ' Hybrid creditor addresses in the file: ' + n + '.' : ''),
+    tatra09Strd: (tx, n) => tx + ': RmtInf contains a structured part <Strd>. For pain.001.001.09 in Internet bankingTB, Tatra banka states that RemittanceInformation/Structured (element 2.166) is not supported. It does not say what it does with it. Write the reference (for example the invoice number) in <Ustrd>.' + (n > 1 ? ' Transactions with <Strd> in the file: ' + n + '.' : ''),
     chkBezBanky: 'With no specific bank selected, the bank BIC, the transaction-count limit and the execution-date window are not verified: pick a bank for a more precise diagnosis.',
 
     zhrnutiePass: (banka) => 'No problems found. The file looks format-wise fine for ' + banka + '.',
@@ -414,13 +426,19 @@ const SPRAVY = {
     chkBicCsob: (tx) => 'ČSOB hat CdtrAgt/BIC für SEPA-Zahlungen zum 1. Februar 2016 optional gemacht (' + tx + '): eine fehlende BIC ist hier kein Fehler.',
     chkPoUprave: 'Führen Sie die Prüfung nach jeder Änderung am XML erneut aus: die Bank validiert die Datei bei jedem Import neu.',
     chkVerzia: {
-      tatrabanka: 'Dateiversion: Tatra banka stellt auf der Seite für Sammeldateien im Internet bankingTB Muster für pain.001.001.09 und weiterhin eine Beschreibung von pain.001.001.03 bereit. Die slowakische Fassung dieser Seite vom April 2026 kündigte an, dass der Import von .03 nur bis zum 12. November 2026 möglich sei; die englische Fassung, gelesen am 19. November 2026, nennt diesen Termin nicht. Scheitert der Import einer Datei im Format .03, exportieren Sie sie als .09.',
+      tatrabanka: 'Dateiversion: Tatra banka stellt auf der Seite für Sammeldateien im Internet bankingTB Muster für pain.001.001.09 und weiterhin eine Beschreibung von pain.001.001.03 bereit. Die slowakische Fassung dieser Seite vom April 2026 kündigte an, dass der Import von .03 nur bis zum 12. November 2026 möglich sei; die englische Fassung, gelesen am 19. November 2026, nennt diesen Termin nicht.',
       slsp: 'Dateiversion: Slovenská sporiteľňa veröffentlicht auf der Seite Business24 Beschreibungen der Importstruktur für pain.001.001.03 und pain.001.001.09 (beide aktualisiert am 14. September 2026) und nennt kein Ende für .03. Welche Version Ihre Buchhaltungssoftware erzeugt, prüfen Sie in deren Exporteinstellungen.',
       vub: 'Dateiversion: Die Anleitung von VÚB zum Internet banking „Formáty importných súborov“ sagt: „Povolené sú xsd schémy pain.001.001.03 a pain.001.001.09.“ (beide Schemas sind erlaubt). Für MultiCash, H2H und InBiz nennt VÚB .09 nicht öffentlich; dort klären Sie es mit der Bank.',
       csob: 'Dateiversion: ČSOB unterstützt bei SEPA-Zahlungen den Import von pain.001.001.03 und pain.001.001.09 (BusinessBanking und MultiCash) und schreibt, dass .03 weiter unterstützt wird, sofern Sie keine Adressen verwenden oder sie strukturiert schreiben. Für strukturierte Adressen empfiehlt ČSOB .09.',
       generic: 'Dateiversion: Prüfen Sie in der Dokumentation Ihrer Bank, ob deren Sammelimport pain.001.001.03, pain.001.001.09 oder beide annimmt.',
     },
-    chkTatra09: 'Für pain.001.001.09 im Internet bankingTB nennt Tatra banka Einschränkungen, die dieses Werkzeug noch nicht prüft: höchstens 1 Element PaymentInformation, Batch Booking wird nicht unterstützt, eine hybride Adresse im Element 2.118 wird nicht unterstützt und strukturierte RmtInf (Strd) wird nicht unterstützt.',
+    chkVerziaTatra03: 'Scheitert der Import einer Datei im Format .03, exportieren Sie sie als .09.',
+    chkTatra09: 'Für pain.001.001.09 im Internet bankingTB nennt Tatra banka Einschränkungen, die dieses Werkzeug in der Datei prüft: höchstens 1 Element PaymentInformation, Batch Booking wird nicht unterstützt, eine hybride Empfängeradresse (Element 2.118, Cdtr/PstlAdr) wird nicht unterstützt und strukturierte RmtInf (Strd) wird nicht unterstützt. Was die Bank mit einer Datei macht, die dagegen verstößt, sagt sie nicht.',
+    obeVerzie: (ns03, ns09) => ns03 + ' oder ' + ns09,
+    tatra09PmtInf: (n) => 'Anzahl der PmtInf-Blöcke in der Datei: ' + n + '. Für pain.001.001.09 im Internet bankingTB nennt Tatra banka bei PaymentInformation (Element 2.0) „Maximum 1 element“, also höchstens einen Block. Was sie mit einer Datei mit mehreren Blöcken macht, sagt sie nicht. Legen Sie die Zahlungen in einen PmtInf-Block; Zahlungen mit einem anderen Ausführungsdatum senden Sie in einer eigenen Datei.',
+    tatra09BtchBookg: (i, v) => 'PmtInf[' + i + ']/BtchBookg ist "' + v + '". Für pain.001.001.09 im Internet bankingTB schreibt Tatra banka, dass Batch Booking (Element 2.3) nicht unterstützt wird; ihr .09-Muster hat den Wert "false". Was sie mit dem Wert "' + v + '" macht, sagt sie nicht. Setzen Sie "false".',
+    tatra09Hybrid: (tx, n) => tx + ': Die Empfängeradresse (Cdtr/PstlAdr) ist hybrid, sie hat <AdrLine> zusammen mit strukturierten Feldern. Für pain.001.001.09 im Internet bankingTB schreibt Tatra banka, dass eine hybride Adresse im Element 2.118 (Empfängeradresse) nicht unterstützt wird. Was sie mit einer solchen Adresse macht, sagt sie nicht. Schreiben Sie die Adresse vollständig strukturiert: die Straße in <StrtNm>, die Hausnummer in <BldgNb>, die Postleitzahl in <PstCd>, und lassen Sie <AdrLine> weg.' + (n > 1 ? ' Hybride Empfängeradressen in der Datei: ' + n + '.' : ''),
+    tatra09Strd: (tx, n) => tx + ': RmtInf enthält einen strukturierten Teil <Strd>. Für pain.001.001.09 im Internet bankingTB schreibt Tatra banka, dass RemittanceInformation/Structured (Element 2.166) nicht unterstützt wird. Was sie damit macht, sagt sie nicht. Schreiben Sie die Referenz (zum Beispiel die Rechnungsnummer) in <Ustrd>.' + (n > 1 ? ' Transaktionen mit <Strd> in der Datei: ' + n + '.' : ''),
     chkBezBanky: 'Ohne ausgewählte Bank werden die Bank-BIC, das Transaktionslimit und das Fenster für das Ausführungsdatum nicht geprüft: wählen Sie eine Bank für eine genauere Diagnose.',
 
     zhrnutiePass: (banka) => 'Keine Probleme gefunden. Die Datei sieht formatseitig für ' + banka + ' in Ordnung aus.',
@@ -825,7 +843,20 @@ function analyzeReferenceSymbols(endToEndId) {
 
   const by = {};
   for (const f of found) by[f.kind] = f.value;
-  const canonical = '/VS' + (by.VS || '') + '/SS' + (by.SS || '') + '/KS' + (by.KS || '');
+  // Text mimo symbolov (napríklad číslo faktúry za nimi) ostáva za kanonickými
+  // symbolmi. Predtým ho kanonický tvar zahodil: /SS1//VS2/KS3/FA2026-001 dal
+  // /VS2/SS1/KS3 (odporúčanie brány sepa-09, pokus 2, bod 1).
+  // Nečíselná hodnota symbolu (/SS1/VSABC) ostáva pri svojom symbole a do zvyšku
+  // nepatrí; predtým návrh dal /VS/SS1/KS/ABC (brána sepa-hub, pokus 1, O3).
+  // Nečíselnú hodnotu hlási zvlášť kontrola symbolov. Hodnota, ktorá začína
+  // číslicami (/KS0308FAKTURA), sa delí ako doteraz: číslice k symbolu, text do zvyšku.
+  const surove = {};
+  for (const f of nonNumericIssues) if (!/^\d/.test(f.value)) surove[f.kind] = f.value;
+  const hodnotaSymbolu = (k) => (surove[k] !== undefined ? surove[k] : (by[k] || ''));
+  const zvysok = s.replace(/\/(VS|SS|KS)\d*/gi, (cele, kind) => (surove[kind.toUpperCase()] !== undefined ? cele : '/'))
+    .replace(/\/(VS|SS|KS)[^\/]*/gi, (cele, kind) => (surove[kind.toUpperCase()] !== undefined ? '/' : cele))
+    .replace(/\/{2,}/g, '/').replace(/^\/|\/$/g, '');
+  const canonical = '/VS' + hodnotaSymbolu('VS') + '/SS' + hodnotaSymbolu('SS') + '/KS' + hodnotaSymbolu('KS') + (zvysok ? '/' + zvysok : '');
 
   return { found, order, orderOk, lengthIssues, nonNumericIssues, canonical };
 }
@@ -890,8 +921,8 @@ function parseAmountText(str) {
 //    https://www.ecb.europa.eu/paym/groups/shared/docs/daba2-industry-template-hybrid-address-communication-to-corporates-pmpg-2025-10-22-.pdf
 //  - BNP Paribas, "Structured address in payments: the new rules in force from November 2026" (07/2026)
 //  - Komerční banka, "Nová pravidla pro vyplňování strukturované adresy u SEPA
-//    a zahraničních plateb" (pain.001.001.03 sa mala od 15. 11. 2026 prestať používať;
-//    či banka po odklade EPC svoj dátum zmenila, sme neoverili)
+//    a zahraničních plateb" (ohlasuje MultiCash 5.0 kompatibilný s pain.001.001.09;
+//    dátum konca .03 na stránke neuvádza)
 //    https://www.kb.cz/cs/podpora/ucty-a-platby/nova-pravidla-pro-vyplnovani-strukturovane-adresy-u-sepa-a-zahranicnich-plateb-multicash
 //
 // Kontrola je zámerne opatrná: hlási len to, čo v súbore naozaj je. Súbor bez
@@ -1064,7 +1095,11 @@ function skontrolujAdresy(documentEl, addProblem, dnes, T) {
 const PAIN_NAMESPACE = 'urn:iso:std:iso:20022:tech:xsd:pain.001.001.03';
 const PAIN_NAMESPACE_09 = 'urn:iso:std:iso:20022:tech:xsd:pain.001.001.09';
 // Zobrazí sa v riadku „očakávaný menný priestor“, kým súbor nemá čitateľný xmlns.
-const OBE_VERZIE = PAIN_NAMESPACE + ' | ' + PAIN_NAMESPACE_09;
+// Od 19. 11. 2026 (brána sepa-09, pokus 2, bod 5) spojené slovom podľa jazyka
+// („alebo“, „or“, „oder“), nie oddeľovačom „ | “.
+function obeVerzie(T) {
+  return T.obeVerzie(PAIN_NAMESPACE, PAIN_NAMESPACE_09);
+}
 const SEVERITY_ORDER = { high: 0, medium: 1, low: 2 };
 
 function sortProblems(problems) {
@@ -1107,7 +1142,7 @@ export function diagnose(input) {
     bankLabel: bank.label,
     bankBic: bank.bic,
     // Kým nie je čo čítať zo súboru, obe verzie (nižšie sa spresní podľa xmlns).
-    schemaNamespace: poTermine ? PAIN_NAMESPACE_09 : OBE_VERZIE,
+    schemaNamespace: poTermine ? PAIN_NAMESPACE_09 : obeVerzie(T),
     execWindowDays: bank.execWindowDays,
     nbOfTxsShouldBe: null,
     ctrlSumShouldBe: null,
@@ -1210,8 +1245,8 @@ export function diagnose(input) {
   } else if (poTermine) {
     // ns === .03 po termíne (len keď TERMIN_ADRESY nie je null). Zámerne stredná
     // závažnosť, nie vysoká: termín zo schém SEPA hovorí o adrese, nie o verzii správy medzi
-    // klientom a bankou. Verziu si určuje každá banka sama. Komerční banka
-    // zverejnila, že .03 prestane prijímať; pre všetky štyri slovenské banky
+    // klientom a bankou. Verziu si určuje každá banka sama (napr. Tatra banka
+    // v apríli 2026 ohlásila .03 do 12. 11. 2026); pre všetky štyri slovenské banky
     // to overené nemáme, preto to hlásime ako "over si to", nie ako istotu.
     addProblem({
       code: 'schema_namespace_03_po_termine',
@@ -1263,6 +1298,33 @@ export function diagnose(input) {
   if (bankKey === 'tatrabanka' && actualTxCount > 500) {
     addProblem({ code: 'file_tx_count_exceeded', severity: 'high', message: T.suborLimitTatra(actualTxCount, pmtInfList.length), path: 'CstmrCdtTrfInitn', value: String(actualTxCount) });
   }
+
+  // ── Tatra banka a pain.001.001.09: obmedzenia z jej stránky dávkových platieb ──
+  // Zdroj: Tatra banka, Internet bankingTB „Batch files“, tabuľka „Differences
+  // and other restrictions for Pain.001.09 compared to SEPA definitions“ (EN
+  // stránka čítaná 19. 11. 2026, záznam ops/druhy-ucet/gmail/sepa-09/pdf/tatra-web/
+  // v koreňovom repe; rovnaké riadky 2.0, 2.3, 2.118 a 2.166 má aj SK znenie
+  // z 10. 4. 2026):
+  //   2     | Maximum 1 element
+  //   2.3   | Batch booking is not supported
+  //   2.118 | Use of hybrid address is not supported
+  //   2.166 | RemittanceInformation/Structured is not supported
+  //   https://www.tatrabanka.sk/en/personal/account-payments/internet-banking/batch-files/
+  // Čísla prvkov podľa EPC132-08 SCT C2PSP IG 2025 V1.0 aj 2023 V1.0 (na ktoré
+  // banka odkazuje ako na popis formátu .09), overené 19. 11. 2026: 2.0 PmtInf,
+  // 2.3 PmtInf/BtchBookg, 2.118 CdtTrfTxInf/Cdtr/PstlAdr (adresa príjemcu),
+  // 2.166 CdtTrfTxInf/RmtInf/Strd. Riadky 2.55 (BICFI musí byť TATRSKBX, ak je
+  // vyplnené) a 2.78 (najviac 500 transakcií) kontroluje dbtr_bic_* a
+  // file_tx_count_exceeded.
+  // Závažnosť stredná: banka obmedzenie uvádza, ale nepíše, čo so súborom,
+  // ktorý ho porušuje, urobí (odmietnutie neuvádza). Kontroly bežia len pri
+  // vybranej Tatra banke a súbore .09; pri .03 platí jej popis .03.
+  const tatra09 = bankKey === 'tatrabanka' && ns === PAIN_NAMESPACE_09;
+  if (tatra09 && pmtInfList.length > 1) {
+    addProblem({ code: 'tatra_09_pmt_inf_count', severity: 'medium', message: T.tatra09PmtInf(pmtInfList.length), path: 'CstmrCdtTrfInitn/PmtInf[2]', value: String(pmtInfList.length) });
+  }
+  const tatraHybrid = [];
+  const tatraStrd = [];
 
   if (grpHdr) {
     const msgIdEl = firstChild(grpHdr, 'MsgId');
@@ -1330,7 +1392,11 @@ export function diagnose(input) {
       const nmEl = firstChild(initgPty, 'Nm');
       if (nmEl) {
         const nm = textOf(nmEl);
-        if (bankKey === 'tatrabanka' && nm && !/^[A-Za-z0-9]{1,10}\/[A-Z]{2}$/.test(nm)) {
+        // Vzor [A-Za-z0-9]{1,10}/[A-Z]{2} je z popisu pain.001.001.03 Tatra banky
+        // (riadok 1.8). Pre .09 ho banka neuvádza a jej vzor .09 so všetkými
+        // parametrami má <Nm>InitgPty</Nm>, preto pri súbore .09 nehlásime
+        // (O8, 19. 11. 2026).
+        if (bankKey === 'tatrabanka' && !tatra09 && nm && !/^[A-Za-z0-9]{1,10}\/[A-Z]{2}$/.test(nm)) {
           addProblem({
             code: 'initg_pty_name_pattern',
             severity: 'low',
@@ -1412,30 +1478,48 @@ export function diagnose(input) {
   // konvencii symboly v zlom poradí (/SS456//VS123/KS0308), návrh lomiek dá
   // rovno kanonické /VS.../SS.../KS..., ten istý ako reference_symbol_order,
   // aby nástroj nenavrhoval hodnotu, ktorú by vzápätí hlásil inou kontrolou.
+  // Od 19. 11. 2026 (brána sepa-09, pokus 2, bod 1) aj vtedy, keď za symbolmi
+  // je ďalší text: kanonický tvar ho ponecháva (/SS1//VS2/KS3/FA2026-001 dá
+  // /VS2/SS1/KS3/FA2026-001), takže návrh po dosadení nemá ani jeden z nálezov.
   function opravaLomiek(value, slovenskaKonvencia, maxDlzka) {
     const konvencia = !!slovenskaKonvencia && /^\/+(VS|SS|KS)/i.test(value);
     let fix = value.replace(/\/{2,}/g, '/');
-    // Len keď hodnota obsahuje iba symboly (brána sepa-09, O1): kanonický tvar
-    // skladá len VS, SS a KS, takže pri /SS1//VS2/KS3/FA2026-001 by zahodil
-    // číslo faktúry. Vtedy návrh lomiek len zlúči lomky a poradie nechá na
-    // reference_symbol_order.
-    if (konvencia && /^(\/(VS|SS|KS)\d*)+\/?$/i.test(fix)) {
+    if (konvencia) {
       const refs = analyzeReferenceSymbols(fix);
       if (refs && !refs.orderOk) fix = refs.canonical;
     }
     if (!konvencia) fix = fix.replace(/^\//, '');
-    if (maxDlzka && fix.length > maxDlzka) fix = fix.slice(0, maxDlzka);
-    fix = fix.replace(/\/$/, '');
-    return { konvencia, fix };
+    return { konvencia, fix: skratNa(fix, maxDlzka) };
   }
 
+  // Skráti návrh na povolenú dĺžku a odstráni lomku, ktorá by ostala na konci.
+  // Ak skrátenie zasiahne text za symbolmi (/VS…/SS…/KS0308/FAKTURA2026), odreže
+  // celý neúplný úsek, aby návrh nekončil zvyškom bez významu ako „/F“
+  // (brána sepa-hub, pokus 1, O2). Úsek so symbolom sa takto nereže.
+  function skratNa(hodnota, maxDlzka) {
+    let fix = hodnota;
+    if (maxDlzka && fix.length > maxDlzka) {
+      fix = fix.slice(0, maxDlzka);
+      const posledna = fix.lastIndexOf('/');
+      const rezVUseku = hodnota.charAt(maxDlzka) !== '/' && posledna < fix.length - 1;
+      const usek = fix.slice(posledna + 1);
+      if (rezVUseku && posledna > 0 && /^\/(VS|SS|KS)\d*(\/|$)/i.test(fix.slice(0, posledna))
+        && !/^(VS|SS|KS)\d*$/i.test(usek)) {
+        fix = fix.slice(0, posledna);
+      }
+    }
+    return fix.replace(/\/$/, '');
+  }
+
+  // Vráti návrh, ktorý nález identifier_slash_rule nesie ('' ak nález nie je
+  // alebo návrh nemá), aby ho reference_symbol_order nezopakoval.
   function reportSlashRule(value, elPath, kde, slovenskaKonvencia, maxDlzka) {
-    if (!value || value.indexOf('/') === -1) return;
+    if (!value || value.indexOf('/') === -1) return '';
     const { konvencia, fix: navrh } = opravaLomiek(value, slovenskaKonvencia, maxDlzka);
     const dve = value.indexOf('//') !== -1;
     const zacina = value.charAt(0) === '/' && !konvencia;
     const konci = value.length > 1 && value.charAt(value.length - 1) === '/';
-    if (!zacina && !konci && !dve) return;
+    if (!zacina && !konci && !dve) return '';
     const co = [];
     if (zacina) co.push(T.lomkaZacina);
     if (dve) co.push(T.lomkaDve);
@@ -1451,6 +1535,7 @@ export function diagnose(input) {
       value,
       fix: fix || undefined,
     });
+    return fix;
   }
 
   // Othr/Id pod Id/OrgId a Id/PrvtId jednej strany (Dbtr, Cdtr, ...).
@@ -1482,6 +1567,13 @@ export function diagnose(input) {
     // preto len mierne upozornenie na veľký blok.
     if (bankKey !== 'tatrabanka' && txList.length > 500) {
       addProblem({ code: 'pmt_inf_tx_count_exceeded_generic', severity: 'low', message: T.pmtInfLimitInde(pmtIdx + 1, txList.length), path: pmtPath, value: String(txList.length) });
+    }
+
+    if (tatra09) {
+      const btchBookg = textOf(firstChild(pmtInf, 'BtchBookg')).trim();
+      if (btchBookg === 'true' || btchBookg === '1') {
+        addProblem({ code: 'tatra_09_batch_booking', severity: 'medium', message: T.tatra09BtchBookg(pmtIdx + 1, btchBookg), path: `${pmtPath}/BtchBookg`, value: btchBookg, fix: 'false' });
+      }
     }
 
     const pmtMtdEl = firstChild(pmtInf, 'PmtMtd');
@@ -1609,17 +1701,26 @@ export function diagnose(input) {
       if (!endToEndId) {
         addProblem({ code: 'end_to_end_id_missing', severity: 'high', message: T.e2eChyba(txPath), path: `${txPath}/PmtId/EndToEndId` });
       } else {
+        let navrhDlzky = '';
         if (endToEndId.length > 35) {
           // Ak hodnota zároveň porušuje pravidlo o lomkách, oba nálezy navrhnú
           // tú istú hodnotu: bez zakázaných lomiek a najviac 35 znakov.
           const skratene = opravaLomiek(endToEndId, true, 35).fix || endToEndId.slice(0, 35);
+          navrhDlzky = skratene;
           addProblem({ code: 'end_to_end_id_too_long', severity: 'high', message: T.e2eDlhy(txPath, endToEndId.length), path: `${txPath}/PmtId/EndToEndId`, value: endToEndId, fix: skratene });
         }
-        reportSlashRule(endToEndId, `${txPath}/PmtId/EndToEndId`, `${txPath}: PmtId/EndToEndId`, true, 35);
+        const navrhLomiek = reportSlashRule(endToEndId, `${txPath}/PmtId/EndToEndId`, `${txPath}: PmtId/EndToEndId`, true, 35);
         const refs = analyzeReferenceSymbols(endToEndId);
         if (refs) {
           if (!refs.orderOk) {
-            addProblem({ code: 'reference_symbol_order', severity: 'medium', message: T.symbolPoradie(txPath, endToEndId), path: `${txPath}/PmtId/EndToEndId`, value: endToEndId, fix: refs.canonical });
+            // Brána sepa-09, pokus 2, bod 2: keď nález lomiek na tej istej ceste
+            // už navrhuje tú istú hodnotu, tento nález návrh nenesie, aby stránka
+            // neukázala dve rovnaké karty opravy. fixes sa naďalej párujú s
+            // nálezmi s návrhom podľa indexu (pozri finish()).
+            // Brána sepa-hub, pokus 1, O2: rovnako, keď ten istý návrh už nesie
+            // end_to_end_id_too_long (dlhá hodnota so symbolmi v zlom poradí).
+            const kanon = skratNa(refs.canonical, 35);
+            addProblem({ code: 'reference_symbol_order', severity: 'medium', message: T.symbolPoradie(txPath, endToEndId), path: `${txPath}/PmtId/EndToEndId`, value: endToEndId, fix: kanon === navrhLomiek || kanon === navrhDlzky ? undefined : kanon });
           }
           if (refs.lengthIssues.length) {
             const limits = { VS: 10, SS: 10, KS: 4 };
@@ -1733,6 +1834,13 @@ export function diagnose(input) {
       }
 
       const rmtInf = firstChild(tx, 'RmtInf');
+      if (tatra09) {
+        const cdtrAdr = rozborAdresy(firstChild(cdtr, 'PstlAdr'));
+        // Hybridná adresa je podľa EPC AdrLine spolu s TwnNm (a Ctry); samotné Ctry s AdrLine
+        // je neštruktúrovaná adresa a hlási ju adresa_bez_mesta_alebo_krajiny.
+        if (cdtrAdr.adrLine.length && cdtrAdr.mesto) tatraHybrid.push(txPath);
+        if (firstChild(rmtInf, 'Strd')) tatraStrd.push(txPath);
+      }
       if (rmtInf) {
         const ustrdList = allChildren(rmtInf, 'Ustrd');
         if (ustrdList.length > 1) {
@@ -1755,6 +1863,13 @@ export function diagnose(input) {
       }
     });
   });
+
+  if (tatraHybrid.length) {
+    addProblem({ code: 'tatra_09_hybrid_address', severity: 'medium', message: T.tatra09Hybrid(tatraHybrid[0], tatraHybrid.length), path: `${tatraHybrid[0]}/Cdtr/PstlAdr`, value: String(tatraHybrid.length) });
+  }
+  if (tatraStrd.length) {
+    addProblem({ code: 'tatra_09_structured_remittance', severity: 'medium', message: T.tatra09Strd(tatraStrd[0], tatraStrd.length), path: `${tatraStrd[0]}/RmtInf/Strd`, value: String(tatraStrd.length) });
+  }
 
   function recordDetectedBank(iban) {
     if (!iban || iban.slice(0, 2) !== 'SK') return;
@@ -1793,7 +1908,10 @@ export function diagnose(input) {
 
   checklist.push(T.chkPoUprave);
   // Čo vybraná banka píše o verziách .03 a .09 (zdroje pri schema_namespace_09_skoro).
-  checklist.push(T.chkVerzia[bankKey] || T.chkVerzia.generic);
+  // Rada „ak import .03 neprejde, exportujte .09“ pri Tatra banke len pri
+  // súbore, ktorý nie je .09 (brána sepa-09, pokus 2, bod 4).
+  checklist.push((T.chkVerzia[bankKey] || T.chkVerzia.generic)
+    + (bankKey === 'tatrabanka' && ns !== PAIN_NAMESPACE_09 ? ' ' + T.chkVerziaTatra03 : ''));
   if (bankKey === 'tatrabanka' && ns === PAIN_NAMESPACE_09) {
     checklist.push(T.chkTatra09);
   }
@@ -1864,8 +1982,9 @@ export function expectedValues(input) {
     bank: bankKey,
     bankLabel: bank.label,
     bankBic: bank.bic,
-    // Štyri banky uvádzajú .03 aj .09 (pozri schema_namespace_09_skoro), preto obe.
-    schemaNamespace: OBE_VERZIE,
+    // Štyri banky uvádzajú .03 aj .09 (pozri schema_namespace_09_skoro), preto obe;
+    // text podľa cfg.lang (predvolene slovenčina, ako diagnose()).
+    schemaNamespace: obeVerzie(slovnikPre(cfg.lang)),
     schemaNamespaces: [PAIN_NAMESPACE, PAIN_NAMESPACE_09],
     execWindowDays: bank.execWindowDays,
   };

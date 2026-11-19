@@ -10,6 +10,7 @@ Paste your `pain.001.001.03` XML and pick the target bank, and it cross-checks t
 - Fixed values: `PmtMtd = TRF`, `InstrPrty = NORM`, `SvcLvl/Cd = SEPA`, `ChrgBr = SLEV`.
 - `ReqdExctnDt` window: not in the past, and within each bank's own limit: Tatra banka max +31 days, VÚB max +30 days.
 - Transaction count: Tatra banka caps a file at 500 transactions.
+- Tatra banka and a `pain.001.001.09` file: the restrictions the bank lists for `.09` (at most one `PmtInf` block, no batch booking, no hybrid creditor address in element 2.118, no structured `RmtInf/Strd`), reported as medium-severity warnings because the bank does not say what it does with a file that breaks them.
 - Debtor bank BIC matching the selected bank (Tatra banka `TATRSKBX`, VÚB `SUBASKBX`).
 - Creditor BIC rules, which differ by bank: optional-if-derivable-from-IBAN (Tatra banka), mandatory (VÚB), optional since 1 Feb 2016 (ČSOB).
 - Diacritics anywhere in the XML: ČSOB documents this as an outright import blocker, with its allowed character set.
