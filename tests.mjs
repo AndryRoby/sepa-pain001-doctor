@@ -2,7 +2,7 @@
 // Run with: node tests.mjs
 
 import { readFileSync } from 'node:fs';
-import { diagnose, TERMIN_ADRESY, expectedValues } from './doctor-pain001.js';
+import { diagnose, TERMIN_ADRESY, expectedValues, popisPolohy, vytvorPolohy } from './doctor-pain001.js';
 
 let pass = 0;
 let fail = 0;
@@ -1762,6 +1762,261 @@ eq('TERMIN_ADRESY je null, kým EPC neurčí nový termín', TERMIN_ADRESY, null
       ok('O8: vzor .09 Tatra banky s povinnými parametrami nemá nález tatra_09_*', !r.problems.some((p) => p.code.startsWith('tatra_09_')), r.problems.map((p) => p.code).join(','));
     }
   }
+}
+
+// ═══════════════ R. riadok a stĺpec nálezu (zadanie sepa-riadok, 20. 11. 2026) ═════
+// Stránky kontroly súboru (149 €) sľubujú, v ktorom riadku je chyba. Každý nález
+// nesie line, column, lineShared, lineExact a lineTag; popisPolohy() z nich robí text.
+{
+  const RIADKY = [
+    '<?xml version="1.0" encoding="UTF-8"?>',
+    '<Document xmlns="urn:iso:std:iso:20022:tech:xsd:pain.001.001.03">',
+    '  <CstmrCdtTrfInitn>',
+    '    <GrpHdr>',
+    '      <MsgId>MSG-RIADOK-1</MsgId>',
+    '      <CreDtTm>2026-11-20T08:00:00</CreDtTm>',
+    '      <NbOfTxs>3</NbOfTxs>',
+    '      <CtrlSum>30.00</CtrlSum>',
+    '      <InitgPty><Nm>Firma s r o</Nm></InitgPty>',
+    '    </GrpHdr>',
+    '    <PmtInf>',
+    '      <PmtInfId>P1</PmtInfId>',
+    '      <PmtMtd>TRF</PmtMtd>',
+    '      <Dbtr><Nm>Firma s r o</Nm></Dbtr>',
+    '      <DbtrAcct><Id><IBAN>SK2811000000000000000000</IBAN></Id></DbtrAcct>',
+    '      <DbtrAgt><FinInstnId><BIC>TATRSKBX</BIC></FinInstnId></DbtrAgt>',
+    '      <ChrgBr>SLEV</ChrgBr>',
+    '      <CdtTrfTxInf>',
+    '        <PmtId><EndToEndId>E2E-1</EndToEndId></PmtId>',
+    '        <Amt><InstdAmt Ccy="EUR">10.00</InstdAmt></Amt>',
+    '        <Cdtr>',
+    '          <Nm>Prvy prijemca</Nm>',
+    '          <PstlAdr>',
+    '            <TwnNm>Bratislava</TwnNm>',
+    '            <Ctry>SK</Ctry>',
+    '          </PstlAdr>',
+    '        </Cdtr>',
+    '        <CdtrAcct><Id><IBAN>SK0502000000272000000018</IBAN></Id></CdtrAcct>',
+    '      </CdtTrfTxInf>',
+    '      <CdtTrfTxInf>',
+    '        <PmtId><EndToEndId>E2E-2</EndToEndId></PmtId>',
+    '        <Amt><InstdAmt Ccy="USD">20.00</InstdAmt></Amt>',
+    '        <Cdtr>',
+    '          <Nm>Druhy prijemca</Nm>',
+    '          <PstlAdr>',
+    '            <AdrLine>Hlavna 1</AdrLine>',
+    '            <AdrLine>811 01 Bratislava</AdrLine>',
+    '          </PstlAdr>',
+    '        </Cdtr>',
+    '        <CdtrAcct><Id><IBAN>SK0502000000272000000018</IBAN></Id></CdtrAcct>',
+    '      </CdtTrfTxInf>',
+    '    </PmtInf>',
+    '  </CstmrCdtTrfInitn>',
+    '</Document>',
+  ];
+  // číslo riadku (od 1), na ktorom je n-tý výskyt reťazca
+  const riadokS = (kus, n = 1) => {
+    let k = 0;
+    for (let i = 0; i < RIADKY.length; i++) if (RIADKY[i].includes(kus) && ++k === n) return i + 1;
+    return -1;
+  };
+  const nalez = (r, code) => r.problems.find((p) => p.code === code) || {};
+  const dg = (xml, lang) => diagnose({ xml, bank: 'tatrabanka', dnes: '2026-11-20', lang });
+
+  const lf = RIADKY.join('\n');
+  const r = dg(lf);
+  const RIADOK_ADRESY_2 = riadokS('<PstlAdr>', 2);
+  eq('R1 NbOfTxs: riadok prvku', nalez(r, 'nb_of_txs_mismatch').line, riadokS('<NbOfTxs>3'));
+  eq('R1 NbOfTxs: na riadku je jeden prvok, stĺpec netreba', nalez(r, 'nb_of_txs_mismatch').lineShared, false);
+  eq('R1 NbOfTxs: popis', popisPolohy(nalez(r, 'nb_of_txs_mismatch'), 'sk'), 'riadok ' + riadokS('<NbOfTxs>3'));
+  // Cesta adresy nemá index transakcie; riadok musí byť z adresy DRUHEJ platby, nie prvej.
+  eq('R2 adresa v druhej platbe: riadok jej <PstlAdr>', nalez(r, 'adresa_nestrukturovana').line, RIADOK_ADRESY_2);
+  ok('R2 adresa: cesta ostáva', String(nalez(r, 'adresa_nestrukturovana').path).endsWith('/Cdtr/PstlAdr'));
+  // Atribút: riadok prvku InstdAmt druhej platby.
+  const riadokUsd = riadokS('Ccy="USD"');
+  const stlpecUsd = RIADKY[riadokUsd - 1].indexOf('<InstdAmt') + 1;
+  eq('R3 mena @Ccy: riadok InstdAmt', nalez(r, 'amount_currency_invalid').line, riadokUsd);
+  eq('R3 mena @Ccy: prvok existuje, poloha presná', nalez(r, 'amount_currency_invalid').lineExact, true);
+  eq('R3 mena @Ccy: stĺpec na zdieľanom riadku', nalez(r, 'amount_currency_invalid').column, stlpecUsd);
+  eq('R3 mena @Ccy: popis so stĺpcom', popisPolohy(nalez(r, 'amount_currency_invalid'), 'sk'), `riadok ${riadokUsd}, stĺpec ${stlpecUsd}`);
+  // Chýbajúci prvok: riadok nadradeného PmtInf a slovo o tom, že prvok chýba.
+  const datum = nalez(r, 'exec_date_missing');
+  eq('R4 chýba ReqdExctnDt: riadok PmtInf', datum.line, riadokS('<PmtInf>'));
+  eq('R4 chýba ReqdExctnDt: nie presne', datum.lineExact, false);
+  eq('R4 chýba ReqdExctnDt: tag predka', datum.lineTag, 'PmtInf');
+  // Bez vnorenej zátvorky (brána pokus 1, B7): v správe stojí poloha v zátvorke s cestou.
+  eq('R4 popis sk', popisPolohy(datum, 'sk'), `riadok ${riadokS('<PmtInf>')}, kde začína PmtInf, v ktorom prvok chýba`);
+  eq('R4 popis en', popisPolohy(datum, 'en'), `line ${riadokS('<PmtInf>')}, the start of PmtInf, which lacks this element`);
+  eq('R4 popis de', popisPolohy(datum, 'de'), `Zeile ${riadokS('<PmtInf>')}, wo PmtInf beginnt, in dem das Element fehlt`);
+  ok('R4 popis bez dvojbodky (správa ho píše za štítok „Pôvodný súbor:“)', !/:/.test(popisPolohy(datum, 'sk') + popisPolohy(datum, 'en') + popisPolohy(datum, 'de')));
+  ok('R4 popis bez zátvoriek', !/[()]/.test(popisPolohy(datum, 'sk') + popisPolohy(datum, 'en') + popisPolohy(datum, 'de')));
+
+  // Konce riadkov CRLF a samotné CR dávajú tie isté riadky; BOM nemení riadok ani stĺpec.
+  for (const [meno, xml] of [['CRLF', RIADKY.join('\r\n')], ['CR', RIADKY.join('\r')], ['BOM', '\uFEFF' + lf]]) {
+    const x = dg(xml);
+    eq(`R5 ${meno}: adresa`, nalez(x, 'adresa_nestrukturovana').line, RIADOK_ADRESY_2);
+    eq(`R5 ${meno}: NbOfTxs`, nalez(x, 'nb_of_txs_mismatch').line, riadokS('<NbOfTxs>3'));
+    eq(`R5 ${meno}: stĺpec @Ccy`, nalez(x, 'amount_currency_invalid').column, stlpecUsd);
+  }
+
+  // Súbor v jednom riadku: riadok 1 a stĺpec, ktorý ukáže presne na prvok.
+  const jeden = RIADKY.map((x) => x.trim()).join('');
+  const j = dg(jeden);
+  const ja = nalez(j, 'adresa_nestrukturovana');
+  const druhaAdresa = jeden.indexOf('<PstlAdr>', jeden.indexOf('<PstlAdr>') + 1);
+  eq('R6 jeden riadok: adresa na riadku 1', ja.line, 1);
+  eq('R6 jeden riadok: stĺpec druhej <PstlAdr>', ja.column, druhaAdresa + 1);
+  eq('R6 jeden riadok: riadok zdieľaný', ja.lineShared, true);
+  eq('R6 jeden riadok: popis sk', popisPolohy(ja, 'sk'), `riadok 1, stĺpec ${druhaAdresa + 1}`);
+  eq('R6 jeden riadok: popis en', popisPolohy(ja, 'en'), `line 1, column ${druhaAdresa + 1}`);
+  eq('R6 jeden riadok: popis de', popisPolohy(ja, 'de'), `Zeile 1, Spalte ${druhaAdresa + 1}`);
+  ok('R6 jeden riadok: na stĺpci je naozaj <PstlAdr>', jeden.slice(ja.column - 1).startsWith('<PstlAdr><AdrLine>Hlavna 1'));
+  const jb = dg('\uFEFF' + jeden);
+  eq('R6 jeden riadok s BOM: BOM sa do stĺpca nepočíta', nalez(jb, 'adresa_nestrukturovana').column, druhaAdresa + 1);
+  // Stĺpec treba pri každom prvku okrem prvého na riadku (<Document>).
+  const prvyNaRiadku = jeden.search(/<[A-Za-z_]/) + 1;
+  for (const p of j.problems) ok(`R6 jeden riadok: ${p.code} má riadok a stĺpec`, p.path === '' || (p.line === 1 && p.column >= 1 && p.lineShared === (p.column > prvyNaRiadku)), JSON.stringify(p));
+
+  // Zle formovaný súbor: riadok prvej chyby.
+  const zle = RIADKY.slice();
+  zle[riadokS('Druhy prijemca') - 1] = '          <Nm>Druhy prijemca</Nmx>';
+  const z = dg(zle.join('\n'));
+  eq('R7 zle formovaný: riadok chyby', nalez(z, 'xml_not_well_formed').line, riadokS('Druhy prijemca'));
+  // Orezaný súbor: chyba je tam, kde súbor končí (brána pokus 1, A4), nie pri <Document>.
+  const orezany = lf.slice(0, lf.lastIndexOf('</Document>'));
+  const nezatvoreny = dg(orezany);
+  eq('R7 orezaný súbor: riadok konca súboru', nalez(nezatvoreny, 'xml_not_well_formed').line, orezany.split('\n').length);
+  const orezanyJeden = RIADKY.map((x) => x.trim()).join('');
+  eq('R7 orezaný súbor v jednom riadku: stĺpec za posledným znakom', nalez(dg(orezanyJeden.slice(0, orezanyJeden.lastIndexOf('</Document>'))), 'xml_not_well_formed').column, orezanyJeden.lastIndexOf('</Document>') + 1);
+
+  // Bez polohy: prázdny vstup, žiadny riadok a prázdny popis.
+  const prazdny = diagnose({ xml: '' });
+  eq('R8 prázdny vstup: riadok null', nalez(prazdny, 'xml_empty').line, null);
+  eq('R8 prázdny vstup: popis prázdny', popisPolohy(nalez(prazdny, 'xml_empty'), 'sk'), '');
+  eq('R8 popis bez nálezu', popisPolohy(null, 'sk'), '');
+
+  // vytvorPolohy: CR, LF, CRLF, mimo rozsahu.
+  const pz = vytvorPolohy('a\r\nb\rc\nd');
+  eq('R9 vytvorPolohy: d je riadok 4', (pz(7) || {}).line, 4);
+  eq('R9 vytvorPolohy: d je stĺpec 1', (pz(7) || {}).column, 1);
+  eq('R9 vytvorPolohy: c je riadok 3', (pz(5) || {}).line, 3);
+  eq('R9 vytvorPolohy: mimo rozsahu null', pz(99), null);
+  eq('R9 vytvorPolohy: záporný posun null', pz(-1), null);
+
+  // Každý nález s cestou má riadok, ktorý v súbore existuje.
+  for (const p of r.problems) {
+    if (!p.path) continue;
+    ok(`R10 ${p.code}: riadok v rozsahu súboru`, Number.isInteger(p.line) && p.line >= 1 && p.line <= RIADKY.length, JSON.stringify(p));
+  }
+
+  // R11 (brána pokus 1, A1): hodnota zdedená z PmtInf ukazuje na prvok v PmtInf, nie na
+  // „chýbajúci“ prvok v každej transakcii. Transakcia s vlastným InstrPrty NORM sa nepoužije.
+  const ZDED = RIADKY.slice();
+  ZDED[ZDED.indexOf('      <ChrgBr>SLEV</ChrgBr>')] = '      <ChrgBr>DEBT</ChrgBr>';
+  ZDED.splice(ZDED.indexOf('      <PmtMtd>TRF</PmtMtd>') + 1, 0, '      <PmtTpInf><InstrPrty>HIGH</InstrPrty><SvcLvl><Cd>URGP</Cd></SvcLvl></PmtTpInf>');
+  ZDED.splice(ZDED.indexOf('        <PmtId><EndToEndId>E2E-1</EndToEndId></PmtId>'), 0, '        <PmtTpInf><InstrPrty>NORM</InstrPrty></PmtTpInf>');
+  const riadokZ = (kus) => ZDED.findIndex((x) => x.includes(kus)) + 1;
+  const zd = dg(ZDED.join('\n'));
+  const chrg = zd.problems.filter((p) => p.code === 'chrg_br_invalid');
+  eq('R11 ChrgBr DEBT v PmtInf: nález pri oboch platbách', chrg.length, 2);
+  for (const p of chrg) {
+    eq(`R11 ${p.path}: riadok ChrgBr v PmtInf`, p.line, riadokZ('<ChrgBr>DEBT'));
+    eq(`R11 ${p.path}: presne`, p.lineExact, true);
+    ok(`R11 ${p.path}: popis bez „chýba“`, !popisPolohy(p, 'sk').includes('chýba'), popisPolohy(p, 'sk'));
+  }
+  const instr = zd.problems.filter((p) => p.code === 'instr_prty_not_norm');
+  eq('R11 InstrPrty HIGH v PmtInf: nález pri oboch platbách', instr.length, 2);
+  const riadokPmtTp = riadokZ('<InstrPrty>HIGH');
+  const stlpecHigh = ZDED[riadokPmtTp - 1].indexOf('<InstrPrty>HIGH') + 1;
+  for (const p of instr) {
+    eq(`R11 ${p.path}: riadok InstrPrty v PmtInf`, p.line, riadokPmtTp);
+    eq(`R11 ${p.path}: stĺpec InstrPrty HIGH, nie NORM v transakcii`, p.column, stlpecHigh);
+  }
+  const svc = zd.problems.filter((p) => p.code === 'svc_lvl_missing_or_invalid');
+  ok('R11 SvcLvl URGP v PmtInf: nález', svc.length >= 1);
+  for (const p of svc) eq(`R11 ${p.path}: stĺpec SvcLvl/Cd v PmtInf`, p.column, ZDED[riadokPmtTp - 1].indexOf('<Cd>URGP') + 1);
+  // Chýba na oboch úrovniach: ostáva „prvok chýba“ pri transakcii.
+  const bez = dg(RIADKY.filter((x) => !x.includes('<ChrgBr>')).join('\n')).problems.filter((p) => p.code === 'chrg_br_missing');
+  eq('R11 ChrgBr chýba všade: nález pri oboch platbách', bez.length, 2);
+  for (const p of bez) eq(`R11 ${p.path}: chýbajúci prvok, nie presne`, p.lineExact, false);
+
+  // R12 (brána pokus 1, B1): zlúčený adresný nález nesie riadok KAŽDEJ adresy.
+  const HYB = (n) => [
+    '      <CdtTrfTxInf>',
+    `        <PmtId><EndToEndId>H-${n}</EndToEndId></PmtId>`,
+    '        <Amt><InstdAmt Ccy="EUR">1.00</InstdAmt></Amt>',
+    '        <Cdtr>',
+    `          <Nm>Hybrid ${n}</Nm>`,
+    '          <PstlAdr>',
+    `            <AdrLine>Hybridna ${n}</AdrLine>`,
+    '            <Ctry>SK</Ctry>',
+    '          </PstlAdr>',
+    '        </Cdtr>',
+    '        <CdtrAcct><Id><IBAN>SK0502000000272000000018</IBAN></Id></CdtrAcct>',
+    '      </CdtTrfTxInf>',
+  ];
+  const SH = RIADKY.slice();
+  SH.splice(SH.lastIndexOf('    </PmtInf>'), 0, ...HYB(1), ...HYB(2), ...HYB(3));
+  const sh = dg(SH.join('\n'));
+  const bezMesta = sh.problems.filter((p) => p.code === 'adresa_bez_mesta_alebo_krajiny');
+  eq('R12 tri hybridné adresy bez mesta: jeden nález', bezMesta.length, 1);
+  // riadok <PstlAdr> je o jeden vyššie než <AdrLine>Hybridna n (index od 0 = číslo riadku <PstlAdr>)
+  const ocakRiadky = SH.map((x, i) => (x.includes('<AdrLine>Hybridna ') ? i : -1)).filter((i) => i >= 0);
+  eq('R12 riadky všetkých troch adries', JSON.stringify(((bezMesta[0] || {}).lines || []).map((x) => x.line)), JSON.stringify(ocakRiadky));
+  eq('R12 popis sk', popisPolohy(bezMesta[0], 'sk'), `riadky ${ocakRiadky.join(', ')}`);
+  eq('R12 popis en', popisPolohy(bezMesta[0], 'en'), `lines ${ocakRiadky.join(', ')}`);
+  eq('R12 popis de', popisPolohy(bezMesta[0], 'de'), `Zeilen ${ocakRiadky.join(', ')}`);
+  eq('R12 strop 2', popisPolohy(bezMesta[0], 'sk', 2), `riadky ${ocakRiadky.slice(0, 2).join(', ')} a ďalších 1`);
+  eq('R12 strop 2 en', popisPolohy(bezMesta[0], 'en', 2), `lines ${ocakRiadky.slice(0, 2).join(', ')} and 1 more`);
+  const shJeden = SH.map((x) => x.trim()).join('');
+  const shj = dg(shJeden).problems.find((p) => p.code === 'adresa_bez_mesta_alebo_krajiny');
+  const stlpceH = [];
+  for (let i = shJeden.indexOf('<PstlAdr><AdrLine>Hybridna '); i >= 0; i = shJeden.indexOf('<PstlAdr><AdrLine>Hybridna ', i + 1)) stlpceH.push(i + 1);
+  eq('R12 jeden riadok: stĺpce všetkých troch', popisPolohy(shj, 'sk'), `riadok 1, stĺpce ${stlpceH.join(', ')}`);
+  eq('R12 jeden riadok de', popisPolohy(shj, 'de'), `Zeile 1, Spalten ${stlpceH.join(', ')}`);
+  // Voľný text u platiteľa aj príjemcu: hláška nemenuje len platiteľa, riadky oboch.
+  const OBE = RIADKY.slice();
+  OBE.splice(OBE.indexOf('      <Dbtr><Nm>Firma s r o</Nm></Dbtr>'), 1, '      <Dbtr><Nm>Firma s r o</Nm><PstlAdr><AdrLine>Mlynska 3</AdrLine><AdrLine>811 01 Bratislava</AdrLine></PstlAdr></Dbtr>');
+  const obe = nalez(dg(OBE.join('\n')), 'adresa_nestrukturovana');
+  eq('R12 platiteľ aj príjemca: dva riadky', (obe.lines || []).length, 2);
+  ok('R12 platiteľ aj príjemca: hláška menuje obe strany', String(obe.message).startsWith('Adresa platiteľa a príjemcu je zapísaná'), obe.message);
+  const obeEn = nalez(dg(OBE.join('\n'), 'en'), 'adresa_nestrukturovana');
+  ok('R12 en: of the debtor and of the creditor', String(obeEn.message).startsWith('The address of the debtor and of the creditor is written'), obeEn.message);
+  const obeDe = nalez(dg(OBE.join('\n'), 'de'), 'adresa_nestrukturovana');
+  ok('R12 de: des Auftraggebers und des Zahlungsempfängers', String(obeDe.message).startsWith('Die Adresse des Auftraggebers und des Zahlungsempfängers'), obeDe.message);
+  ok('R12 len príjemca: hláška ostáva „príjemcu“', String(nalez(r, 'adresa_nestrukturovana').message).startsWith('Adresa príjemcu'), nalez(r, 'adresa_nestrukturovana').message);
+  eq('R12 jeden výskyt: lines null', nalez(r, 'adresa_nestrukturovana').lines, null);
+
+  // R13 (brána pokus 1, A2): čas nerastie s druhou mocninou počtu transakcií v jednom PmtInf.
+  // 10 000 transakcií bez EndToEndId a mena príjemcu (každá má nálezy riešené cestou). Namerané 20. 11. 2026: s pamäťou detí okolo 0,3 s, bez nej 5,5 s.
+  const TX = (i) => `<CdtTrfTxInf><PmtId></PmtId><Amt><InstdAmt Ccy="EUR">1.00</InstdAmt></Amt><Cdtr></Cdtr><CdtrAcct><Id><IBAN>SK0502000000272000000018</IBAN></Id></CdtrAcct></CdtTrfTxInf>`;
+  const zakladJeden = RIADKY.map((x) => x.trim()).join('');
+  const prvy = zakladJeden.indexOf('<CdtTrfTxInf>');
+  const posledny = zakladJeden.lastIndexOf('</CdtTrfTxInf>') + '</CdtTrfTxInf>'.length;
+  const velky = zakladJeden.slice(0, prvy) + Array.from({ length: 10000 }, (_, i) => TX(i)).join('') + zakladJeden.slice(posledny);
+  const t0 = Date.now();
+  const rv = dg(velky);
+  const trvanie = Date.now() - t0;
+  eq('R13 10 000 transakcií: nález pri každej', rv.problems.filter((p) => p.code === 'end_to_end_id_missing').length, 10000);
+  ok(`R13 10 000 transakcií v jednom PmtInf do 3 s (${trvanie} ms)`, trvanie < 3000);
+
+  // R14 (brána pokus 2, B1): stĺpec len vtedy, keď pred prvkom na tom istom riadku začína iný prvok.
+  const tx14 = 'a\n  <X><Y>1</Y></X>\n';
+  const p14 = vytvorPolohy(tx14);
+  eq('R14 prvý prvok na riadku: bez stĺpca', (p14(tx14.indexOf('<X>')) || {}).lineShared, false);
+  eq('R14 druhý prvok na riadku: so stĺpcom', (p14(tx14.indexOf('<Y>')) || {}).lineShared, true);
+  eq('R14 popis prvého prvku bez stĺpca', popisPolohy(p14(tx14.indexOf('<X>')), 'sk'), 'riadok 2');
+  eq('R14 popis druhého prvku so stĺpcom', popisPolohy(p14(tx14.indexOf('<Y>')), 'sk'), 'riadok 2, stĺpec 6');
+  eq('R14 vzor: <PstlAdr> na začiatku riadku bez stĺpca', nalez(r, 'adresa_nestrukturovana').lineShared, false);
+
+  // R15 (brána pokus 2, A1): stabilná adresa prvku s indexmi a druh zlúčeného nálezu.
+  eq('R15 nodePath mena druhej platby', nalez(r, 'amount_currency_invalid').nodePath, 'Document[1]/CstmrCdtTrfInitn[1]/PmtInf[1]/CdtTrfTxInf[2]/Amt[1]/InstdAmt[1]');
+  eq('R15 nodePath adresy druhej platby', nalez(r, 'adresa_nestrukturovana').nodePath, 'Document[1]/CstmrCdtTrfInitn[1]/PmtInf[1]/CdtTrfTxInf[2]/Cdtr[1]/PstlAdr[1]');
+  eq('R15 nodePath chýbajúceho ReqdExctnDt = PmtInf', nalez(r, 'exec_date_missing').nodePath, 'Document[1]/CstmrCdtTrfInitn[1]/PmtInf[1]');
+  eq('R15 group voľného textu', nalez(r, 'adresa_nestrukturovana').group, 'nestrukturovana');
+  eq('R15 group adries bez mesta', (bezMesta[0] || {}).group, 'bez_mesta');
+  eq('R15 bežný nález nemá group', nalez(r, 'amount_currency_invalid').group, undefined);
+  eq('R15 prázdny vstup: nodePath prázdny', nalez(prazdny, 'xml_empty').nodePath, '');
 }
 
 console.log(`\n${pass} passed, ${fail} failed`);

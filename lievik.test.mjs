@@ -21,7 +21,7 @@ import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { dirname, resolve } from 'node:path';
 import { applyDeterministicFixes, nahladOpravy, NAHLAD_STROP } from './oprava.mjs';
-import { diagnose } from './doctor-pain001.js';
+import { diagnose, popisPolohy } from './doctor-pain001.js';
 // 205 T5: stranky Kontroly SEPA suboru citaju k= z odkazu Doctora (npm test spusti aj tie).
 import './kontrola-odkaz.test.mjs';
 
@@ -285,7 +285,7 @@ for (const [cesta, jazyk] of STRANKY) {
     const renderResult = fn('renderResult', {
       opravaStav: stav, opravaBox: box, expectedRow: fn('expectedRow', { esc }), UI, BANK_LABELS: {}, esc, opravyHtml,
       NAHLAD_STROP, $: () => null, ponukyHtml, track, JAZYK: jazyk, output, opravaDomovVrat: () => { domov += 1; },
-      vstupNecitatelny, kodyNalezov,
+      vstupNecitatelny, kodyNalezov, popisPolohy,
     });
     renderResult(vysledok);
     return { stav, vysledok, box, chk, btn, riadok, veta, okno, udalosti, html: output.innerHTML, vlozene, domov, ponukaBtn };
@@ -373,6 +373,16 @@ for (const [cesta, jazyk] of STRANKY) {
     // Nic o tom, co je zle, sa neskryva: kazda chyba je v zozname s miestom.
     assert.equal((k.html.match(/<div class="problem-item /g) || []).length, r.problems.length);
     for (const p of r.problems) if (p.path) assert.ok(k.html.includes(esc(p.path)), 'chyba miesto ' + p.path);
+    // Zadanie sepa-riadok (20. 11. 2026): pri kazdom naleze s riadkom je aj riadok v jazyku stranky.
+    const sRiadkom = r.problems.filter((p) => Number.isInteger(p.line));
+    assert.ok(sRiadkom.length > 0, 'ziadny nalez nema riadok');
+    for (const p of sRiadkom) assert.ok(k.html.includes('<div class="where"><span class="poloha">' + esc(popisPolohy(p, jazyk)) + '</span> · ' + esc(p.path) + '</div>'), 'chyba riadok pri ' + p.code);
+    assert.ok(sRiadkom.some((p) => p.line > 1), 'viacriadkovy subor ma mat riadky nad 1');
+    // Ten isty subor v jednom riadku: riadok 1 a stlpec.
+    const jeden = kontrola({ xml: suborVelaKrajin(6).replace(/\n\s*/g, ''), bank: 'tatrabanka', expectedTxCount: null });
+    assert.ok(jeden.html.includes('<div class="where"><span class="poloha">' + esc({ sk: 'riadok 1, stĺpec ', en: 'line 1, column ', de: 'Zeile 1, Spalte ' }[jazyk])), 'subor v jednom riadku ma ukazat stlpec');
+    // Poloha ma vlastny prvok s pravidlom, ktore cislo nelame (brana pokus 1, B5).
+    assert.match(HTML, /\.problem-item \.where \.poloha \{[^}]*word-break:normal[^}]*\}/, 'chyba pravidlo .poloha');
     // Bez ponuky opravy (napr. bez odkazu na platbu) sa ukaze vsetko.
     const vsetko = opravyHtml(r.fixes, null, UI, esc, NAHLAD_STROP);
     assert.equal((vsetko.match(/data-fix-index=/g) || []).length, r.fixes.length);

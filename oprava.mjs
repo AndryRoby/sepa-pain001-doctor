@@ -232,6 +232,8 @@ function ibanCountryFor(party, prefix, suffix, xml) {
 /**
  * (a) <PstlAdr> len s <AdrLine> -> štruktúrovaná adresa. Odsadenie sa
  * preberá z pôvodných riadkov, aby súbor po oprave vyzeral ako pred ňou.
+ * posun pri rucne aj zoznam je poloha "<PstlAdr>" v pôvodnom texte; platená
+ * správa z neho cez vytvorPolohy() píše riadok (zadanie sepa-riadok, 20. 11. 2026).
  */
 export function fixAdrLines(xml) {
   let count = 0;
@@ -252,7 +254,7 @@ export function fixAdrLines(xml) {
     const ibanCountry = ibanCountryFor(party, prefix, suffix, xml);
     const parsed = parseAddressLines(lines, ibanCountry);
     if (!parsed.ok) {
-      manual.push({ poradie, strana: party, riadky: lines, dovod: parsed.reason });
+      manual.push({ poradie, strana: party, riadky: lines, dovod: parsed.reason, posun: offset });
       return m;
     }
     const sepMatch = inner.match(/(\r?\n[ \t]*)<AdrLine>/);
@@ -261,7 +263,7 @@ export function fixAdrLines(xml) {
     const f = parsed.fields;
     const body = ['StrtNm', 'BldgNb', 'PstCd', 'TwnNm', 'Ctry'].map((k) => `${sep}<${k}>${f[k]}</${k}>`).join('');
     count++;
-    zoznam.push({ poradie, strana: party, riadky: lines, polia: f, zdrojKrajiny: parsed.zdrojKrajiny });
+    zoznam.push({ poradie, strana: party, riadky: lines, polia: f, zdrojKrajiny: parsed.zdrojKrajiny, posun: offset });
     return `<PstlAdr>${body}${tail}</PstlAdr>`;
   });
   return { xml: out, count, manual, zoznam };

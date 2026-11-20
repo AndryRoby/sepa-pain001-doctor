@@ -5,7 +5,7 @@
 <script type="text/plain" data-odlozene src="/style/vzhlad.js?v=da076a5a"></script>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
-<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' https://api.arling.workers.dev 'sha256-7FSdfmrl+5QSgl6IKPQIurtZ+JQz6W0uhhvFm3YWalc=' 'sha256-V3nZKa0x2t70bqxqxB+hAVf/pp6b3ZuP7IbeVE1v0UM=' 'sha256-gm4/6lKSjODf8N8Jmw0oS0ot8D3pMGsobAACz3v2Wxc=' 'sha256-ARjeA/3MFUFnzPSczyh4KBR7NEJ5C6VaZE5jLUq54kc=' 'sha256-e/fIDlrPDq37+zeT58xFltRMoEhveZvQRnfcD10UZRw='; connect-src 'self' https://api.arling.workers.dev https://arling-asistent.arling.workers.dev https://feed-monitor.arling.workers.dev; style-src 'self' 'unsafe-inline'; img-src 'self' data:; font-src 'self'; object-src 'none'; base-uri 'self'; form-action 'none'">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' https://api.arling.workers.dev 'sha256-7FSdfmrl+5QSgl6IKPQIurtZ+JQz6W0uhhvFm3YWalc=' 'sha256-V3nZKa0x2t70bqxqxB+hAVf/pp6b3ZuP7IbeVE1v0UM=' 'sha256-gm4/6lKSjODf8N8Jmw0oS0ot8D3pMGsobAACz3v2Wxc=' 'sha256-HgGxHs34gQwMRkkczkPxMZDDAEMShQRwjrmiz5+DjbI=' 'sha256-e/fIDlrPDq37+zeT58xFltRMoEhveZvQRnfcD10UZRw='; connect-src 'self' https://api.arling.workers.dev https://arling-asistent.arling.workers.dev https://feed-monitor.arling.workers.dev; style-src 'self' 'unsafe-inline'; img-src 'self' data:; font-src 'self'; object-src 'none'; base-uri 'self'; form-action 'none'">
 <meta name="color-scheme" content="dark">
 <link rel="preconnect" href="https://api.arling.workers.dev" crossorigin>
 <meta name="theme-color" content="#0a0908">
@@ -323,6 +323,8 @@
   .problem-item.medium .sev-tag { color:var(--warn); }
   .problem-item.low .sev-tag { color:var(--muted); }
   .problem-item .where { color:var(--muted); font:10.5px/1.4 var(--mono); margin-top:4px; word-break:break-all; }
+  /* Riadok v súbore (zadanie sepa-riadok): čitateľnejší než cesta, číslo sa nikdy neláme. */
+  .problem-item .where .poloha { display:inline-block; color:var(--ink); font:600 12.5px/1.4 var(--ui); word-break:normal; overflow-wrap:normal; margin-right:2px; }
 
   .fix-item { display:flex; align-items:flex-start; justify-content:space-between; gap:10px; background:var(--paper-deep);
     border:1px solid var(--line); border-radius:8px; padding:10px; font-size:12px; min-width:0; }
@@ -662,7 +664,7 @@
 
 <!-- Scripts -->
 <script type="module">
-  import { diagnose } from '../doctor-pain001.js';
+  import { diagnose, popisPolohy } from '../doctor-pain001.js';
   import { applyDeterministicFixes, nahladOpravy, NAHLAD_STROP } from '../oprava.mjs';
 
   // Intentionally broken: demonstrates several rules at once on first load:
@@ -1271,7 +1273,7 @@
       .map(
         (p) => `<div class="problem-item ${esc(p.severity)}">
           <div><span class="sev-tag">${esc(p.severity)}</span>${esc(p.message)}</div>
-          ${p.path ? `<div class="where">${esc(p.path)}</div>` : ''}
+          ${p.path || p.line ? `<div class="where">${popisPolohy(p, JAZYK) ? `<span class="poloha">${esc(popisPolohy(p, JAZYK))}</span>${p.path ? ' · ' : ''}` : ''}${esc(p.path)}</div>` : ''}
         </div>`
       )
       .join('');
