@@ -3,6 +3,10 @@
 
 import { readFileSync } from 'node:fs';
 import { diagnose, TERMIN_ADRESY, expectedValues, popisPolohy, vytvorPolohy } from './doctor-pain001.js';
+// Menné priestory (nie menné importy), aby test bežal aj proti motoru bez nových exportov
+// a padli len testy R16 (overenie „bez opravy“, zadanie sepa-mesto-jazyk).
+import * as motor from './doctor-pain001.js';
+import * as oprava from './oprava.mjs';
 
 let pass = 0;
 let fail = 0;
@@ -2017,6 +2021,268 @@ eq('TERMIN_ADRESY je null, kým EPC neurčí nový termín', TERMIN_ADRESY, null
   eq('R15 group adries bez mesta', (bezMesta[0] || {}).group, 'bez_mesta');
   eq('R15 bežný nález nemá group', nalez(r, 'amount_currency_invalid').group, undefined);
   eq('R15 prázdny vstup: nodePath prázdny', nalez(prazdny, 'xml_empty').nodePath, '');
+}
+
+// ─────────────────────────────────────────────────────────────────────────
+// R16 (zadanie sepa-mesto-jazyk, 20. 11. 2026): návrh opravy adresy berie mesto a
+// krajinu z TEJ ISTEJ adresy. Predtým Doctor navrhol napevno Bratislavu a SK aj
+// adrese v Prahe či v Berlíne, kód Slovenska pri „Austria“ a ukážkovú ulicu
+// Ivanská cesta pri priveľa riadkoch. Čo sa nedá spoľahlivo určiť, je prázdny
+// prvok s XML komentárom v jazyku výstupu, nikdy vymyslené mesto.
+// ─────────────────────────────────────────────────────────────────────────
+{
+  const DOBRA16 = '<PstlAdr><TwnNm>Bratislava</TwnNm><Ctry>SK</Ctry></PstlAdr>';
+  const IBAN_SK16 = 'SK3112000000198742637541';
+  const IBAN_CZ16 = 'CZ6508000000192000145399';
+  const IBAN_DE16 = 'DE89370400440532013000';
+  const IBAN_AT16 = 'AT611904300234573201';
+  // Adresa príjemcu, voliteľne IBAN príjemcu (null = účet bez IBAN) a adresa platiteľa.
+  const x16 = (cdtr, { iban, dbtr } = {}) => {
+    let x = adrXml(dbtr || DOBRA16, cdtr);
+    const ucet = `<CdtrAcct><Id><IBAN>${IBAN_SK16}</IBAN></Id></CdtrAcct>`;
+    if (iban === null) x = x.replace(ucet, '<CdtrAcct><Id><Othr><Id>123456</Id></Othr></Id></CdtrAcct>');
+    else if (iban) x = x.replace(ucet, `<CdtrAcct><Id><IBAN>${iban}</IBAN></Id></CdtrAcct>`);
+    return x;
+  };
+  const n16 = (xml, code, lang) => diagnose({ xml, bank: 'tatrabanka', dnes: '2026-09-06', lang }).problems.find((p) => p.code === code) || {};
+  const fix16 = (xml, code, lang) => n16(xml, code, lang).fix;
+  const NS16 = 'adresa_nestrukturovana';
+  const BM16 = 'adresa_bez_mesta_alebo_krajiny';
+  const volna = (...riadky) => '<PstlAdr>' + riadky.map((r) => `<AdrLine>${r}</AdrLine>`).join('') + '</PstlAdr>';
+  const ZM = '<TwnNm><!-- doplňte mesto --></TwnNm>';
+  const ZK = '<Ctry><!-- doplňte kód krajiny --></Ctry>';
+
+  // SK
+  eq('R16 SK Bratislava: hybridná adresa s PSČ a mestom v AdrLine, bez TwnNm a Ctry: mesto aj krajina z nej',
+    fix16(x16('<PstlAdr><AdrLine>Hlavna 5</AdrLine><AdrLine>811 01 Bratislava</AdrLine><PstCd>81101</PstCd></PstlAdr>'), BM16),
+    '<TwnNm>Bratislava</TwnNm><Ctry>SK</Ctry>');
+  eq('R16 SK Košice: voľná adresa', fix16(x16(volna('Hlavna 5', '040 01 Košice')), NS16), '<PstlAdr><TwnNm>Košice</TwnNm><Ctry>SK</Ctry></PstlAdr>');
+  // CZ
+  eq('R16 CZ Praha 110 00 s českým IBAN', fix16(x16(volna('Kratka 5', '110 00 Praha'), { iban: IBAN_CZ16 }), NS16), '<PstlAdr><TwnNm>Praha</TwnNm><Ctry>CZ</Ctry></PstlAdr>');
+  eq('R16 CZ Praha: PSČ a mesto ako dva kusy', fix16(x16(volna('Kratka 5, 110 00, Praha')), NS16), '<PstlAdr><TwnNm>Praha</TwnNm><Ctry>CZ</Ctry></PstlAdr>');
+  // DE
+  eq('R16 DE 10115 Berlin', fix16(x16(volna('Unter den Linden 1', '10115 Berlin'), { iban: IBAN_DE16 }), NS16), '<PstlAdr><TwnNm>Berlin</TwnNm><Ctry>DE</Ctry></PstlAdr>');
+  eq('R16 DE München: štruktúrovaná bez Ctry', fix16(x16('<PstlAdr><StrtNm>Marienplatz</StrtNm><BldgNb>8</BldgNb><PstCd>80331</PstCd><TwnNm>München</TwnNm></PstlAdr>'), BM16), '<Ctry>DE</Ctry>');
+  // AT
+  eq('R16 AT 1010 Wien', fix16(x16(volna('Stephansplatz 1', '1010 Wien'), { iban: IBAN_AT16 }), NS16), '<PstlAdr><TwnNm>Wien</TwnNm><Ctry>AT</Ctry></PstlAdr>');
+  // Bez mesta
+  eq('R16 bez mesta (len ulica), IBAN SK: mesto zástupný text, krajina z IBAN', fix16(x16(volna('Hlavna 5')), NS16), `<PstlAdr>${ZM}<Ctry>SK</Ctry></PstlAdr>`);
+  eq('R16 bez mesta a bez IBAN: mesto aj krajina zástupný text', fix16(x16(volna('Hlavna 5'), { iban: null }), NS16), `<PstlAdr>${ZM}${ZK}</PstlAdr>`);
+  // Mesto mimo zoznamu a IBAN
+  eq('R16 mesto mimo zoznamu, PSČ SK/CZ a IBAN SK: mesto zo súboru, krajina z IBAN', fix16(x16(volna('Hlavna 5', '900 51 Zohor')), NS16), '<PstlAdr><TwnNm>Zohor</TwnNm><Ctry>SK</Ctry></PstlAdr>');
+  eq('R16 mesto mimo zoznamu, PSČ AT/HU a IBAN AT', fix16(x16(volna('Hauptstrasse 3', '3400 Kritzendorf'), { iban: IBAN_AT16 }), NS16), '<PstlAdr><TwnNm>Kritzendorf</TwnNm><Ctry>AT</Ctry></PstlAdr>');
+  // Rozpor IBAN a mesta, IBAN a PSČ
+  eq('R16 rozpor: Praha s IBAN SK, rozhodne mesto', fix16(x16(volna('Kratka 5', '110 00 Praha')), NS16), '<PstlAdr><TwnNm>Praha</TwnNm><Ctry>CZ</Ctry></PstlAdr>');
+  eq('R16 rozpor: rakúske PSČ a IBAN SK, krajina zástupný text', fix16(x16(volna('Hauptstrasse 3', '3400 Kritzendorf')), NS16), `<PstlAdr><TwnNm>Kritzendorf</TwnNm>${ZK}</PstlAdr>`);
+  eq('R16 rozpor: Wien s nemeckým PSČ, krajina zástupný text', fix16(x16(volna('Ring 1', '10115 Wien')), NS16), `<PstlAdr><TwnNm>Wien</TwnNm>${ZK}</PstlAdr>`);
+  eq('R16 krajina výslovne v AdrLine', fix16(x16(volna('Ring 1', '1010 Neudorf', 'Österreich')), NS16), '<PstlAdr><TwnNm>Neudorf</TwnNm><Ctry>AT</Ctry></PstlAdr>');
+  eq('R16 známe mesto bez PSČ ako samostatný kus', fix16(x16(volna('Hlavna 5', 'Nitra'), { iban: null }), NS16), '<PstlAdr><TwnNm>Nitra</TwnNm><Ctry>SK</Ctry></PstlAdr>');
+  eq('R16 platiteľ: krajina z IBAN platiteľa (DbtrAcct), nie príjemcu', fix16(x16(DOBRA16, { iban: IBAN_CZ16, dbtr: volna('Hlavna 5', '900 51 Zohor') }), NS16), '<PstlAdr><TwnNm>Zohor</TwnNm><Ctry>SK</Ctry></PstlAdr>');
+  // PSČ v AdrLine bez mesta (brána pokus 1, nález A1): IBAN v rozpore s tvarom PSČ krajinu neurčí.
+  eq('R16 PSČ bez mesta: 851 01 s IBAN DE, krajina zástupný text', fix16(x16(volna('Hlavna 5', '851 01'), { iban: IBAN_DE16 }), NS16), `<PstlAdr>${ZM}${ZK}</PstlAdr>`);
+  eq('R16 PSČ bez mesta: 851 01 s IBAN SK, krajina z IBAN', fix16(x16(volna('Hlavna 5', '851 01')), NS16), `<PstlAdr>${ZM}<Ctry>SK</Ctry></PstlAdr>`);
+  eq('R16 PSČ bez mesta: 1010 s IBAN CZ, krajina zástupný text', fix16(x16(volna('Ring 5', '1010'), { iban: IBAN_CZ16 }), NS16), `<PstlAdr>${ZM}${ZK}</PstlAdr>`);
+  eq('R16 PSČ bez mesta: 1010 s IBAN AT, krajina z IBAN', fix16(x16(volna('Ring 5', '1010'), { iban: IBAN_AT16 }), NS16), `<PstlAdr>${ZM}<Ctry>AT</Ctry></PstlAdr>`);
+  eq('R16 PSČ bez mesta v jednom riadku: Hlavna 5, 851 01 s IBAN DE, krajina zástupný text', fix16(x16(volna('Hlavna 5, 851 01'), { iban: IBAN_DE16 }), NS16), `<PstlAdr>${ZM}${ZK}</PstlAdr>`);
+  eq('R16 PSČ bez mesta: hybridná adresa bez TwnNm a Ctry, 851 01 v AdrLine s IBAN DE', fix16(x16('<PstlAdr><AdrLine>Hlavna 5</AdrLine><AdrLine>851 01</AdrLine><StrtNm>Hlavna</StrtNm></PstlAdr>', { iban: IBAN_DE16 }), BM16), ZM + ZK);
+
+  // Zlúčená skupina (platiteľ aj príjemca v jednom náleze)
+  const skPB = x16(volna('Kratka 5', '110 00 Praha'), { dbtr: volna('Unter den Linden 1', '10115 Berlin') });
+  eq('R16 skupina Praha a Berlin: mesto ani krajinu jednej adresy neukáže pri druhej', fix16(skPB, NS16), `<PstlAdr>${ZM}${ZK}</PstlAdr>`);
+  eq('R16 skupina Praha a Brno: spoločná krajina CZ, mesto zástupný text',
+    fix16(x16(volna('Kratka 5', '110 00 Praha'), { dbtr: volna('Masarykova 3', '602 00 Brno') }), NS16), `<PstlAdr>${ZM}<Ctry>CZ</Ctry></PstlAdr>`);
+  eq('R16 skupina dvakrát Košice: spoločné mesto aj krajina',
+    fix16(x16(volna('Hlavna 5', '040 01 Košice'), { dbtr: volna('Mlynska 9', '040 01 Košice') }), NS16), '<PstlAdr><TwnNm>Košice</TwnNm><Ctry>SK</Ctry></PstlAdr>');
+  const rPB = diagnose({ xml: skPB, bank: 'tatrabanka', dnes: '2026-09-06' });
+  const fixyPB = rPB.fixes.filter((f) => f.value.startsWith('<PstlAdr>'));
+  ok('R16 skupina Praha a Berlin: jeden nález, v poli fixes rovnaký návrh, nikde Bratislava',
+    rPB.problems.filter((p) => p.code === NS16).length === 1 && fixyPB.length === 1 && fixyPB[0].value === `<PstlAdr>${ZM}${ZK}</PstlAdr>`, JSON.stringify(fixyPB));
+
+  // Štruktúrovaná adresa bez Ctry (TwnNm Praha), bez TwnNm (Ctry DE)
+  eq('R16 štruktúrovaná bez Ctry, TwnNm Praha 1', fix16(x16('<PstlAdr><StrtNm>Vodickova</StrtNm><BldgNb>1</BldgNb><TwnNm>Praha 1</TwnNm></PstlAdr>'), BM16), '<Ctry>CZ</Ctry>');
+  eq('R16 štruktúrovaná bez TwnNm, Ctry DE: mesto sa z PSČ nevymýšľa', fix16(x16('<PstlAdr><StrtNm>Unter den Linden</StrtNm><BldgNb>1</BldgNb><PstCd>10117</PstCd><Ctry>DE</Ctry></PstlAdr>'), BM16), ZM);
+  eq('R16 hybridná bez TwnNm, Ctry DE, mesto v AdrLine', fix16(x16('<PstlAdr><AdrLine>10115 Berlin</AdrLine><Ctry>DE</Ctry></PstlAdr>'), BM16), '<TwnNm>Berlin</TwnNm>');
+  eq('R16 štruktúrovaná bez TwnNm aj Ctry, bez IBAN: oba prvky zástupný text', fix16(x16('<PstlAdr><StrtNm>Hlavna</StrtNm><BldgNb>1</BldgNb></PstlAdr>', { iban: null }), BM16), ZM + ZK);
+
+  // Zlý kód krajiny
+  const ZKK = 'adresa_zly_kod_krajiny';
+  eq('R16 zlý kód: Austria na AT', fix16(x16('<PstlAdr><TwnNm>Wien</TwnNm><Ctry>Austria</Ctry></PstlAdr>'), ZKK), '<Ctry>AT</Ctry>');
+  eq('R16 zlý kód: Deutschland na DE (názov má prednosť pred mestom)', fix16(x16('<PstlAdr><TwnNm>Praha</TwnNm><Ctry>Deutschland</Ctry></PstlAdr>'), ZKK), '<Ctry>DE</Ctry>');
+  eq('R16 zlý kód: neznámy názov, krajina z mesta Brno', fix16(x16('<PstlAdr><TwnNm>Brno</TwnNm><Ctry>Morava</Ctry></PstlAdr>'), ZKK), '<Ctry>CZ</Ctry>');
+  eq('R16 zlý kód: neznámy názov, krajina z poľského PSČ', fix16(x16('<PstlAdr><PstCd>00-950</PstCd><TwnNm>Nowa Wies</TwnNm><Ctry>Polsk</Ctry></PstlAdr>'), ZKK), '<Ctry>PL</Ctry>');
+  eq('R16 zlý kód: nič spoľahlivé, zástupný text (IBAN sa tu nepoužije)', fix16(x16('<PstlAdr><TwnNm>Atlantis</TwnNm><Ctry>Narnia</Ctry></PstlAdr>'), ZKK), ZK);
+
+  // Priveľa riadkov AdrLine
+  const VR = 'adresa_prilis_vela_riadkov';
+  eq('R16 priveľa riadkov: ulica a číslo z vlastných riadkov', fix16(x16('<PstlAdr><AdrLine>Hlavna 5</AdrLine><AdrLine>040 01 Košice</AdrLine><AdrLine>Slovensko</AdrLine><TwnNm>Košice</TwnNm><Ctry>SK</Ctry></PstlAdr>'), VR), '<StrtNm>Hlavna</StrtNm><BldgNb>5</BldgNb>');
+  eq('R16 priveľa riadkov bez rozdeliteľnej ulice: zástupný text, nie Ivanská cesta', fix16(x16('<PstlAdr><AdrLine>Budova A</AdrLine><AdrLine>2. poschodie</AdrLine><AdrLine>kancelária 12</AdrLine><TwnNm>Praha</TwnNm><Ctry>CZ</Ctry></PstlAdr>'), VR), '<StrtNm><!-- doplňte ulicu --></StrtNm><BldgNb><!-- doplňte číslo domu --></BldgNb>');
+
+  // Zástupný text v sk, en, de
+  const bez16 = x16(volna('Hlavna 5'), { iban: null });
+  eq('R16 zástupný text sk', fix16(bez16, NS16, 'sk'), '<PstlAdr><TwnNm><!-- doplňte mesto --></TwnNm><Ctry><!-- doplňte kód krajiny --></Ctry></PstlAdr>');
+  eq('R16 zástupný text en', fix16(bez16, NS16, 'en'), '<PstlAdr><TwnNm><!-- enter the town --></TwnNm><Ctry><!-- enter the country code --></Ctry></PstlAdr>');
+  eq('R16 zástupný text de', fix16(bez16, NS16, 'de'), '<PstlAdr><TwnNm><!-- Ort eintragen --></TwnNm><Ctry><!-- Ländercode eintragen --></Ctry></PstlAdr>');
+  const vr16 = x16('<PstlAdr><AdrLine>A</AdrLine><AdrLine>B</AdrLine><AdrLine>C</AdrLine><TwnNm>Praha</TwnNm><Ctry>CZ</Ctry></PstlAdr>');
+  eq('R16 zástupný text ulice en', fix16(vr16, VR, 'en'), '<StrtNm><!-- enter the street --></StrtNm><BldgNb><!-- enter the building number --></BldgNb>');
+  eq('R16 zástupný text ulice de', fix16(vr16, VR, 'de'), '<StrtNm><!-- Straße eintragen --></StrtNm><BldgNb><!-- Hausnummer eintragen --></BldgNb>');
+  // Zástupný text vložený bez zmeny nie je hodnotou: Doctor adresu znova hlási.
+  const bezMesta16 = x16('<PstlAdr><StrtNm>Hlavna</StrtNm><BldgNb>1</BldgNb><Ctry>SK</Ctry></PstlAdr>', { iban: null });
+  const vlozene16 = bezMesta16.replace('<Ctry>SK</Ctry></PstlAdr></Cdtr>', (fix16(bezMesta16, BM16) || '') + '<Ctry>SK</Ctry></PstlAdr></Cdtr>');
+  ok('R16 návrh mesta vložený bez zmeny: Doctor adresu znova hlási (nie je to hodnota)', vlozene16 !== bezMesta16 && !!n16(vlozene16, BM16).code, vlozene16);
+
+  // Escapovanie hodnoty zo súboru v XML úryvku
+  eq('R16 escapovanie: mesto s &', fix16(x16(volna('Hlavna 5', '811 01 A &amp; B')), NS16), '<PstlAdr><TwnNm>A &amp; B</TwnNm><Ctry>SK</Ctry></PstlAdr>');
+  eq('R16 escapovanie: mesto s < a >', fix16(x16(volna('Hlavna 5', '811 01 X&lt;Y&gt;Z')), NS16), '<PstlAdr><TwnNm>X&lt;Y&gt;Z</TwnNm><Ctry>SK</Ctry></PstlAdr>');
+  eq('R16 escapovanie: mesto s & v hybridnej adrese bez TwnNm a Ctry', fix16(x16('<PstlAdr><AdrLine>811 01 A &amp; B</AdrLine><PstCd>81101</PstCd></PstlAdr>'), BM16), '<TwnNm>A &amp; B</TwnNm><Ctry>SK</Ctry>');
+  eq('R16 escapovanie: ulica s & pri priveľa riadkoch', fix16(x16('<PstlAdr><AdrLine>R&amp;D 5</AdrLine><AdrLine>811 01 Bratislava</AdrLine><AdrLine>Slovensko</AdrLine><TwnNm>Bratislava</TwnNm><Ctry>SK</Ctry></PstlAdr>'), VR), '<StrtNm>R&amp;D</StrtNm><BldgNb>5</BldgNb>');
+
+  // Brána pokus 2, odporúčania 1 a 2 (oprava bodu 12, 20. 11. 2026): holandské PSČ a číslo
+  // domu pred ulicou dali mesto „AB Amsterdam“ a „Pennsylvania Avenue“. Teraz zástupný text.
+  const IBAN_NL16 = 'NL91ABNA0417164300';
+  eq('R16 holandské PSČ 1012 AB Amsterdam s IBAN NL: mesto aj krajina zástupný text, nie „AB Amsterdam“', fix16(x16(volna('Damrak 5', '1012 AB Amsterdam'), { iban: IBAN_NL16 }), NS16), `<PstlAdr>${ZM}${ZK}</PstlAdr>`);
+  eq('R16 holandské PSČ a krajina výslovne v AdrLine: mesto zástupný text, krajina NL', fix16(x16(volna('Damrak 5', '1012 AB Amsterdam', 'Nederland')), NS16), `<PstlAdr>${ZM}<Ctry>NL</Ctry></PstlAdr>`);
+  eq('R16 holandské PSČ v dvoch kusoch s IBAN AT: 1012 nie je rakúske PSČ, krajina zástupný text', fix16(x16(volna('Damrak 5', '1012, AB Amsterdam'), { iban: IBAN_AT16 }), NS16), `<PstlAdr>${ZM}${ZK}</PstlAdr>`);
+  eq('R16 číslo domu pred ulicou: 1600 Pennsylvania Avenue, Washington: mesto zástupný text', fix16(x16(volna('1600 Pennsylvania Avenue', 'Washington')), NS16), `<PstlAdr>${ZM}${ZK}</PstlAdr>`);
+  eq('R16 číslo domu pred ulicou en: enter the town', fix16(x16(volna('1600 Pennsylvania Avenue NW', 'Washington, DC 20500'), { iban: null }), NS16, 'en'), '<PstlAdr><TwnNm><!-- enter the town --></TwnNm><Ctry><!-- enter the country code --></Ctry></PstlAdr>');
+  eq('R16 stráž: známe mesto aj pred ďalším kusom ostáva (1010 Wien, Stephansplatz 1)', fix16(x16(volna('1010 Wien', 'Stephansplatz 1'), { iban: IBAN_AT16 }), NS16), '<PstlAdr><TwnNm>Wien</TwnNm><Ctry>AT</Ctry></PstlAdr>');
+  eq('R16 stráž: rakúske PSČ 1010 s mestom veľkými písmenami nie je holandské', fix16(x16(volna('Ring 1', '1010 WIEN'), { iban: IBAN_AT16 }), NS16), '<PstlAdr><TwnNm>WIEN</TwnNm><Ctry>AT</Ctry></PstlAdr>');
+
+  // Zoznam miest a pravidlá raz: v motore, oprava.mjs ich importuje (žiadna druhá kópia).
+  const opravaZdroj = readFileSync(new URL('./oprava.mjs', import.meta.url), 'utf8');
+  ok('R16 motor exportuje zoznam miest TOWNS', !!(motor.TOWNS && /Praha/.test(motor.TOWNS.CZ)));
+  ok('R16 oprava.mjs nemá vlastný zoznam miest ani názvov krajín', !/(const|let|var)\s+(TOWNS|COUNTRY_NAMES|POSTCODE_FORMATS)\b/.test(opravaZdroj) && !/'Praha,Brno/.test(opravaZdroj));
+  ok('R16 oprava.mjs importuje pravidlá z ./doctor-pain001.js', /import \{[^}]*parseAddressLines[^}]*\} from '\.\/doctor-pain001\.js';/.test(opravaZdroj));
+  ok('R16 parseAddressLines v oprava.mjs je tá istá funkcia ako v motore', !!motor.parseAddressLines && oprava.parseAddressLines === motor.parseAddressLines);
+}
+
+// ─────────────────────────────────────────────────────────────────────────
+// R18 (brána sepa-mesto-jazyk, pokus 1, 20. 11. 2026): celé vety, ktoré zákazník
+// číta. J1: ak chýba mesto aj krajina, sk „chýba v nej mesto … aj kód krajiny“, en
+// „… are missing“, de „es fehlen aber …“ (predtým „ani“, „or … is missing“, „fehlt“).
+// J2: počet transakcií v tvare podľa čísla (predtým „3 transakcií“). A3: regulárny
+// výraz v normalizeName má únikové sekvencie, nie doslovné kombinačné znaky.
+// ─────────────────────────────────────────────────────────────────────────
+{
+  const BM18 = 'adresa_bez_mesta_alebo_krajiny';
+  const sprava18 = (adr, lang) => (diagnose({ xml: adrXml('<PstlAdr><TwnNm>Bratislava</TwnNm><Ctry>SK</Ctry></PstlAdr>', adr), bank: 'tatrabanka', dnes: '2026-09-06', lang })
+    .problems.find((p) => p.code === BM18) || {}).message;
+  const obe18 = '<PstlAdr><StrtNm>Stephansplatz</StrtNm><BldgNb>1</BldgNb><PstCd>1010</PstCd></PstlAdr>';
+  eq('R18 sk: chýba mesto aj krajina, celá veta', sprava18(obe18, 'sk'),
+    'Adresa príjemcu má štruktúrované polia, ale chýba v nej mesto (TwnNm) aj kód krajiny (Ctry). Mesto a kód krajiny sú podľa pravidiel EPC minimum každej štruktúrovanej aj hybridnej adresy.');
+  eq('R18 en: town and country code missing, whole sentence', sprava18(obe18, 'en'),
+    'The address of the creditor has structured fields, but the town (TwnNm) and the country code (Ctry) are missing. Under the EPC rules the town and the country code are the minimum of every structured and hybrid address.');
+  eq('R18 de: Ort und Ländercode fehlen, ganzer Satz', sprava18(obe18, 'de'),
+    'Die Adresse des Zahlungsempfängers hat strukturierte Felder, es fehlen aber der Ort (TwnNm) und der Ländercode (Ctry). Ort und Ländercode sind nach den EPC-Regeln das Minimum jeder strukturierten und hybriden Adresse.');
+  // Jedno chýbajúce pole ostáva v jednotnom čísle.
+  const bezMesta18 = '<PstlAdr><StrtNm>Hlavna</StrtNm><BldgNb>1</BldgNb><Ctry>SK</Ctry></PstlAdr>';
+  ok('R18 en: len mesto chýba, „is missing“', /but the town \(TwnNm\) is missing\./.test(sprava18(bezMesta18, 'en') || ''), sprava18(bezMesta18, 'en'));
+  ok('R18 de: len mesto chýba, „es fehlt aber“', /es fehlt aber der Ort \(TwnNm\)\./.test(sprava18(bezMesta18, 'de') || ''), sprava18(bezMesta18, 'de'));
+  ok('R18 sk: len mesto chýba, „chýba v nej mesto (TwnNm).“', /chýba v nej mesto \(TwnNm\)\./.test(sprava18(bezMesta18, 'sk') || ''), sprava18(bezMesta18, 'sk'));
+
+  // J2: súbor s n transakciami a NbOfTxs 9.
+  const tx18 = (n) => {
+    const x = adrXml('<PstlAdr><TwnNm>Bratislava</TwnNm><Ctry>SK</Ctry></PstlAdr>', '<PstlAdr><TwnNm>Bratislava</TwnNm><Ctry>SK</Ctry></PstlAdr>');
+    const a = x.indexOf('<CdtTrfTxInf>');
+    const b = x.indexOf('</CdtTrfTxInf>') + '</CdtTrfTxInf>'.length;
+    return x.slice(0, a) + x.slice(a, b).repeat(n) + x.slice(b);
+  };
+  const nb18 = (n, lang) => (diagnose({ xml: tx18(n).replace('<NbOfTxs>1</NbOfTxs>', '<NbOfTxs>9</NbOfTxs>'), bank: 'tatrabanka', dnes: '2026-09-06', lang })
+    .problems.find((p) => p.code === 'nb_of_txs_mismatch') || {}).message || '';
+  ok('R18 sk: 1 transakciu', nb18(1, 'sk').includes('ale súbor obsahuje 1 transakciu <CdtTrfTxInf>.'), nb18(1, 'sk'));
+  ok('R18 sk: 3 transakcie', nb18(3, 'sk').includes('ale súbor obsahuje 3 transakcie <CdtTrfTxInf>.'), nb18(3, 'sk'));
+  ok('R18 sk: 5 transakcií', nb18(5, 'sk').includes('ale súbor obsahuje 5 transakcií <CdtTrfTxInf>.'), nb18(5, 'sk'));
+  ok('R18 en: 1 transaction, 3 transactions', nb18(1, 'en').includes('the file contains 1 <CdtTrfTxInf> transaction.') && nb18(3, 'en').includes('the file contains 3 <CdtTrfTxInf> transactions.'), nb18(1, 'en'));
+  ok('R18 de: 1 Transaktion, 3 Transaktionen', nb18(1, 'de').includes('enthält aber 1 <CdtTrfTxInf>-Transaktion.') && nb18(3, 'de').includes('enthält aber 3 <CdtTrfTxInf>-Transaktionen.'), nb18(1, 'de'));
+
+  // A3: regulárny výraz bez doslovných kombinačných znakov, správanie rovnaké.
+  const motorZdroj18 = readFileSync(new URL('./doctor-pain001.js', import.meta.url), 'utf8');
+  ok('R18 motor nemá doslovné kombinačné znaky U+0300 až U+036F', !new RegExp('[' + String.fromCharCode(0x300) + '-' + String.fromCharCode(0x36f) + ']').test(motorZdroj18));
+  eq('R18 normalizeName bez diakritiky', typeof motor.normalizeName === 'function' ? motor.normalizeName('Žďár nad Sázavou, Österreich') : '(normalizeName chýba)', 'zdar nad sazavou, osterreich');
+}
+
+// ─────────────────────────────────────────────────────────────────────────
+// R17 (zadanie sepa-mesto-jazyk, bod 2, 20. 11. 2026): chyby parsera XML mali hotovú
+// slovenskú vetu, ktorá išla bez prekladu aj do anglickej a nemeckej hlášky (stránka,
+// zhrnutie aj platená správa). Parser teraz vracia kľúč a parametre, vetu skladá
+// slovník jazyka. Navyše jednotné číslo pri 1 ďalšom probléme a bodka za zátvorkou.
+// ─────────────────────────────────────────────────────────────────────────
+{
+  const NS17 = 'urn:iso:std:iso:20022:tech:xsd:pain.001.001.03';
+  const r17 = (xml, lang) => diagnose({ xml, bank: 'tatrabanka', dnes: '2026-11-20', lang });
+  const m17 = (xml, lang) => (r17(xml, lang).problems.find((p) => p.code === 'xml_not_well_formed') || {}).message || '';
+  const stray17 = (n) => `<Document xmlns="${NS17}">` + Array.from({ length: n }, (_, i) => `</x${i}>`).join('') + '</Document>';
+  // Slovenské znaky (v nemčine okrem ä) a slová z pôvodných viet parsera.
+  const ZNAKY17 = { en: /[ľĺŕťďňčšžôáéíóúýäĽĹŔŤĎŇČŠŽÔÁÉÍÓÚÝÄ]/u, de: /[ľĺŕťďňčšžôáéíóúýĽĹŔŤĎŇČŠŽÔÁÉÍÓÚÝ]/u };
+  const SLOVA17 = /nezatvoren|poz[ií]cii|ch[ýy]ba\b|zatv[áa]rac|zodpovedaj|otv[áa]rac|\bnebol|spr[áa]vne|zatvoren|\bpred\b|nasledovn|\bneboli\b|s[úu]bore|nena[šs]iel|[žz]iadny|[ďd]al[šs]|probl[ée]mov|so [šs]trukt/iu;
+  const BANKA = { sk: ' Banka takýto súbor odmietne skôr, než sa dostane k obsahu platieb.', en: ' The bank will reject such a file before it even reaches the payment content.', de: ' Die Bank weist eine solche Datei zurück, bevor sie überhaupt zum Zahlungsinhalt kommt.' };
+  const UVOD = { sk: 'XML nie je správne formované (well-formed): ', en: 'The XML is not well-formed: ', de: 'Das XML ist nicht wohlgeformt: ' };
+
+  // Každá chyba parsera: vstup a očakávaná veta v sk (presne ako pred zmenou), en, de.
+  const CHYBY17 = [
+    { meno: 'zatvárací tag bez otváracieho', xml: `<Document xmlns="${NS17}"><a>x</b></a></Document>`,
+      sk: 'Zatvárací tag </b> nemá zodpovedajúci otvárací tag.',
+      en: 'The closing tag </b> has no matching opening tag.',
+      de: 'Zum schließenden Tag </b> gibt es kein passendes öffnendes Tag.' },
+    { meno: 'tag nezatvorený pred iným zatváracím', xml: `<Document xmlns="${NS17}"><a>x</Document>`,
+      sk: 'Tag <a> nebol správne zatvorený pred </Document>.',
+      en: 'The tag <a> was not closed properly before </Document>.',
+      de: 'Das Tag <a> wurde vor </Document> nicht korrekt geschlossen.' },
+    { meno: 'nezatvorené tagy na konci súboru', xml: `<Document xmlns="${NS17}"><CstmrCdtTrfInitn>`,
+      // Pôvodná veta bez bodky na konci; teraz s bodkou pred „Banka…“.
+      sk: 'Nasledovné tagy neboli zatvorené: Document, CstmrCdtTrfInitn.',
+      en: 'The following tags were not closed: Document, CstmrCdtTrfInitn.',
+      de: 'Folgende Tags wurden nicht geschlossen: Document, CstmrCdtTrfInitn.' },
+    { meno: 'žiadny XML element', xml: 'Toto nie je XML.',
+      sk: 'V súbore sa nenašiel žiadny XML element.',
+      en: 'No XML element was found in the file.',
+      de: 'In der Datei wurde kein XML-Element gefunden.' },
+    { meno: 'nezatvorený tag (chýba >), 1 ďalší problém', xml: `<Document xmlns="${NS17}"><a`,
+      sk: 'Nezatvorený tag na pozícii 65 (chýba ">") (a 1 ďalší problém so štruktúrou).',
+      en: 'Unclosed tag at position 65 (">" is missing) (and 1 more structural problem).',
+      de: 'Nicht abgeschlossenes Tag an Position 65 (">" fehlt) (und 1 weiteres Strukturproblem).' },
+  ];
+  for (const c of CHYBY17) {
+    for (const lang of ['sk', 'en', 'de']) {
+      eq(`R17 ${c.meno}: hláška ${lang}`, m17(c.xml, lang), UVOD[lang] + c[lang] + BANKA[lang]);
+    }
+    for (const lang of ['en', 'de']) {
+      const r = r17(c.xml, lang);
+      const texty = [m17(c.xml, lang), r.summary || ''];
+      ok(`R17 ${c.meno}: ${lang} hláška a zhrnutie bez slovenských znakov`, texty.every((t) => !ZNAKY17[lang].test(t)), texty.join(' | '));
+      ok(`R17 ${c.meno}: ${lang} hláška a zhrnutie bez slovenských slov`, texty.every((t) => !SLOVA17.test(t)), texty.join(' | '));
+    }
+  }
+
+  // Slovenský text chýb parsera presne ako pred zmenou (vety s bodkou na konci, bez ďalších chýb).
+  eq('R17 sk presne ako predtým: zatvárací tag', m17(CHYBY17[0].xml, 'sk'), 'XML nie je správne formované (well-formed): Zatvárací tag </b> nemá zodpovedajúci otvárací tag. Banka takýto súbor odmietne skôr, než sa dostane k obsahu platieb.');
+  eq('R17 sk presne ako predtým: žiadny element', m17(CHYBY17[3].xml, 'sk'), 'XML nie je správne formované (well-formed): V súbore sa nenašiel žiadny XML element. Banka takýto súbor odmietne skôr, než sa dostane k obsahu platieb.');
+  const bom17 = m17(String.fromCharCode(0xFEFF) + CHYBY17[4].xml, 'sk');
+  ok('R17 sk presne ako predtým: nezatvorený tag (pozícia v texte bez BOM)', bom17.startsWith('XML nie je správne formované (well-formed): Nezatvorený tag na pozícii 65 (chýba ">")'), bom17);
+
+  // Jednotné a množné číslo ďalších problémov, bodka za zátvorkou.
+  const DALSIE17 = [
+    [2, 'sk', '(a 1 ďalší problém so štruktúrou). '],
+    [3, 'sk', '(a 2 ďalšie problémy so štruktúrou). '],
+    [5, 'sk', '(a 4 ďalšie problémy so štruktúrou). '],
+    [6, 'sk', '(a 5 ďalších problémov so štruktúrou). '],
+    [2, 'en', '(and 1 more structural problem). '],
+    [3, 'en', '(and 2 more structural problems). '],
+    [6, 'en', '(and 5 more structural problems). '],
+    [2, 'de', '(und 1 weiteres Strukturproblem). '],
+    [3, 'de', '(und 2 weitere Strukturprobleme). '],
+    [6, 'de', '(und 5 weitere Strukturprobleme). '],
+  ];
+  for (const [n, lang, cast] of DALSIE17) {
+    const m = m17(stray17(n), lang);
+    ok(`R17 ${n} ${n < 5 ? 'chyby' : 'chýb'}, ${lang}: „${cast.trim()}“, bodka za zátvorkou`, m.includes(cast) && !m.includes('.)'), m);
+  }
+  eq('R17 6 chýb en: celá hláška', m17(stray17(6), 'en'), 'The XML is not well-formed: The closing tag </x0> has no matching opening tag (and 5 more structural problems). The bank will reject such a file before it even reaches the payment content.');
+
+  // Názov značky je hodnota zo súboru: motor ho nemení, stránka ho escapuje cez esc().
+  ok('R17 názov značky zo súboru ostáva doslova (escapuje až stránka)', m17(`<Document xmlns="${NS17}"></a&b<i></Document>`, 'en').includes('The closing tag </a&b<i> has no matching opening tag.'));
+  // Poloha chyby sa nezmenila: riadok a stĺpec nezatvoreného tagu.
+  const p17 = r17(`<Document xmlns="${NS17}">\n<a`, 'en').problems.find((p) => p.code === 'xml_not_well_formed') || {};
+  ok('R17 poloha chyby parsera ostáva (riadok 2)', p17.line === 2, JSON.stringify({ line: p17.line, column: p17.column }));
 }
 
 console.log(`\n${pass} passed, ${fail} failed`);
