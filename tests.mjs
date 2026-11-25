@@ -2285,6 +2285,353 @@ eq('TERMIN_ADRESY je null, kým EPC neurčí nový termín', TERMIN_ADRESY, null
   ok('R17 poloha chyby parsera ostáva (riadok 2)', p17.line === 2, JSON.stringify({ line: p17.line, column: p17.column }));
 }
 
+// ─────────────────────────────────────────────────────────────────────────
+// RmtInf: Ustrd aj Strd naraz, viac Strd, dlhý Strd, CdtrRefInf (25. 11. 2026).
+// Podnet: otázka na podporu z 25. 11. 2026, súbor s <Ustrd> „Mzdy 11/2026 SK Testovanie“
+// a dvoma <Strd> (CdtrRefInf/Ref „VS:202611“ a „KS:0138“), ktorý nástroj nehlásil.
+// Pravidlá: EPC132-08 IG 2021 (.03) a 2025 (.09), štandard SBA, SLSP REQ-20584 (zdroje v motore).
+// ─────────────────────────────────────────────────────────────────────────
+{
+  const na09 = (x) => x
+    .replace('pain.001.001.03', 'pain.001.001.09')
+    .replace(/<ReqdExctnDt>([^<]+)<\/ReqdExctnDt>/g, '<ReqdExctnDt><Dt>$1</Dt></ReqdExctnDt>')
+    .replace(/<BIC>/g, '<BICFI>').replace(/<\/BIC>/g, '</BICFI>');
+  const d = (xml, bank, lang) => diagnose({ xml, bank: bank || 'tatrabanka', dnes: DNES_PRED, lang });
+  const najdi = (r, kod) => r.problems.find((p) => p.code === kod);
+  const ZAKAZ_ISTOTY = /odmietne|zamietne|will be rejected|rejects|wird zurückgewiesen|weist .* zurück/;
+  const POVODNY = '<RmtInf><Ustrd>Faktura c. 2026-0912</Ustrd></RmtInf>';
+  // Súbor so správou, ktorú poslal používateľ: RmtInf na viacerých riadkoch, ako v jeho XML.
+  const RMT_PRIPAD = '<RmtInf>\n<Ustrd>Mzdy 11/2026 SK Testovanie</Ustrd>\n<Strd>\n<CdtrRefInf>\n<Ref>VS:202611</Ref>\n</CdtrRefInf>\n</Strd>\n<Strd>\n<CdtrRefInf>\n<Ref>KS:0138</Ref>\n</CdtrRefInf>\n</Strd>\n</RmtInf>';
+  const subor = (rmt, e2e, lcl, banka) => {
+    const s = banka && BANK_BIC[banka] ? withBank(PASS_SPEC, banka) : clone(PASS_SPEC);
+    if (e2e !== undefined) s.pmtInf[0].tx[0].endToEndId = e2e;
+    if (lcl) s.pmtInf[0].tx[0].lclInstrm = lcl;
+    return buildPain001(s).replace(POVODNY, rmt);
+  };
+  const x03 = subor(RMT_PRIPAD, 'NOTPROVIDED');
+  const x09 = na09(x03);
+  // Komentáre v karte opravy sú len ASCII a bez jazyka (brána sepa-rmtinf, pokus 2, N1: diakritika by sa vložila do XML).
+  const K_E2E = '<!-- PmtId/EndToEndId -->\n';
+  const K_RMT = '<!-- RmtInf -->\n';
+  const NAVRH = K_E2E + '<EndToEndId>/VS202611/SS/KS0138</EndToEndId>\n' + K_RMT + '<RmtInf><Ustrd>Mzdy 11/2026 SK Testovanie</Ustrd></RmtInf>';
+  ok('RmtInf: fixtúra prípadu sa zapísala (.03 aj .09)', x03.includes('<Ref>VS:202611</Ref>') && x03.includes('<Ref>KS:0138</Ref>') && x09.includes('pain.001.001.09') && !x03.includes(POVODNY));
+
+  // 1. Presný prípad zo správy: v každej banke a oboch verziách tri nálezy, predtým žiadny.
+  for (const verzia of ['.03', '.09']) {
+    for (const banka of ['tatrabanka', 'slsp', 'vub', 'csob', 'generic']) {
+      const z03 = subor(RMT_PRIPAD, 'NOTPROVIDED', undefined, banka);
+      const xml = verzia === '.09' ? na09(z03) : z03;
+      const r = d(xml, banka);
+      const tag = `RmtInf prípad ${banka} ${verzia}`;
+      has(`${tag}: Ustrd aj Strd naraz`, r.problems, 'rmt_inf_ustrd_and_strd');
+      has(`${tag}: viac Strd`, r.problems, 'rmt_inf_multiple_strd');
+      has(`${tag}: CdtrRefInf bez Tp`, r.problems, 'rmt_inf_creditor_ref_incomplete');
+      lacks(`${tag}: Strd nie je dlhší ako 140`, r.problems, 'rmt_inf_strd_too_long');
+      eq(`${tag}: závažnosť Ustrd a Strd (high len SLSP .09, REQ-20584)`, severityOf(r.problems, 'rmt_inf_ustrd_and_strd'), banka === 'slsp' && verzia === '.09' ? 'high' : 'medium');
+      eq(`${tag}: viac Strd je medium`, severityOf(r.problems, 'rmt_inf_multiple_strd'), 'medium');
+      eq(`${tag}: CdtrRefInf je low`, severityOf(r.problems, 'rmt_inf_creditor_ref_incomplete'), 'low');
+      eq(`${tag}: návrh opravy symbolov do EndToEndId`, fixOf(r.problems, 'rmt_inf_ustrd_and_strd'), NAVRH);
+      eq(`${tag}: viac Strd bez druhej karty opravy`, fixOf(r.problems, 'rmt_inf_multiple_strd'), '');
+      eq(`${tag}: jedna karta opravy pre RmtInf`, r.fixes.filter((f) => /RmtInf/.test(f.where)).length, 1);
+      eq(`${tag}: stav`, r.status, banka === 'slsp' && verzia === '.09' ? 'fail' : 'warn');
+    }
+  }
+  // Poloha: RmtInf, druhý Strd a prvý CdtrRefInf na riadkoch súboru.
+  {
+    const r = d(x03, 'vub');
+    eq('RmtInf prípad: riadok RmtInf', (najdi(r, 'rmt_inf_ustrd_and_strd') || {}).line, 1);
+    eq('RmtInf prípad: riadok druhého Strd', (najdi(r, 'rmt_inf_multiple_strd') || {}).line, 8);
+    eq('RmtInf prípad: riadok prvého CdtrRefInf', (najdi(r, 'rmt_inf_creditor_ref_incomplete') || {}).line, 4);
+    eq('RmtInf prípad: cesta druhého Strd', (najdi(r, 'rmt_inf_multiple_strd') || {}).path, 'CstmrCdtTrfInitn/PmtInf[1]/CdtTrfTxInf[1]/RmtInf/Strd[2]');
+    ok('RmtInf prípad: CdtrRefInf hlási obidva výskyty', ((najdi(r, 'rmt_inf_creditor_ref_incomplete') || {}).message || '').includes('nemá typ referencie <Tp> (2-krát)'));
+  }
+  // Súbor po návrhu opravy už nemá ani jeden nález RmtInf ani symbolov.
+  for (const [verzia, xml] of [['.03', x03], ['.09', x09]]) {
+    const opraveny = xml.replace('<EndToEndId>NOTPROVIDED</EndToEndId>', '<EndToEndId>/VS202611/SS/KS0138</EndToEndId>').replace(RMT_PRIPAD, '<RmtInf><Ustrd>Mzdy 11/2026 SK Testovanie</Ustrd></RmtInf>');
+    const r = d(opraveny, 'tatrabanka');
+    ok(`RmtInf prípad ${verzia}: oprava sa zapísala`, opraveny.includes('/VS202611/SS/KS0138') && !opraveny.includes('<Strd>'));
+    eq(`RmtInf prípad ${verzia}: po oprave bez nálezov RmtInf, symbolov a lomiek`, r.problems.filter((p) => /^(rmt_inf|reference_symbol|identifier_slash|tatra_09_structured)/.test(p.code)).length, 0);
+    if (verzia === '.03') eq('RmtInf prípad .03: po oprave stav pass', r.status, 'pass');
+  }
+
+  // 2. Hlášky: tri jazyky, citát EPC, otázka prednosti, bez pomlčiek, bez istoty odmietnutia mimo SLSP .09.
+  const VETA_PREDNOST = { sk: 'Ktorý z nich má prednosť, tieto pravidlá neurčujú', en: 'Neither says which one takes precedence', de: 'Welches Vorrang hat, legen diese Regeln nicht fest' };
+  const spravy = {};
+  for (const lang of ['sk', 'en', 'de']) {
+    for (const banka of ['tatrabanka', 'slsp', 'vub', 'csob', 'generic']) {
+      for (const [verzia, xml] of [['.03', x03], ['.09', x09]]) {
+        const r = d(xml, banka, lang);
+        for (const kod of ['rmt_inf_ustrd_and_strd', 'rmt_inf_multiple_strd', 'rmt_inf_creditor_ref_incomplete']) {
+          const n = najdi(r, kod);
+          const m = (n && n.message) || '';
+          if (banka === 'generic' && verzia === '.03') spravy[lang + kod] = m;
+          ok(`RmtInf hláška ${kod} ${lang} ${banka} ${verzia}: bez pomlčiek em a en`, !!m && !/[–—]/.test(m), m);
+          const slsp09 = banka === 'slsp' && verzia === '.09' && kod === 'rmt_inf_ustrd_and_strd';
+          ok(`RmtInf hláška ${kod} ${lang} ${banka} ${verzia}: istota odmietnutia len pri SLSP .09`, slsp09 ? /REQ-20584/.test(m) && /FF01/.test(m) : !ZAKAZ_ISTOTY.test(m), m);
+        }
+        const hlavna = (najdi(r, 'rmt_inf_ustrd_and_strd') || {}).message || '';
+        ok(`RmtInf hláška ${lang} ${banka} ${verzia}: cituje pravidlo EPC`, hlavna.includes("Either 'Structured' or 'Unstructured' may be present"), hlavna);
+        ok(`RmtInf hláška ${lang} ${banka} ${verzia}: odpovedá na prednosť`, hlavna.includes(VETA_PREDNOST[lang]), hlavna);
+        ok(`RmtInf hláška ${lang} ${banka} ${verzia}: navrhuje /VS/SS/KS v EndToEndId`, hlavna.includes('<EndToEndId>') && hlavna.includes('/VS123/SS456/KS0308'), hlavna);
+      }
+    }
+    ok(`RmtInf ${lang}: viac Strd cituje EPC a spomína PERI`, spravy[lang + 'rmt_inf_multiple_strd'].includes("Only one occurrence of 'Structured' is allowed") && spravy[lang + 'rmt_inf_multiple_strd'].includes('PERI'));
+    ok(`RmtInf ${lang}: CdtrRefInf cituje EPC a SCOR`, spravy[lang + 'rmt_inf_creditor_ref_incomplete'].includes("When used both 'Type' and 'Reference' must be present") && spravy[lang + 'rmt_inf_creditor_ref_incomplete'].includes('SCOR'));
+  }
+  ok('RmtInf: hlášky sa v jazykoch líšia', spravy.skrmt_inf_ustrd_and_strd !== spravy.enrmt_inf_ustrd_and_strd && spravy.enrmt_inf_ustrd_and_strd !== spravy.dermt_inf_ustrd_and_strd);
+  // Vety bánk: každá banka svoj zdroj, Tatra banka pri .09 bez vety z popisu .03.
+  {
+    const veta = (xml, banka) => (najdi(d(xml, banka), 'rmt_inf_ustrd_and_strd') || {}).message || '';
+    ok('RmtInf banka: SLSP .09 REQ-20584 a FF01', veta(x09, 'slsp').includes('REQ-20584') && veta(x09, 'slsp').includes('FF01'));
+    ok('RmtInf banka: SLSP .03 nie obe, bez FF01', veta(x03, 'slsp').includes('nie obe') && !veta(x03, 'slsp').includes('FF01'));
+    ok('RmtInf banka: VÚB výhradne USTRD', veta(x03, 'vub').includes('výhradne USTRD formu'));
+    ok('RmtInf banka: Tatra banka .03 cituje svoj popis', veta(x03, 'tatrabanka').includes('„Vyplnený je element Ustrd alebo Strd.“'));
+    ok('RmtInf banka: Tatra banka .09 bez vety z popisu .03', !veta(x09, 'tatrabanka').includes('Vyplnený je element'));
+    has('RmtInf banka: Tatra banka .09 hlási aj Strd nepodporovaný', d(x09, 'tatrabanka').problems, 'tatra_09_structured_remittance');
+    ok('RmtInf banka: ČSOB len Strd alebo Ustrd', veta(x03, 'csob').includes('len Strd alebo Ustrd'));
+    ok('RmtInf banka: bez banky žiadna veta banky', !/Slovenská sporiteľňa|VÚB v popise|Tatra banka v popise|ČSOB v špecifikácii/.test(veta(x03, 'generic')));
+  }
+
+  // 3. EndToEndId pri návrhu: nahradenie, rovnaké symboly (aj s „?“ podľa NBS od 18. 3. 2024), iné symboly.
+  {
+    const pre = (e2e) => d(subor(RMT_PRIPAD, e2e), 'vub');
+    const r1 = pre('MZDY-2026-11-001');
+    eq('RmtInf E2E: hodnota bez symbolov, návrh ako pri NOTPROVIDED', fixOf(r1.problems, 'rmt_inf_ustrd_and_strd'), NAVRH);
+    ok('RmtInf E2E: hláška povie, ktorú hodnotu návrh nahrádza', ((najdi(r1, 'rmt_inf_ustrd_and_strd') || {}).message || '').includes('Terajšiu hodnotu <EndToEndId> "MZDY-2026-11-001" návrh nahrádza'));
+    ok('RmtInf E2E: NOTPROVIDED sa za nahradenie nehlási', !((najdi(d(x03, 'vub'), 'rmt_inf_ustrd_and_strd') || {}).message || '').includes('nahrádza'));
+    for (const e2e of ['/VS202611/SS/KS0138', '?/VS202611/SS/KS0138', '/VS202611/SS/KS0138/MZDY', '/VS0000202611/SS/KS138']) {
+      const r = pre(e2e);
+      eq(`RmtInf E2E ${e2e}: symboly už sú (aj s nulami na začiatku), návrh len RmtInf bez Strd`, fixOf(r.problems, 'rmt_inf_ustrd_and_strd'), K_RMT + '<RmtInf><Ustrd>Mzdy 11/2026 SK Testovanie</Ustrd></RmtInf>');
+      ok(`RmtInf E2E ${e2e}: hláška to povie`, ((najdi(r, 'rmt_inf_ustrd_and_strd') || {}).message || '').includes('Rovnaké symboly už sú v <EndToEndId>'));
+    }
+    const r3 = pre('/VS999/SS/KS0138');
+    eq('RmtInf E2E: iné symboly, bez návrhu', fixOf(r3.problems, 'rmt_inf_ustrd_and_strd'), '');
+    ok('RmtInf E2E: iné symboly, hláška ich ukáže', ((najdi(r3, 'rmt_inf_ustrd_and_strd') || {}).message || '').includes('iné symboly ("/VS999/SS/KS0138")'));
+    // Brána sepa-rmtinf, pokus 1, O7: časť symbolov už v EndToEndId je, chýbajúce sa doplnia.
+    eq('RmtInf E2E /VS202611: doplní KS', fixOf(pre('/VS202611').problems, 'rmt_inf_ustrd_and_strd'), NAVRH);
+    // Pokus 2, N6: pri doplnení hláška hovorí o doplnení, nie o nahradení.
+    const dopl = (najdi(pre('/VS202611'), 'rmt_inf_ustrd_and_strd') || {}).message || '';
+    ok('RmtInf E2E /VS202611: hláška o doplnení KS', dopl.includes('návrh doplní chýbajúce symboly (KS 0138)') && !dopl.includes('nahrádza'), dopl);
+    eq('RmtInf E2E ?/VS202611/SS/KS/FA1: doplní KS, ponechá „?“ aj text za symbolmi', fixOf(pre('?/VS202611/SS/KS/FA1').problems, 'rmt_inf_ustrd_and_strd'), K_E2E + '<EndToEndId>?/VS202611/SS/KS0138/FA1</EndToEndId>\n' + K_RMT + '<RmtInf><Ustrd>Mzdy 11/2026 SK Testovanie</Ustrd></RmtInf>');
+    const dlhe = pre('/VS202611/SS1234567890/KS/FAKTURA-2026');
+    eq('RmtInf E2E: doplnenie nad 35 znakov bez návrhu', fixOf(dlhe.problems, 'rmt_inf_ustrd_and_strd'), '');
+    ok('RmtInf E2E: doplnenie nad 35 znakov, hláška to povie', ((najdi(dlhe, 'rmt_inf_ustrd_and_strd') || {}).message || '').includes('viac ako 35 znakov'));
+  }
+
+  // Brána sepa-rmtinf, pokus 1, P3: návrh /VS... do EndToEndId len pri účte príjemcu na Slovensku (SBA: mimo SR lomka nie).
+  for (const [krajina, iban, bic] of [['CZ', 'CZ6508000000192000145399', 'GIBACZPX'], ['DE', 'DE89370400440532013000', 'COBADEFFXXX']]) {
+    const s = clone(PASS_SPEC);
+    s.pmtInf[0].tx[0].endToEndId = 'NOTPROVIDED';
+    s.pmtInf[0].tx[0].cdtrIban = iban;
+    s.pmtInf[0].tx[0].cdtrBic = bic;
+    const r = d(buildPain001(s).replace(POVODNY, RMT_PRIPAD), 'vub');
+    ok(`RmtInf mimo SR ${krajina}: fixtúra sa zapísala`, buildPain001(s).includes(iban));
+    has(`RmtInf mimo SR ${krajina}: nález ostáva`, r.problems, 'rmt_inf_ustrd_and_strd');
+    eq(`RmtInf mimo SR ${krajina}: bez návrhu s lomkou`, fixOf(r.problems, 'rmt_inf_ustrd_and_strd'), '');
+    ok(`RmtInf mimo SR ${krajina}: hláška vysvetlí prečo`, ((najdi(r, 'rmt_inf_ustrd_and_strd') || {}).message || '').includes('len pri účte príjemcu so slovenským IBAN'));
+    // Pokus 2, N2: aj keď EndToEndId už má /VS..., mimo SR hláška upozorní na lomku; návrh je len RmtInf.
+    const u = d(buildPain001(s).replace('<EndToEndId>NOTPROVIDED</EndToEndId>', '<EndToEndId>/VS202611/SS/KS0138</EndToEndId>').replace(POVODNY, RMT_PRIPAD), 'vub');
+    ok(`RmtInf mimo SR ${krajina}, symboly už v E2E: upozornenie na lomku`, ((najdi(u, 'rmt_inf_ustrd_and_strd') || {}).message || '').includes('mimo Slovenska štandard SBA lomku na začiatku'));
+    eq(`RmtInf mimo SR ${krajina}, symboly už v E2E: návrh len RmtInf`, fixOf(u.problems, 'rmt_inf_ustrd_and_strd'), K_RMT + '<RmtInf><Ustrd>Mzdy 11/2026 SK Testovanie</Ustrd></RmtInf>');
+    ok(`RmtInf mimo SR ${krajina}: žiadna karta opravy s /VS`, !r.fixes.some((f) => f.value.includes('/VS202611')));
+  }
+
+  // 4. Iné tvary Strd: RF referencia, symboly v jednom Ref, nesymbolový text, dlhý KS, escapovanie.
+  {
+    const RF = '<Strd><CdtrRefInf><Tp><CdOrPrtry><Cd>SCOR</Cd></CdOrPrtry></Tp><Ref>RF18539007547034</Ref></CdtrRefInf></Strd>';
+    const rUaRF = d(subor('<RmtInf><Ustrd>Faktura 2026-0912</Ustrd>' + RF + '</RmtInf>'), 'vub');
+    has('RmtInf: Ustrd a jeden platný Strd s RF', rUaRF.problems, 'rmt_inf_ustrd_and_strd');
+    lacks('RmtInf: jeden Strd nie je viac Strd', rUaRF.problems, 'rmt_inf_multiple_strd');
+    lacks('RmtInf: platná RF referencia so SCOR bez nálezu CdtrRefInf', rUaRF.problems, 'rmt_inf_creditor_ref_incomplete');
+    eq('RmtInf: bez symbolov bez návrhu', fixOf(rUaRF.problems, 'rmt_inf_ustrd_and_strd'), '');
+    ok('RmtInf: bez symbolov rada nechať jeden', ((najdi(rUaRF, 'rmt_inf_ustrd_and_strd') || {}).message || '').includes('Nechajte len jeden z nich'));
+
+    const rRF = d(subor('<RmtInf>' + RF + '</RmtInf>'), 'tatrabanka');
+    eq('RmtInf: len jeden platný Strd, žiadny nález RmtInf', rRF.problems.filter((p) => p.code.startsWith('rmt_inf')).length, 0);
+    eq('RmtInf: len jeden platný Strd, stav pass', rRF.status, 'pass');
+
+    const jedenRef = d(subor('<RmtInf><Ustrd>Mzdy</Ustrd><Strd><CdtrRefInf><Tp><CdOrPrtry><Cd>SCOR</Cd></CdOrPrtry></Tp><Ref>/VS1/SS2/KS3</Ref></CdtrRefInf></Strd></RmtInf>', 'NOTPROVIDED'), 'vub');
+    eq('RmtInf: symboly v jednom Ref', fixOf(jedenRef.problems, 'rmt_inf_ustrd_and_strd'), K_E2E + '<EndToEndId>/VS1/SS2/KS3</EndToEndId>\n' + K_RMT + '<RmtInf><Ustrd>Mzdy</Ustrd></RmtInf>');
+    // Brána sepa-rmtinf, pokus 1, P4: Strd s čímkoľvek iným než symbolmi v CdtrRefInf/Ref: bez návrhu (nič sa potichu nezahodí).
+    for (const [nazov, ine] of [
+      ['RF referencia v druhom Strd', RF],
+      ['číslo faktúry v RfrdDocInf', '<Strd><RfrdDocInf><Nb>FA-2026-0912</Nb></RfrdDocInf></Strd>'],
+      ['referencia typu CINV', '<Strd><CdtrRefInf><Tp><CdOrPrtry><Cd>CINV</Cd></CdOrPrtry></Tp><Ref>2</Ref></CdtrRefInf></Strd>'],
+      ['RfrdDocInf v tom istom Strd', null],
+    ]) {
+      const rmt = ine
+        ? '<RmtInf><Ustrd>Mzdy</Ustrd><Strd><CdtrRefInf><Ref>VS:202611</Ref></CdtrRefInf></Strd>' + ine + '</RmtInf>'
+        : '<RmtInf><Ustrd>Mzdy</Ustrd><Strd><RfrdDocInf><Nb>FA-1</Nb></RfrdDocInf><CdtrRefInf><Ref>VS:202611</Ref></CdtrRefInf></Strd></RmtInf>';
+      const r = d(subor(rmt, 'NOTPROVIDED'), 'vub');
+      has(`RmtInf P4 ${nazov}: nález ostáva`, r.problems, 'rmt_inf_ustrd_and_strd');
+      eq(`RmtInf P4 ${nazov}: bez návrhu, ktorý by obsah zahodil`, r.problems.filter((p) => p.code.startsWith('rmt_inf') && p.fix).length, 0);
+      ok(`RmtInf P4 ${nazov}: rada nechať jeden`, ((najdi(r, 'rmt_inf_ustrd_and_strd') || {}).message || '').includes('Nechajte len jeden z nich'));
+    }
+    const vsMedzera = d(subor('<RmtInf><Ustrd>Mzdy</Ustrd><Strd><CdtrRefInf><Tp><CdOrPrtry><Cd>SCOR</Cd></CdOrPrtry></Tp><Ref>vs 2026 11</Ref></CdtrRefInf></Strd></RmtInf>', 'NOTPROVIDED'), 'vub');
+    eq('RmtInf: „vs 2026 11“ nie je jednoznačný symbol, bez návrhu', fixOf(vsMedzera.problems, 'rmt_inf_ustrd_and_strd'), '');
+    const text = d(subor('<RmtInf><Ustrd>Mzdy</Ustrd><Strd><CdtrRefInf><Tp><CdOrPrtry><Cd>SCOR</Cd></CdOrPrtry></Tp><Ref>Faktura VS 123</Ref></CdtrRefInf></Strd></RmtInf>', 'NOTPROVIDED'), 'vub');
+    eq('RmtInf: Ref s ďalším textom nie je symbol, bez návrhu', fixOf(text.problems, 'rmt_inf_ustrd_and_strd'), '');
+    const dlhyKs = d(subor('<RmtInf><Ustrd>Mzdy</Ustrd><Strd><CdtrRefInf><Ref>KS:01385</Ref></CdtrRefInf></Strd></RmtInf>', 'NOTPROVIDED'), 'vub');
+    eq('RmtInf: KS s 5 číslicami nie je symbol, bez návrhu', fixOf(dlhyKs.problems, 'rmt_inf_ustrd_and_strd'), '');
+    const dvaVs = d(subor('<RmtInf><Ustrd>Mzdy</Ustrd><Strd><CdtrRefInf><Ref>VS:1</Ref></CdtrRefInf></Strd><Strd><CdtrRefInf><Ref>VS:2</Ref></CdtrRefInf></Strd></RmtInf>', 'NOTPROVIDED'), 'vub');
+    eq('RmtInf: dva rôzne VS, bez návrhu', fixOf(dvaVs.problems, 'rmt_inf_ustrd_and_strd'), '');
+    const amp = d(subor('<RmtInf><Ustrd>Mzdy &amp; odvody &lt;11&gt;</Ustrd><Strd><CdtrRefInf><Ref>VS:202611</Ref></CdtrRefInf></Strd></RmtInf>', 'NOTPROVIDED'), 'vub');
+    eq('RmtInf: text v návrhu je escapovaný pre XML', fixOf(amp.problems, 'rmt_inf_ustrd_and_strd'), K_E2E + '<EndToEndId>/VS202611/SS/KS</EndToEndId>\n' + K_RMT + '<RmtInf><Ustrd>Mzdy &amp; odvody &lt;11&gt;</Ustrd></RmtInf>');
+    // Karta opravy sa dá vložiť do súboru: komentáre sú platné XML a návrh prejde parserom bez chyby.
+    const vlozeny = buildPain001(PASS_SPEC).replace('<EndToEndId>/VS123/SS456/KS0308</EndToEndId>', NAVRH.split('\n').slice(0, 2).join('')).replace(POVODNY, NAVRH.split('\n').slice(2).join(''));
+    const rv = d(vlozeny, 'tatrabanka');
+    lacks('RmtInf: návrh s komentármi vložený do súboru je well-formed', rv.problems, 'xml_not_well_formed');
+    eq('RmtInf: návrh s komentármi vložený do súboru, bez nálezov', rv.problems.length, 0);
+  }
+
+  // Brána sepa-rmtinf, pokus 1, P7: jeden Strd so symbolom bez Ustrd (export len s VS). Rada a návrh pri náleze CdtrRefInf.
+  {
+    const r = d(subor('<RmtInf><Strd><CdtrRefInf><Ref>VS:202611</Ref></CdtrRefInf></Strd></RmtInf>', 'NOTPROVIDED'), 'vub');
+    const n = najdi(r, 'rmt_inf_creditor_ref_incomplete') || {};
+    ok('RmtInf P7: CdtrRefInf bez Tp hlásené', !!n.code);
+    ok('RmtInf P7: rada o EndToEndId', (n.message || '').includes('V <Strd> sú slovenské platobné symboly (VS 202611)') && (n.message || '').includes('<RmtInf> potom celý vynechajte'));
+    eq('RmtInf P7: návrh do EndToEndId pri náleze CdtrRefInf', n.fix, K_E2E + '<EndToEndId>/VS202611/SS/KS</EndToEndId>');
+    eq('RmtInf P7: jediná karta opravy RmtInf', r.problems.filter((p) => p.code.startsWith('rmt_inf') && p.fix).length, 1);
+    // V prípade zákazníka nález CdtrRefInf odkazuje na opravu v hlavnom náleze, neradí inú opravu.
+    const p = najdi(d(x03, 'vub'), 'rmt_inf_creditor_ref_incomplete') || {};
+    ok('RmtInf P7: v prípade zákazníka CdtrRefInf odkazuje na hlavný nález', (p.message || '').includes('Opravu ukazuje nález o <Ustrd> a <Strd> naraz'));
+    eq('RmtInf P7: v prípade zákazníka CdtrRefInf bez vlastného návrhu', p.fix, '');
+  }
+
+  // 5. Viac Strd bez Ustrd: návrh nesie nález viac Strd, Ustrd a Strd naraz nie je.
+  {
+    const r = d(subor('<RmtInf><Strd><CdtrRefInf><Ref>VS:202611</Ref></CdtrRefInf></Strd><Strd><CdtrRefInf><Ref>KS:0138</Ref></CdtrRefInf></Strd></RmtInf>', 'NOTPROVIDED'), 'csob');
+    lacks('RmtInf len Strd: bez nálezu Ustrd a Strd naraz', r.problems, 'rmt_inf_ustrd_and_strd');
+    has('RmtInf len Strd: viac Strd', r.problems, 'rmt_inf_multiple_strd');
+    eq('RmtInf len Strd: návrh do EndToEndId', fixOf(r.problems, 'rmt_inf_multiple_strd'), K_E2E + '<EndToEndId>/VS202611/SS/KS0138</EndToEndId>');
+    ok('RmtInf len Strd: CdtrRefInf odkazuje na nález o viacerých Strd', ((najdi(r, 'rmt_inf_creditor_ref_incomplete') || {}).message || '').includes('Opravu ukazuje nález o viacerých <Strd>'));
+    eq('RmtInf len Strd: jediná karta opravy RmtInf', r.problems.filter((p) => p.code.startsWith('rmt_inf') && p.fix).length, 1);
+    ok('RmtInf len Strd: hláška povie vynechať RmtInf', ((najdi(r, 'rmt_inf_multiple_strd') || {}).message || '').includes('<RmtInf> potom celý vynechajte'));
+    const u = d(subor('<RmtInf><Strd><CdtrRefInf><Ref>VS:202611</Ref></CdtrRefInf></Strd><Strd><CdtrRefInf><Ref>KS:0138</Ref></CdtrRefInf></Strd></RmtInf>', '/VS202611/SS/KS0138'), 'csob');
+    eq('RmtInf len Strd, symboly už v E2E: bez návrhu', fixOf(u.problems, 'rmt_inf_multiple_strd'), '');
+    ok('RmtInf len Strd, symboly už v E2E: RmtInf môže preč', ((najdi(u, 'rmt_inf_multiple_strd') || {}).message || '').includes('<RmtInf> preto môžete celý vynechať'));
+  }
+
+  // 6. Dĺžka Strd: značky a údaje bez <Strd> a </Strd>, biele znaky medzi značkami sa nepočítajú.
+  {
+    // Značky RfrdDocInf/Tp/CdOrPrtry/Cd a Nb majú 75 znakov, „CINV“ 4: obsah = 79 + dĺžka čísla.
+    const strd = (nb, odsad) => {
+      const z = odsad ? '\n    ' : '';
+      return `<Strd>${z}<RfrdDocInf>${z}<Tp><CdOrPrtry><Cd>CINV</Cd></CdOrPrtry></Tp>${z}<Nb>${'1'.repeat(nb)}</Nb>${z}</RfrdDocInf>${z}</Strd>`;
+    };
+    const r140 = d(subor('<RmtInf>' + strd(61) + '</RmtInf>'), 'vub');
+    lacks('Strd presne 140 znakov so značkami: bez nálezu', r140.problems, 'rmt_inf_strd_too_long');
+    const r141 = d(subor('<RmtInf>' + strd(62) + '</RmtInf>'), 'vub');
+    has('Strd 141 znakov so značkami: nález', r141.problems, 'rmt_inf_strd_too_long');
+    eq('Strd 141: hodnota je dĺžka so značkami', (najdi(r141, 'rmt_inf_strd_too_long') || {}).value, '141');
+    eq('Strd 141: medium', severityOf(r141.problems, 'rmt_inf_strd_too_long'), 'medium');
+    ok('Strd 141: hláška uvádza aj dĺžku bez značiek (66) a citát EPC', ((najdi(r141, 'rmt_inf_strd_too_long') || {}).message || '').includes('Bez značiek má 66 znakov') && ((najdi(r141, 'rmt_inf_strd_too_long') || {}).message || '').includes('excluding <Strd> and </Strd>'));
+    lacks('Strd 140 s odsadením: biele znaky sa nepočítajú', d(subor('<RmtInf>' + strd(61, true) + '</RmtInf>'), 'vub').problems, 'rmt_inf_strd_too_long');
+    has('Strd 141 s odsadením: nález', d(subor('<RmtInf>' + strd(62, true) + '</RmtInf>'), 'vub').problems, 'rmt_inf_strd_too_long');
+    eq('Strd 141 v druhom Strd: cesta Strd[2]', (najdi(d(subor('<RmtInf>' + strd(1) + strd(62) + '</RmtInf>'), 'vub'), 'rmt_inf_strd_too_long') || {}).path, 'CstmrCdtTrfInitn/PmtInf[1]/CdtTrfTxInf[1]/RmtInf/Strd[2]');
+    // PERI (EPC Extended Remittance Information): 280 znakov na Strd, viac Strd aj Ustrd spolu,
+    // len bez vybranej banky (brána sepa-rmtinf, pokus 1, P5).
+    lacks('PERI: Strd 141 bez nálezu', d(subor('<RmtInf>' + strd(62) + '</RmtInf>', undefined, 'PERI'), 'generic').problems, 'rmt_inf_strd_too_long');
+    lacks('PERI: Strd 280 bez nálezu', d(subor('<RmtInf>' + strd(201) + '</RmtInf>', undefined, 'PERI'), 'generic').problems, 'rmt_inf_strd_too_long');
+    const r281 = d(subor('<RmtInf>' + strd(202) + '</RmtInf>', undefined, 'PERI'), 'generic');
+    has('PERI: Strd 281 nález', r281.problems, 'rmt_inf_strd_too_long');
+    ok('PERI: hláška hovorí o limite 280', ((najdi(r281, 'rmt_inf_strd_too_long') || {}).message || '').includes('280'));
+    const eriXml = subor('<RmtInf><Ustrd>Mzdy</Ustrd>' + strd(5) + strd(6) + strd(7) + '</RmtInf>', undefined, 'PERI');
+    const eri = d(eriXml, 'generic');
+    lacks('PERI: Ustrd a Strd spolu bez nálezu', eri.problems, 'rmt_inf_ustrd_and_strd');
+    lacks('PERI: tri Strd bez nálezu', eri.problems, 'rmt_inf_multiple_strd');
+    const eriBlok = buildPain001(PASS_SPEC).replace(POVODNY, '<RmtInf><Ustrd>Mzdy</Ustrd>' + strd(5) + strd(6) + '</RmtInf>').replace('<SvcLvl><Cd>SEPA</Cd></SvcLvl></PmtTpInf>', '<SvcLvl><Cd>SEPA</Cd></SvcLvl><LclInstrm><Cd>PERI</Cd></LclInstrm></PmtTpInf>');
+    ok('PERI v PmtInf: fixtúra sa zapísala', eriBlok.includes('<LclInstrm><Cd>PERI</Cd></LclInstrm>'));
+    lacks('PERI v PmtInf: platí aj pre transakciu', d(eriBlok, 'generic').problems, 'rmt_inf_ustrd_and_strd');
+    const tisic = d(subor('<RmtInf>' + strd(1).repeat(1000) + '</RmtInf>', undefined, 'PERI'), 'generic');
+    has('PERI: 1000 Strd je viac ako 999', tisic.problems, 'rmt_inf_multiple_strd');
+    ok('PERI: hláška o 999', ((najdi(tisic, 'rmt_inf_multiple_strd') || {}).message || '').includes('999'));
+    // Pri slovenských bankách sa PERI neberie do úvahy: SLSP iné LclInstrm než INST berie ako nepoužité, ostatné ho neuvádzajú.
+    for (const banka of ['slsp', 'vub', 'csob', 'tatrabanka']) {
+      for (const [verzia, xml] of [['.03', eriXml], ['.09', na09(eriXml)]]) {
+        const r = d(xml, banka);
+        has(`PERI ${banka} ${verzia}: Ustrd a Strd sa hlási`, r.problems, 'rmt_inf_ustrd_and_strd');
+        has(`PERI ${banka} ${verzia}: viac Strd sa hlási`, r.problems, 'rmt_inf_multiple_strd');
+        eq(`PERI ${banka} ${verzia}: závažnosť ako bez PERI`, severityOf(r.problems, 'rmt_inf_ustrd_and_strd'), banka === 'slsp' && verzia === '.09' ? 'high' : 'medium');
+        const m = (najdi(r, 'rmt_inf_ustrd_and_strd') || {}).message || '';
+        ok(`PERI ${banka} ${verzia}: hláška povie, prečo sa PERI neberie do úvahy`, banka === 'slsp' ? m.includes('iné hodnoty, teda aj PERI') : m.includes('v dokumentácii importu neuvádza'), m);
+        ok(`PERI ${banka} ${verzia}: viac Strd neodporúča PERI`, !((najdi(r, 'rmt_inf_multiple_strd') || {}).message || '').includes('Viac výskytov dovoľuje'));
+      }
+    }
+    has('PERI SLSP: Strd 141 sa hlási', d(subor('<RmtInf>' + strd(62) + '</RmtInf>', undefined, 'PERI'), 'slsp').problems, 'rmt_inf_strd_too_long');
+  }
+
+  // 7. CdtrRefInf: chýba Ref, iný typ než SCOR.
+  {
+    const cri = (vnutri) => d(subor(`<RmtInf><Strd><CdtrRefInf>${vnutri}</CdtrRefInf></Strd></RmtInf>`), 'vub');
+    const bezRef = cri('<Tp><CdOrPrtry><Cd>SCOR</Cd></CdOrPrtry></Tp>');
+    ok('CdtrRefInf bez Ref', ((najdi(bezRef, 'rmt_inf_creditor_ref_incomplete') || {}).message || '').includes('nemá referenciu <Ref>'));
+    const zlyTyp = cri('<Tp><CdOrPrtry><Cd>CINV</Cd></CdOrPrtry></Tp><Ref>123</Ref>');
+    ok('CdtrRefInf typ CINV', ((najdi(zlyTyp, 'rmt_inf_creditor_ref_incomplete') || {}).message || '').includes('má typ "CINV" namiesto "SCOR"'));
+    lacks('CdtrRefInf úplná so SCOR bez nálezu', cri('<Tp><CdOrPrtry><Cd>SCOR</Cd></CdOrPrtry><Issr>ISO</Issr></Tp><Ref>RF18539007547034</Ref>').problems, 'rmt_inf_creditor_ref_incomplete');
+    eq('CdtrRefInf: low (banka ju overovať nemusí)', severityOf(zlyTyp.problems, 'rmt_inf_creditor_ref_incomplete'), 'low');
+    // Brána sepa-rmtinf, pokus 1, O8: typ v Prtry (SBA ho pri SEPA nepodporuje, EPC len SCOR).
+    ok('CdtrRefInf typ v Prtry', ((najdi(cri('<Tp><CdOrPrtry><Prtry>FAKTURA</Prtry></CdOrPrtry></Tp><Ref>123</Ref>'), 'rmt_inf_creditor_ref_incomplete') || {}).message || '').includes('má typ "FAKTURA" namiesto "SCOR"'));
+    ok('CdtrRefInf Tp bez Cd aj Prtry', ((najdi(cri('<Tp><CdOrPrtry></CdOrPrtry></Tp><Ref>123</Ref>'), 'rmt_inf_creditor_ref_incomplete') || {}).message || '').includes('nemá typ referencie <Tp>'));
+    // O9: rôzne chyby v jednej platbe, všetky s počtom.
+    const zmes = d(subor('<RmtInf><Strd><CdtrRefInf><Ref>1</Ref></CdtrRefInf></Strd><Strd><CdtrRefInf><Tp><CdOrPrtry><Cd>CINV</Cd></CdOrPrtry></Tp><Ref>2</Ref></CdtrRefInf></Strd><Strd><CdtrRefInf><Ref>3</Ref></CdtrRefInf></Strd></RmtInf>'), 'vub');
+    ok('CdtrRefInf: rôzne chyby, všetky v hláške', ((najdi(zmes, 'rmt_inf_creditor_ref_incomplete') || {}).message || '').includes('nemá typ referencie <Tp> (2-krát), má typ "CINV" namiesto "SCOR"'));
+    eq('CdtrRefInf: rôzne chyby, jeden nález na platbu', zmes.problems.filter((p) => p.code === 'rmt_inf_creditor_ref_incomplete').length, 1);
+    // Brána sepa-rmtinf, pokus 1, P6: SLSP .09 RR09 (typ vyplnený, Ref chýba) je high s vetou banky; inde low.
+    const bezRefXml = subor('<RmtInf><Strd><CdtrRefInf><Tp><CdOrPrtry><Cd>SCOR</Cd></CdOrPrtry></Tp></CdtrRefInf></Strd></RmtInf>');
+    const rr09 = d(na09(bezRefXml), 'slsp');
+    eq('CdtrRefInf SLSP .09 bez Ref: high (RR09)', severityOf(rr09.problems, 'rmt_inf_creditor_ref_incomplete'), 'high');
+    ok('CdtrRefInf SLSP .09 bez Ref: veta o RR09, bez vety o neoverovaní', ((najdi(rr09, 'rmt_inf_creditor_ref_incomplete') || {}).message || '').includes('RR09') && !((najdi(rr09, 'rmt_inf_creditor_ref_incomplete') || {}).message || '').includes('overovať nemusí'));
+    eq('CdtrRefInf SLSP .03 bez Ref: low', severityOf(d(bezRefXml, 'slsp').problems, 'rmt_inf_creditor_ref_incomplete'), 'low');
+    eq('CdtrRefInf VÚB .09 bez Ref: low', severityOf(d(na09(bezRefXml), 'vub').problems, 'rmt_inf_creditor_ref_incomplete'), 'low');
+    // Pokus 2, N5: typ CINV a zároveň chýbajúci Ref, oba v popise.
+    const cinvBezRef = d(na09(subor('<RmtInf><Strd><CdtrRefInf><Tp><CdOrPrtry><Cd>CINV</Cd></CdOrPrtry></Tp></CdtrRefInf></Strd></RmtInf>')), 'slsp');
+    ok('CdtrRefInf SLSP .09 CINV bez Ref: oba problémy v hláške', ((najdi(cinvBezRef, 'rmt_inf_creditor_ref_incomplete') || {}).message || '').includes('má typ "CINV" namiesto "SCOR", nemá referenciu <Ref>'));
+    eq('CdtrRefInf SLSP .09 CINV bez Ref: high (RR09)', severityOf(cinvBezRef.problems, 'rmt_inf_creditor_ref_incomplete'), 'high');
+    eq('CdtrRefInf SLSP .09 bez Tp (nie RR09): low', severityOf(d(na09(subor('<RmtInf><Strd><CdtrRefInf><Ref>123</Ref></CdtrRefInf></Strd></RmtInf>')), 'slsp').problems, 'rmt_inf_creditor_ref_incomplete'), 'low');
+  }
+
+  // 8. Viac Ustrd: zdroje v hláške, závažnosť ostáva low, správny tvar počtu.
+  {
+    const s = clone(PASS_SPEC);
+    s.pmtInf[0].tx[0].ustrd = ['Prva faktura', 'Druha faktura'];
+    const n = najdi(run(s, 'tatrabanka'), 'rmt_inf_multiple_ustrd') || {};
+    ok('viac Ustrd: hláška cituje EPC aj Tatra banku', (n.message || '').includes("Only one occurrence of 'Unstructured' is allowed") && (n.message || '').includes('Nadbytočné elementy budú odstránené'));
+    ok('viac Ustrd: „2 prvky“', (n.message || '').includes('obsahuje 2 prvky <Ustrd>'));
+    s.pmtInf[0].tx[0].ustrd = ['a', 'b', 'c', 'd', 'e'];
+    ok('viac Ustrd: „5 prvkov“', ((najdi(run(s, 'tatrabanka'), 'rmt_inf_multiple_ustrd') || {}).message || '').includes('obsahuje 5 prvkov <Ustrd>'));
+    for (const lang of ['en', 'de']) {
+      const m = (najdi(diagnose({ xml: buildPain001(s), bank: 'tatrabanka', dnes: DNES_PRED, lang }), 'rmt_inf_multiple_ustrd') || {}).message || '';
+      ok(`viac Ustrd ${lang}: netvrdí, že každá banka nadbytočné odstráni`, !/the bank strips|entfernt die Bank/.test(m) && m.includes('Tatra banka'), m);
+    }
+  }
+
+  // Pokus 2, N1: karta opravy RmtInf nesmie do XML vložiť diakritiku (ČSOB súbor s diakritikou neimportuje).
+  for (const lang of ['sk', 'en', 'de']) {
+    const pripady = [
+      x03,
+      subor('<RmtInf><Strd><CdtrRefInf><Ref>VS:202611</Ref></CdtrRefInf></Strd><Strd><CdtrRefInf><Ref>KS:0138</Ref></CdtrRefInf></Strd></RmtInf>', 'NOTPROVIDED'),
+      subor('<RmtInf><Strd><CdtrRefInf><Ref>VS:202611</Ref></CdtrRefInf></Strd></RmtInf>', 'NOTPROVIDED'),
+      subor(RMT_PRIPAD, '/VS202611'),
+      subor(RMT_PRIPAD, '/VS202611/SS/KS0138'),
+    ];
+    for (const [i, xml] of pripady.entries()) {
+      const navrhy = d(xml, 'csob', lang).problems.filter((p) => p.code.startsWith('rmt_inf') && p.fix).map((p) => p.fix);
+      ok(`RmtInf ${lang} prípad ${i + 1}: návrh existuje`, navrhy.length === 1, JSON.stringify(navrhy));
+      ok(`RmtInf ${lang} prípad ${i + 1}: návrh je len ASCII`, navrhy.every((f) => /^[\x00-\x7F]*$/.test(f)), JSON.stringify(navrhy));
+    }
+  }
+
+  // 9. Dokumentácia: nové kódy v README.md a llms-full.txt.
+  {
+    const citaj = (f) => readFileSync(new URL('./' + f, import.meta.url), 'utf8');
+    for (const kod of ['rmt_inf_ustrd_and_strd', 'rmt_inf_multiple_strd', 'rmt_inf_strd_too_long', 'rmt_inf_creditor_ref_incomplete']) {
+      ok(`README.md: nový kód ${kod}`, citaj('README.md').includes('`' + kod + '`'));
+      ok(`llms-full.txt: nový kód ${kod}`, citaj('llms-full.txt').includes('`' + kod + '`'));
+    }
+  }
+}
+
 console.log(`\n${pass} passed, ${fail} failed`);
 if (fail > 0) {
   console.log('\nFailures:');
